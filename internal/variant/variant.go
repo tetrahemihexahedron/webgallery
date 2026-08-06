@@ -59,12 +59,7 @@ func Generate(source string, specs []Spec) (Result, error) {
 		result.Variants = append(result.Variants, variantResult)
 
 		if variantResult.Err != nil {
-			errs = append(errs, fmt.Errorf(
-				"generating %q with width %d: %w",
-				spec.OutPath,
-				spec.Width,
-				variantResult.Err,
-			))
+			errs = append(errs, variantResult.Err)
 		}
 	}
 	return result, errors.Join(errs...)
@@ -76,17 +71,17 @@ func generateVariant(source string, spec Spec) VariantResult {
 	}
 
 	if err := validateSpec(spec); err != nil {
-		result.Err = err
+		result.Err = wrapError(err, spec)
 		return result
 	}
 	if filepath.Clean(source) == filepath.Clean(spec.OutPath) {
-		result.Err = errors.New("source and output file paths cannot be the same")
+		result.Err = wrapError(errors.New("source and output file paths cannot be the same"), spec)
 		return result
 	}
 
 	options, err := determineEncoderOptions(spec.OutPath)
 	if err != nil {
-		result.Err = err
+		result.Err = wrapError(err, spec)
 		return result
 	}
 
@@ -100,17 +95,26 @@ func generateVariant(source string, spec Spec) VariantResult {
 	out, err := cmd.CombinedOutput()
 
 	if err != nil {
-		result.Err = fmt.Errorf("image generation failed: %s; %w", out, err)
+		result.Err = wrapError(fmt.Errorf("image generation failed: %s; %w", out, err), spec)
 		return result
 	}
 	// out is expected to be empty when image generation was successful
 	if len(out) != 0 {
-		result.Err = fmt.Errorf("unexpected output from image generation: %s", out)
+		result.Err = wrapError(fmt.Errorf("unexpected output from image generation: %s", out), spec)
 		return result
 	}
 
 	result.Generated = true
 	return result
+}
+
+func wrapError(err error, spec Spec) error {
+	return fmt.Errorf(
+		"generating %q with width %d: %w",
+		spec.OutPath,
+		spec.Width,
+		err,
+	)
 }
 
 func validateSpec(spec Spec) error {
