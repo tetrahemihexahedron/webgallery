@@ -44,6 +44,14 @@ func (r Result) Failed() []VariantResult {
 	return failed
 }
 
+func (r Result) Err() error {
+	var errs []error
+	for _, result := range r.Failed() {
+		errs = append(errs, result.Err)
+	}
+	return errors.Join(errs...)
+}
+
 func Generate(source string, specs []Spec) (Result, error) {
 	if source == "" {
 		return Result{}, errors.New("source file path cannot be empty")
@@ -52,17 +60,12 @@ func Generate(source string, specs []Spec) (Result, error) {
 	result := Result{
 		Variants: make([]VariantResult, 0, len(specs)),
 	}
-	var errs []error
 
 	for _, spec := range specs {
 		variantResult := generateVariant(source, spec)
 		result.Variants = append(result.Variants, variantResult)
-
-		if variantResult.Err != nil {
-			errs = append(errs, variantResult.Err)
-		}
 	}
-	return result, errors.Join(errs...)
+	return result, result.Err()
 }
 
 func generateVariant(source string, spec Spec) VariantResult {
