@@ -46,6 +46,7 @@ func ProcessDir(config config.Config) error {
 func processFile(metadata image.Metadata, config config.Config) (image.Processed, error) {
 	source := filepath.Join(config.InDir, metadata.FileName)
 	imageDir := filepath.Join(config.OutDir, imageDir())
+
 	if err := os.MkdirAll(imageDir, 0755); err != nil {
 		return image.Processed{}, fmt.Errorf("unable to make image directory %s: %w", imageDir, err)
 	}
@@ -53,6 +54,11 @@ func processFile(metadata image.Metadata, config config.Config) (image.Processed
 	hash, err := hashFile(source)
 	if err != nil {
 		return image.Processed{}, fmt.Errorf("unable to hash file %s: %w", source, err)
+	}
+
+	if err = copyFile(source, filepath.Join(imageDir, "orig.jpg")); err != nil {
+		deleteRemnants(imageDir)
+		return image.Processed{}, fmt.Errorf("unable to copy source %s to %s: %w", source, imageDir, err)
 	}
 
 	processedImg := image.Processed{
@@ -137,4 +143,25 @@ func variantWidths(sourceWidth int, desired []int) []int {
 
 func filename(width int, ext string) string {
 	return "w" + strconv.Itoa(width) + ext
+}
+
+func copyFile(source string, dest string) error {
+	sourcefile, err := os.Open(source)
+	if err != nil {
+		return err
+	}
+	defer sourcefile.Close()
+
+	destination, err := os.Create(dest)
+	if err != nil {
+		return err
+	}
+	defer destination.Close()
+
+	_, err = io.Copy(destination, sourcefile)
+	return err
+}
+
+func deleteRemnants(dir string) error {
+	return os.RemoveAll(dir)
 }
