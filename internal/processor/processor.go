@@ -34,33 +34,41 @@ func ProcessDir(config config.Config) error {
 			continue
 		}
 
-		inPath := filepath.Join(inDir, metadata.FileName)
-		hash, err := hashFile(inPath)
+		_, err := processFile(metadata, config)
+
 		if err != nil {
-			log.Fatal(err)
+			log.Printf("File processing error: %v", err)
 		}
-
-		image := image.Processed{
-			Hash:     hash,
-			ImageDir: filepath.Join(config.OutDir, imageDir()),
-			Metadata: metadata,
-		}
-
-		log.Printf("image is %+v", image)
-
-		if err := os.MkdirAll(image.ImageDir, 0755); err != nil {
-			log.Fatalf("unable to make image directory %s: %v", image.ImageDir, err)
-		}
-
-		specs := variantSpecs(image)
-		_, genErr := variant.Generate(inPath, specs)
-
-		if genErr != nil {
-			log.Fatal(genErr)
-		}
-
 	}
 	return nil
+}
+
+func processFile(metadata image.Metadata, config config.Config) (image.Processed, error) {
+	source := filepath.Join(config.InDir, metadata.FileName)
+	imageDir := filepath.Join(config.OutDir, imageDir())
+	if err := os.MkdirAll(imageDir, 0755); err != nil {
+		return image.Processed{}, fmt.Errorf("unable to make image directory %s: %w", imageDir, err)
+	}
+
+	hash, err := hashFile(source)
+	if err != nil {
+		return image.Processed{}, fmt.Errorf("unable to hash file %s: %w", source, err)
+	}
+
+	processedImg := image.Processed{
+		ImageDir: imageDir,
+		Hash:     hash,
+		Metadata: metadata,
+	}
+
+	specs := variantSpecs(processedImg)
+	result, err := variant.Generate(source, specs)
+	log.Printf(
+		"result: %d variant(s) generated; %d error(s)",
+		len(result.Generated()),
+		len(result.Failed()),
+	)
+	return processedImg, err
 }
 
 func hashFile(filename string) (string, error) {
