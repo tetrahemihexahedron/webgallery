@@ -69,6 +69,15 @@ func processFile(metadata image.Metadata, config config.Config) (image.Processed
 
 	specs := variantSpecs(processedImg)
 	result, err := variant.Generate(source, specs)
+
+	if len(result.Generated()) == 0 {
+		deleteRemnants(imageDir)
+		if err == nil {
+			err = fmt.Errorf("%d variants were attempted, and no errors were reported", len(specs))
+		}
+		return image.Processed{}, fmt.Errorf("no variants were generated: %w", err)
+	}
+
 	log.Printf(
 		"result: %d variant(s) generated; %d error(s)",
 		len(result.Generated()),
