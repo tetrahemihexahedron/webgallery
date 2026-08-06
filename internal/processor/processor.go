@@ -78,6 +78,8 @@ func processFile(metadata image.Metadata, config config.Config) (image.Processed
 		return image.Processed{}, fmt.Errorf("no variants were generated: %w", err)
 	}
 
+	processedImg.Variants = identifyVariants(result.Generated())
+
 	log.Printf(
 		"result: %d variant(s) generated; %d error(s)",
 		len(result.Generated()),
@@ -173,4 +175,16 @@ func copyFile(source string, dest string) error {
 
 func deleteRemnants(dir string) error {
 	return os.RemoveAll(dir)
+}
+
+func identifyVariants(specs []variant.Spec) []image.Variant {
+	variants := make([]image.Variant, 0, len(specs))
+	for _, spec := range specs {
+		variants = append(variants, image.Variant{
+			Path:   spec.OutPath,
+			Format: image.ParseFormat(filepath.Ext(spec.OutPath)),
+			Width:  spec.Width,
+		})
+	}
+	return variants
 }
