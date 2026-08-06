@@ -34,9 +34,9 @@ const (
 
 func ParseFormat(s string) Format {
 	switch strings.ToLower(s) {
-	case "jpeg", "jpg":
+	case "jpeg", "jpg", ".jpeg", ".jpg":
 		return FormatJPEG
-	case "avif":
+	case "avif", ".avif":
 		return FormatAVIF
 	default:
 		return FormatOther
