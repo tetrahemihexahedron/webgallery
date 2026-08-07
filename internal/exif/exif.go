@@ -16,15 +16,24 @@ type Metadata struct {
 	Height      int
 }
 
-func FetchMetadata(path string) ([]Metadata, []error) {
-	output, fetchErr := fetchExiftoolOutput(path)
+type Result struct {
+	Metadata     []Metadata
+	FileProblems []Problem
+}
 
-	metadata, errs := processOutput(output)
-	if fetchErr != nil {
-		errs = append(errs, fetchErr)
+type Problem struct {
+	FileName string
+	Message  string
+}
+
+func FetchMetadata(path string) (Result, error) {
+	output, err := fetchExiftoolOutput(path)
+	if err != nil {
+		return Result{}, err
 	}
 
-	return metadata, errs
+	result := processOutput(output)
+	return result, nil
 }
 
 type exiftoolOutput struct {
@@ -61,27 +70,24 @@ func fetchExiftoolOutput(path string) ([]exiftoolOutput, error) {
 	return output, nil
 }
 
-func processOutput(output []exiftoolOutput) ([]Metadata, []error) {
+func processOutput(output []exiftoolOutput) Result {
 	metadata := make([]Metadata, 0, len(output))
-	var errs []error
+	var problems []Problem
 
 	for _, out := range output {
 		if out.Error != "" {
-			errs = append(errs, fmt.Errorf(
-				"reported by exiftool for %q: %s",
-				out.FileName,
-				out.Error,
-			))
+			problems = append(problems, Problem{
+				FileName: out.FileName,
+				Message:  fmt.Sprintf("reported by exiftool: %s", out.Error),
+			})
 			continue
 		}
-		if out.FileName == "" ||
-			out.FileType == "" ||
-			out.Width == 0 ||
-			out.Height == 0 {
-			errs = append(errs, fmt.Errorf(
-				"missing required metadata in %+v: FileName, FileType, Width, and Height are required",
-				out,
-			))
+		missing := missingMetadata(out)
+		if len(missing) != 0 {
+			problems = append(problems, Problem{
+				FileName: out.FileName,
+				Message:  fmt.Sprintf("missing required metadata: %v", missing),
+			})
 			continue
 		}
 
@@ -94,6 +100,25 @@ func processOutput(output []exiftoolOutput) ([]Metadata, []error) {
 			Height:      out.Height,
 		})
 	}
+	return Result{
+		Metadata:     metadata,
+		FileProblems: problems,
+	}
+}
 
-	return metadata, errs
+func missingMetadata(out exiftoolOutput) []string {
+	required := map[string]bool{
+		"FileName": out.FileName == "",
+		"FileType": out.FileType == "",
+		"Width":    out.Width == 0,
+		"Height":   out.Height == 0,
+	}
+	var missing []string
+
+	for field, isMissing := range required {
+		if isMissing {
+			missing = append(missing, field)
+		}
+	}
+	return missing
 }

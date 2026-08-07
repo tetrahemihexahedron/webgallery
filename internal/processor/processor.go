@@ -21,14 +21,18 @@ import (
 
 func ProcessDir(config config.Config) error {
 	inDir := config.InDir
-	allMetadata, errs := exif.FetchMetadata(inDir)
-
-	log.Printf("Fetched metadata for %d files. %d error(s).", len(allMetadata), len(errs))
-	for _, err := range errs {
-		log.Printf("Metadata error: %v", err)
+	result, err := exif.FetchMetadata(inDir)
+	if err != nil {
+		return err
 	}
 
-	for _, metadata := range allMetadata {
+	log.Printf("Fetched metadata for %d files. %d problems(s).", len(result.Metadata), len(result.FileProblems))
+
+	for _, problem := range result.FileProblems {
+		log.Printf("fetching metadata for %s: %s", problem.FileName, problem.Message)
+	}
+
+	for _, metadata := range result.Metadata {
 		if image.ParseFormat(metadata.Format) != image.FormatJPEG {
 			log.Printf("Skipping file %s: file type is %s, not JPEG", metadata.FileName, metadata.Format)
 			continue

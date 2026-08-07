@@ -56,12 +56,15 @@ func TestFetchMetadata(t *testing.T) {
 
 	for testname, testdata := range tests {
 		t.Run(testname, func(t *testing.T) {
-			metadata, errs := FetchMetadata(testdata.path)
-			if len(errs) != 0 {
-				t.Errorf("Unexpected errors returned when fetching metadata for %q: %v", testdata.path, errs)
+			result, err := FetchMetadata(testdata.path)
+			if err != nil {
+				t.Errorf("Unexpected error returned when fetching metadata for %q: %v", testdata.path, err)
 			}
-			if !slices.Equal(metadata, testdata.desiredMetadata) {
-				t.Errorf("Image metadata incorrect for %q.\n\n   Got: %+v\n\n   Wanted: %+v", testdata.path, metadata, testdata.desiredMetadata)
+			if len(result.FileProblems) != 0 {
+				t.Errorf("Unexpected problems identified: %v", result.FileProblems)
+			}
+			if !slices.Equal(result.Metadata, testdata.desiredMetadata) {
+				t.Errorf("Image metadata incorrect for %q.\n\n   Got: %+v\n\n   Wanted: %+v", testdata.path, result, testdata.desiredMetadata)
 			}
 		})
 	}
@@ -80,14 +83,13 @@ func TestFetchMetadataExecError(t *testing.T) {
 
 	for testname, testdata := range tests {
 		t.Run(testname, func(t *testing.T) {
-			metadata, errs := FetchMetadata(testdata.path)
-			if !slices.Equal(metadata, testdata.desiredMetadata) {
-				t.Errorf("Image metadata incorrect for %q.\n\n   Got: %+v\n\n   Wanted: %+v", testdata.path, metadata, testdata.desiredMetadata)
+			result, err := FetchMetadata(testdata.path)
+			if !slices.Equal(result.Metadata, testdata.desiredMetadata) {
+				t.Errorf("Image metadata incorrect for %q.\n\n   Got: %+v\n\n   Wanted: %+v", testdata.path, result, testdata.desiredMetadata)
 			}
-			if len(errs) != 1 {
-				t.Fatalf("Errors incorrect for %q.\n\n   Got: %+v\n\n   Wanted 1 exec.ExitError", testdata.path, errs)
+			if err == nil {
+				t.Fatalf("Expected an error for %q.\n\n   Wanted 1 exec.ExitError but got none", testdata.path)
 			}
-			err := errs[0]
 			if _, ok := errors.AsType[*exec.ExitError](err); !ok {
 				t.Errorf("Expected an exec.ExitError but got\n\n   %v\nwith type %T", err, err)
 			}
