@@ -56,12 +56,21 @@ func processFile(metadata exif.Metadata, config config.Config) (image.Processed,
 		return image.Processed{}, fmt.Errorf("unable to hash file %s: %w", source, err)
 	}
 
-	if err = copyFile(source, filepath.Join(imageDir, "orig.jpg")); err != nil {
+	sourceDest := filepath.Join(imageDir, "orig.jpg")
+	if err = copyFile(source, sourceDest); err != nil {
 		deleteRemnants(imageDir)
 		return image.Processed{}, fmt.Errorf("unable to copy source %s to %s: %w", source, imageDir, err)
 	}
 
+	sourceFile := image.Source{
+		Hash:   hash,
+		Path:   sourceDest,
+		Width:  metadata.Width,
+		Height: metadata.Height,
+	}
+
 	processedImg := image.Processed{
+		Source:   sourceFile,
 		ImageDir: imageDir,
 		Hash:     hash,
 		Metadata: metadata,

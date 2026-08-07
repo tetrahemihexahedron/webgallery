@@ -5,6 +5,13 @@ import (
 	"tetrahemihexahedron/webimage/internal/exif"
 )
 
+type Source struct {
+	Hash   string
+	Path   string
+	Width  int
+	Height int
+}
+
 type Variant struct {
 	Path   string
 	Format Format
@@ -12,6 +19,7 @@ type Variant struct {
 }
 
 type Processed struct {
+	Source   Source
 	Hash     string
 	ImageDir string
 	Metadata exif.Metadata
