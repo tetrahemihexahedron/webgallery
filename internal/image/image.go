@@ -2,7 +2,6 @@ package image
 
 import (
 	"strings"
-	"tetrahemihexahedron/webimage/internal/exif"
 )
 
 type Source struct {
@@ -20,9 +19,7 @@ type Variant struct {
 
 type Processed struct {
 	Source   Source
-	Hash     string
 	ImageDir string
-	Metadata exif.Metadata
 	Variants []Variant
 }
 

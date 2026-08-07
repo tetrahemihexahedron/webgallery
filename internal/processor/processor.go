@@ -72,8 +72,6 @@ func processFile(metadata exif.Metadata, config config.Config) (image.Processed,
 	processedImg := image.Processed{
 		Source:   sourceFile,
 		ImageDir: imageDir,
-		Hash:     hash,
-		Metadata: metadata,
 	}
 
 	specs := variantSpecs(processedImg)
@@ -135,7 +133,7 @@ func variantSpecs(img image.Processed) []variant.Spec {
 	var desiredExts = []string{".jpg", ".avif"}
 
 	// widths generated are <= the source's width
-	widths := variantWidths(img.Metadata.Width, desiredWidths)
+	widths := variantWidths(img.Source.Width, desiredWidths)
 	specs := make([]variant.Spec, 0, len(widths)*len(desiredExts))
 
 	for _, ext := range desiredExts {
