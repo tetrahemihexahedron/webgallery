@@ -70,8 +70,8 @@ func processFile(metadata exif.Metadata, config config.Config) (image.Processed,
 	}
 
 	processedImg := image.Processed{
-		Source:   sourceFile,
-		ImageDir: imageDir,
+		Source: sourceFile,
+		Dir:    imageDir,
 	}
 
 	specs := variantSpecs(processedImg)
@@ -139,7 +139,7 @@ func variantSpecs(img image.Processed) []variant.Spec {
 	for _, ext := range desiredExts {
 		for _, width := range widths {
 			filename := filename(width, ext)
-			filepath := filepath.Join(img.ImageDir, filename)
+			filepath := filepath.Join(img.Dir, filename)
 			specs = append(specs, variant.Spec{OutPath: filepath, Width: width})
 		}
 	}

@@ -19,7 +19,7 @@ type Variant struct {
 
 type Processed struct {
 	Source   Source
-	ImageDir string
+	Dir      string
 	Variants []Variant
 }
 
