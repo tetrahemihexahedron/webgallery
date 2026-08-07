@@ -56,7 +56,7 @@ func fetchExiftoolOutput(path string) ([]exiftoolOutput, error) {
 	// because exiftool reports the reasons for errors in stdout
 	var output []exiftoolOutput
 	if err := json.Unmarshal(rawOutput, &output); err != nil {
-		return output, fmt.Errorf("unmarshalling exiftool output for %q: %w", path, err)
+		return nil, fmt.Errorf("unmarshalling exiftool output for %q: %w", path, err)
 	}
 	return output, nil
 }
