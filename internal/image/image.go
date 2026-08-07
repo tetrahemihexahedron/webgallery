@@ -1,6 +1,9 @@
 package image
 
-import "strings"
+import (
+	"strings"
+	"tetrahemihexahedron/webimage/internal/exif"
+)
 
 type Variant struct {
 	Path   string
@@ -8,19 +11,10 @@ type Variant struct {
 	Width  int
 }
 
-type Metadata struct {
-	FileName    string
-	Format      Format
-	Title       string
-	Description string
-	Width       int
-	Height      int
-}
-
 type Processed struct {
 	Hash     string
 	ImageDir string
-	Metadata Metadata
+	Metadata exif.Metadata
 	Variants []Variant
 }
 

@@ -29,7 +29,7 @@ func ProcessDir(config config.Config) error {
 	}
 
 	for _, metadata := range allMetadata {
-		if metadata.Format != image.FormatJPEG {
+		if image.ParseFormat(metadata.Format) != image.FormatJPEG {
 			log.Printf("Skipping file %s: file type is %s, not JPEG", metadata.FileName, metadata.Format)
 			continue
 		}
@@ -43,7 +43,7 @@ func ProcessDir(config config.Config) error {
 	return nil
 }
 
-func processFile(metadata image.Metadata, config config.Config) (image.Processed, error) {
+func processFile(metadata exif.Metadata, config config.Config) (image.Processed, error) {
 	source := filepath.Join(config.InDir, metadata.FileName)
 	imageDir := filepath.Join(config.OutDir, imageDir())
 
