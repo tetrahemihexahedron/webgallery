@@ -19,7 +19,7 @@ func TestFetchMetadata(t *testing.T) {
 			desiredMetadata: []image.Metadata{
 				{
 					FileName:    "IMG_3916.jpeg",
-					FileType:    "JPEG",
+					Format:      "JPEG",
 					Title:       "2024 August After kleenex destruction",
 					Description: "A fluffy Rosie, looking innocent after having shredded a kleenex lying nearby",
 					Width:       4032,
@@ -32,7 +32,7 @@ func TestFetchMetadata(t *testing.T) {
 			desiredMetadata: []image.Metadata{
 				{
 					FileName:    "riveter_chew_it_1024x1535.jpeg",
-					FileType:    "JPEG",
+					Format:      "JPEG",
 					Title:       "AIgen We can chew it poster",
 					Description: "A parody of the classic Rosie the Riveter poster, with a poodle in a red bandana saying \"We can chew it\"",
 					Width:       1024,
@@ -45,7 +45,7 @@ func TestFetchMetadata(t *testing.T) {
 			desiredMetadata: []image.Metadata{
 				{
 					FileName:    "squash.jpg",
-					FileType:    "JPEG",
+					Format:      "JPEG",
 					Title:       "",
 					Description: "",
 					Width:       1200,

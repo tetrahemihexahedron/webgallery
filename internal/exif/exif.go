@@ -79,7 +79,7 @@ func processOutput(output []exiftoolOutput) ([]image.Metadata, []error) {
 
 		metadata = append(metadata, image.Metadata{
 			FileName:    out.FileName,
-			FileType:    image.ParseFormat(out.FileType),
+			Format:      image.ParseFormat(out.FileType),
 			Title:       out.Title,
 			Description: out.Description,
 			Width:       out.Width,

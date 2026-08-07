@@ -29,8 +29,8 @@ func ProcessDir(config config.Config) error {
 	}
 
 	for _, metadata := range allMetadata {
-		if metadata.FileType != image.FormatJPEG {
-			log.Printf("Skipping file %s: file type is %s, not JPEG", metadata.FileName, metadata.FileType)
+		if metadata.Format != image.FormatJPEG {
+			log.Printf("Skipping file %s: file type is %s, not JPEG", metadata.FileName, metadata.Format)
 			continue
 		}
 

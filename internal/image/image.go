@@ -10,7 +10,7 @@ type Variant struct {
 
 type Metadata struct {
 	FileName    string
-	FileType    Format
+	Format      Format
 	Title       string
 	Description string
 	Width       int
