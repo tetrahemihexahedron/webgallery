@@ -15,7 +15,7 @@ import (
 	"tetrahemihexahedron/webimage/internal/config"
 	"tetrahemihexahedron/webimage/internal/exif"
 	"tetrahemihexahedron/webimage/internal/image"
-	"tetrahemihexahedron/webimage/internal/variant"
+	"tetrahemihexahedron/webimage/internal/vips"
 	"time"
 )
 
@@ -75,7 +75,7 @@ func processFile(metadata exif.Metadata, config config.Config) (image.Processed,
 	}
 
 	specs := variantSpecs(processedImg)
-	result, err := variant.Generate(source, specs)
+	result, err := vips.Generate(source, specs)
 
 	if len(result.Generated()) == 0 {
 		deleteRemnants(imageDir)
@@ -128,19 +128,19 @@ func imageDir() string {
 	return fmt.Sprintf("%d/%02d/%s/", year, month, randId)
 }
 
-func variantSpecs(img image.Processed) []variant.Spec {
+func variantSpecs(img image.Processed) []vips.Spec {
 	var desiredWidths = []int{400, 800, 1200, 1600}
 	var desiredExts = []string{".jpg", ".avif"}
 
 	// widths generated are <= the source's width
 	widths := variantWidths(img.Source.Width, desiredWidths)
-	specs := make([]variant.Spec, 0, len(widths)*len(desiredExts))
+	specs := make([]vips.Spec, 0, len(widths)*len(desiredExts))
 
 	for _, ext := range desiredExts {
 		for _, width := range widths {
 			filename := filename(width, ext)
 			filepath := filepath.Join(img.Dir, filename)
-			specs = append(specs, variant.Spec{OutPath: filepath, Width: width})
+			specs = append(specs, vips.Spec{OutPath: filepath, Width: width})
 		}
 	}
 	return specs
@@ -184,7 +184,7 @@ func deleteRemnants(dir string) error {
 	return os.RemoveAll(dir)
 }
 
-func identifyVariants(specs []variant.Spec) []image.Variant {
+func identifyVariants(specs []vips.Spec) []image.Variant {
 	variants := make([]image.Variant, 0, len(specs))
 	for _, spec := range specs {
 		variants = append(variants, image.Variant{
