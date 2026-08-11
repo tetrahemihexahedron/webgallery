@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"tetrahemihexahedron/webimage/internal/config"
-	"tetrahemihexahedron/webimage/internal/processor"
 )
 
 func main() {
@@ -14,5 +13,5 @@ func main() {
 
 	log.Printf("Loaded config: %+v", config)
 
-	processor.ProcessDir(config)
+	ProcessDir(config)
 }
