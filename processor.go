@@ -19,32 +19,60 @@ import (
 	"time"
 )
 
-func ProcessDir(config config.Config) error {
+type Result struct {
+	DirProcessed string
+	Images       []image.Processed
+	Problems     []FileProblem
+}
+
+type FileProblem struct {
+	FileName string
+	Message  string
+}
+
+func ProcessDir(config config.Config) (Result, error) {
 	inDir := config.InDir
-	result, err := exif.FetchMetadata(inDir)
+	metadataResult, err := exif.FetchMetadata(inDir)
 	if err != nil {
-		return err
+		return Result{}, err
 	}
 
-	log.Printf("Fetched metadata for %d files. %d problems(s).", len(result.Metadata), len(result.FileProblems))
-
-	for _, problem := range result.FileProblems {
-		log.Printf("fetching metadata for %s: %s", problem.FileName, problem.Message)
+	result := Result{
+		DirProcessed: config.InDir,
 	}
 
-	for _, metadata := range result.Metadata {
+	for _, problem := range metadataResult.FileProblems {
+		result.Problems = append(result.Problems, FileProblem{
+			FileName: problem.FileName,
+			Message:  problem.Message,
+		})
+	}
+
+	for _, metadata := range metadataResult.Metadata {
 		if image.ParseFormat(metadata.Format) != image.FormatJPEG {
-			log.Printf("Skipping file %s: file type is %s, not JPEG", metadata.FileName, metadata.Format)
+			result.Problems = append(result.Problems, FileProblem{
+				FileName: metadata.FileName,
+				Message:  fmt.Sprintf(
+					"skipping file %q: format is %s, not JPEG",
+					metadata.FileName,
+					metadata.Format,
+				),
+			})
 			continue
 		}
 
-		_, err := processFile(metadata, config)
+		imageProcessed, err := processFile(metadata, config)
 
 		if err != nil {
-			log.Printf("File processing error: %v", err)
+			result.Problems = append(result.Problems, FileProblem{
+				FileName: metadata.FileName,
+				Message:  fmt.Sprintf("file processing error: %v", err),
+			})
+		} else {
+			result.Images = append(result.Images, imageProcessed)
 		}
 	}
-	return nil
+	return result, nil
 }
 
 func processFile(metadata exif.Metadata, config config.Config) (image.Processed, error) {
