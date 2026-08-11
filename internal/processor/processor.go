@@ -57,6 +57,7 @@ func processFile(metadata exif.Metadata, config config.Config) (image.Processed,
 
 	hash, err := hashFile(source)
 	if err != nil {
+		deleteRemnants(imageDir)
 		return image.Processed{}, fmt.Errorf("unable to hash file %s: %w", source, err)
 	}
 
