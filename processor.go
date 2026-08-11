@@ -52,7 +52,7 @@ func ProcessDir(config config.Config) (Result, error) {
 		if image.ParseFormat(metadata.Format) != image.FormatJPEG {
 			result.Problems = append(result.Problems, FileProblem{
 				FileName: metadata.FileName,
-				Message:  fmt.Sprintf(
+				Message: fmt.Sprintf(
 					"skipping file %q: format is %s, not JPEG",
 					metadata.FileName,
 					metadata.Format,
@@ -120,11 +120,6 @@ func processFile(metadata exif.Metadata, config config.Config) (image.Processed,
 
 	processedImg.Variants = identifyVariants(result.Generated())
 
-	log.Printf(
-		"result: %d variant(s) generated; %d error(s)",
-		len(result.Generated()),
-		len(result.Failed()),
-	)
 	return processedImg, err
 }
 
