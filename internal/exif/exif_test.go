@@ -56,7 +56,8 @@ func TestFetchMetadata(t *testing.T) {
 
 	for testname, testdata := range tests {
 		t.Run(testname, func(t *testing.T) {
-			result, err := Read(testdata.path)
+			exiftool := Exiftool{}
+			result, err := exiftool.Read(testdata.path)
 			if err != nil {
 				t.Errorf("Unexpected error returned when fetching metadata for %q: %v", testdata.path, err)
 			}
@@ -83,7 +84,8 @@ func TestFetchMetadataExecError(t *testing.T) {
 
 	for testname, testdata := range tests {
 		t.Run(testname, func(t *testing.T) {
-			result, err := Read(testdata.path)
+			exiftool := Exiftool{}
+			result, err := exiftool.Read(testdata.path)
 			if !slices.Equal(result.Metadata, testdata.desiredMetadata) {
 				t.Errorf("Image metadata incorrect for %q.\n\n   Got: %+v\n\n   Wanted: %+v", testdata.path, result, testdata.desiredMetadata)
 			}
