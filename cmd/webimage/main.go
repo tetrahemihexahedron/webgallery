@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"tetrahemihexahedron/webimage/internal/config"
+	"tetrahemihexahedron/webimage/internal/exif"
+	"tetrahemihexahedron/webimage/internal/vips"
 )
 
 func main() {
@@ -14,7 +16,13 @@ func main() {
 
 	fmt.Printf("Processing directory %s\n", config.InDir)
 
-	result, err := ProcessDir(config)
+	processor := processor{
+		cfg:              config,
+		metadataReader:   &exif.Exiftool{},
+		variantGenerator: &vips.Vipsthumbnail{},
+	}
+
+	result, err := processor.ProcessDir()
 
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)

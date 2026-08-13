@@ -38,16 +38,21 @@ type FileProblem struct {
 	Message  string
 }
 
-func ProcessDir(config config.Config) (Result, error) {
-	inDir := config.InDir
-	metadataReader := exif.Exiftool{}
-	metadataResult, err := metadataReader.Read(inDir)
+type processor struct {
+	cfg              config.Config
+	metadataReader   metadataReader
+	variantGenerator variantGenerator
+}
+
+func (p *processor) ProcessDir() (Result, error) {
+	inDir := p.cfg.InDir
+	metadataResult, err := p.metadataReader.Read(inDir)
 	if err != nil {
 		return Result{}, err
 	}
 
 	result := Result{
-		DirProcessed: config.InDir,
+		DirProcessed: inDir,
 	}
 
 	for _, problem := range metadataResult.FileProblems {
@@ -70,7 +75,7 @@ func ProcessDir(config config.Config) (Result, error) {
 			continue
 		}
 
-		imageProcessed, err := processFile(metadata, config)
+		imageProcessed, err := p.processFile(metadata)
 
 		if err != nil {
 			result.Problems = append(result.Problems, FileProblem{
@@ -84,9 +89,9 @@ func ProcessDir(config config.Config) (Result, error) {
 	return result, nil
 }
 
-func processFile(metadata exif.Metadata, config config.Config) (image.Processed, error) {
-	source := filepath.Join(config.InDir, metadata.FileName)
-	imageDir := filepath.Join(config.OutDir, imageDir())
+func (p *processor) processFile(metadata exif.Metadata) (image.Processed, error) {
+	source := filepath.Join(p.cfg.InDir, metadata.FileName)
+	imageDir := filepath.Join(p.cfg.OutDir, imageDir())
 
 	if err := os.MkdirAll(imageDir, 0755); err != nil {
 		return image.Processed{}, fmt.Errorf("unable to make image directory %s: %w", imageDir, err)
@@ -117,8 +122,7 @@ func processFile(metadata exif.Metadata, config config.Config) (image.Processed,
 	}
 
 	specs := variantSpecs(processedImg)
-	variantGenerator := vips.Vipsthumbnail{}
-	result, err := variantGenerator.Generate(source, specs)
+	result, err := p.variantGenerator.Generate(source, specs)
 
 	if len(result.Generated()) == 0 {
 		deleteRemnants(imageDir)
