@@ -26,7 +26,7 @@ type Problem struct {
 	Message  string
 }
 
-func FetchMetadata(path string) (Result, error) {
+func Read(path string) (Result, error) {
 	output, err := fetchExiftoolOutput(path)
 	if err != nil {
 		return Result{}, err

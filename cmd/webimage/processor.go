@@ -32,7 +32,7 @@ type FileProblem struct {
 
 func ProcessDir(config config.Config) (Result, error) {
 	inDir := config.InDir
-	metadataResult, err := exif.FetchMetadata(inDir)
+	metadataResult, err := exif.Read(inDir)
 	if err != nil {
 		return Result{}, err
 	}
