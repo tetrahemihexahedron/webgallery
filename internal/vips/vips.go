@@ -52,7 +52,9 @@ func (r Result) Err() error {
 	return errors.Join(errs...)
 }
 
-func Generate(source string, specs []Spec) (Result, error) {
+type Vipsthumbnail struct{}
+
+func (v *Vipsthumbnail) Generate(source string, specs []Spec) (Result, error) {
 	if source == "" {
 		return Result{}, errors.New("source file path cannot be empty")
 	}

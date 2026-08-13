@@ -23,6 +23,10 @@ type metadataReader interface {
 	Read(path string) (exif.Metadata, error)
 }
 
+type variantGenerator interface {
+	Generate(source string, specs []vips.Spec) (vips.Result, error)
+}
+
 type Result struct {
 	DirProcessed string
 	Images       []image.Processed
@@ -113,7 +117,8 @@ func processFile(metadata exif.Metadata, config config.Config) (image.Processed,
 	}
 
 	specs := variantSpecs(processedImg)
-	result, err := vips.Generate(source, specs)
+	variantGenerator := vips.Vipsthumbnail{}
+	result, err := variantGenerator.Generate(source, specs)
 
 	if len(result.Generated()) == 0 {
 		deleteRemnants(imageDir)
