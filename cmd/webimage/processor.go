@@ -19,6 +19,10 @@ import (
 	"time"
 )
 
+type metadataReader interface {
+	Read(path string) (exif.Metadata, error)
+}
+
 type Result struct {
 	DirProcessed string
 	Images       []image.Processed
@@ -32,7 +36,8 @@ type FileProblem struct {
 
 func ProcessDir(config config.Config) (Result, error) {
 	inDir := config.InDir
-	metadataResult, err := exif.Read(inDir)
+	metadataReader := exif.Exiftool{}
+	metadataResult, err := metadataReader.Read(inDir)
 	if err != nil {
 		return Result{}, err
 	}

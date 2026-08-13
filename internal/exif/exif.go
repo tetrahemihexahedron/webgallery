@@ -26,7 +26,9 @@ type Problem struct {
 	Message  string
 }
 
-func Read(path string) (Result, error) {
+type Exiftool struct{}
+
+func (e *Exiftool) Read(path string) (Result, error) {
 	output, err := fetchExiftoolOutput(path)
 	if err != nil {
 		return Result{}, err
