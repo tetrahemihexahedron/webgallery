@@ -20,7 +20,7 @@ import (
 )
 
 type metadataReader interface {
-	Read(path string) (exif.Metadata, error)
+	Read(path string) (exif.Result, error)
 }
 
 type variantGenerator interface {
