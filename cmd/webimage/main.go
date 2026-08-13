@@ -23,9 +23,8 @@ func main() {
 	}
 
 	result, err := processor.ProcessDir()
-
 	if err != nil {
-		fmt.Printf("Error: %v\n", err)
+		log.Fatal(err)
 	}
 
 	for _, image := range result.Images {
