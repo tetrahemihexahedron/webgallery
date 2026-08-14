@@ -13,14 +13,14 @@ import (
 	"regexp"
 	"strconv"
 	"tetrahemihexahedron/webimage/internal/config"
-	"tetrahemihexahedron/webimage/internal/exif"
 	"tetrahemihexahedron/webimage/internal/image"
+	"tetrahemihexahedron/webimage/internal/metadata"
 	"tetrahemihexahedron/webimage/internal/vips"
 	"time"
 )
 
 type metadataReader interface {
-	Read(path string) (exif.Result, error)
+	Read(path string) (metadata.Result, error)
 }
 
 type variantGenerator interface {
@@ -89,7 +89,7 @@ func (p *processor) ProcessDir() (Result, error) {
 	return result, nil
 }
 
-func (p *processor) processFile(metadata exif.Metadata) (image.Processed, error) {
+func (p *processor) processFile(metadata metadata.Metadata) (image.Processed, error) {
 	source := filepath.Join(p.cfg.InDir, metadata.FileName)
 	imageDir := filepath.Join(p.cfg.OutDir, imageDir())
 
