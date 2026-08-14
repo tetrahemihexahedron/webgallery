@@ -1,4 +1,4 @@
-package vips
+package variants
 
 import (
 	"errors"

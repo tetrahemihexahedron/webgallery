@@ -5,7 +5,7 @@ import (
 	"log"
 	"tetrahemihexahedron/webimage/internal/config"
 	"tetrahemihexahedron/webimage/internal/metadata"
-	"tetrahemihexahedron/webimage/internal/vips"
+	"tetrahemihexahedron/webimage/internal/variants"
 )
 
 func main() {
@@ -19,7 +19,7 @@ func main() {
 	processor := processor{
 		cfg:              config,
 		metadataReader:   &metadata.Exiftool{},
-		variantGenerator: &vips.Vipsthumbnail{},
+		variantGenerator: &variants.Vipsthumbnail{},
 	}
 
 	result, err := processor.ProcessDir()
