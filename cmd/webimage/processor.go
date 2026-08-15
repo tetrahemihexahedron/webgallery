@@ -89,7 +89,7 @@ func (p *processor) ProcessDir() (Result, error) {
 	return result, nil
 }
 
-func (p *processor) processFile(metadata metadata.Metadata) (image.Processed, error) {
+func (p *processor) processFile(metadata image.Metadata) (image.Processed, error) {
 	source := filepath.Join(p.cfg.InDir, metadata.FileName)
 	imageDir := filepath.Join(p.cfg.OutDir, imageDir())
 

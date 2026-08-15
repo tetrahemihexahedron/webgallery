@@ -5,19 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
+	"tetrahemihexahedron/webimage/internal/image"
 )
 
-type Metadata struct {
-	FileName    string
-	Format      string
-	Title       string
-	Description string
-	Width       int
-	Height      int
-}
-
 type Result struct {
-	Metadata     []Metadata
+	Metadata     []image.Metadata
 	FileProblems []Problem
 }
 
@@ -73,7 +65,7 @@ func fetchExiftoolOutput(path string) ([]exiftoolOutput, error) {
 }
 
 func processOutput(output []exiftoolOutput) Result {
-	metadata := make([]Metadata, 0, len(output))
+	metadata := make([]image.Metadata, 0, len(output))
 	var problems []Problem
 
 	for _, out := range output {
@@ -93,7 +85,7 @@ func processOutput(output []exiftoolOutput) Result {
 			continue
 		}
 
-		metadata = append(metadata, Metadata{
+		metadata = append(metadata, image.Metadata{
 			FileName:    out.FileName,
 			Format:      out.FileType,
 			Title:       out.Title,

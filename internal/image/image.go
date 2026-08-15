@@ -4,6 +4,15 @@ import (
 	"strings"
 )
 
+type Metadata struct {
+	FileName    string
+	Format      string
+	Title       string
+	Description string
+	Width       int
+	Height      int
+}
+
 type Source struct {
 	Hash   string
 	Path   string

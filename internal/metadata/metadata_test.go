@@ -6,16 +6,17 @@ import (
 	"path/filepath"
 	"slices"
 	"testing"
+	"tetrahemihexahedron/webimage/internal/image"
 )
 
 func TestFetchMetadata(t *testing.T) {
 	var tests = map[string]struct {
 		path            string
-		desiredMetadata []Metadata
+		desiredMetadata []image.Metadata
 	}{
 		"IMG_3916.jpeg": {
 			path: filepath.Join("testdata", "IMG_3916.jpeg"),
-			desiredMetadata: []Metadata{
+			desiredMetadata: []image.Metadata{
 				{
 					FileName:    "IMG_3916.jpeg",
 					Format:      "JPEG",
@@ -28,7 +29,7 @@ func TestFetchMetadata(t *testing.T) {
 		},
 		"riveter_chew_it_1024x1535.jpeg": {
 			path: filepath.Join("testdata", "riveter_chew_it_1024x1535.jpeg"),
-			desiredMetadata: []Metadata{
+			desiredMetadata: []image.Metadata{
 				{
 					FileName:    "riveter_chew_it_1024x1535.jpeg",
 					Format:      "JPEG",
@@ -41,7 +42,7 @@ func TestFetchMetadata(t *testing.T) {
 		},
 		"squash.jpg": {
 			path: filepath.Join("testdata", "squash.jpg"),
-			desiredMetadata: []Metadata{
+			desiredMetadata: []image.Metadata{
 				{
 					FileName:    "squash.jpg",
 					Format:      "JPEG",
@@ -74,7 +75,7 @@ func TestFetchMetadata(t *testing.T) {
 func TestFetchMetadataExecError(t *testing.T) {
 	var tests = map[string]struct {
 		path            string
-		desiredMetadata []Metadata
+		desiredMetadata []image.Metadata
 	}{
 		"nonexistent.jpg": {
 			path:            filepath.Join("testdata", "nonexistent.jpg"),
