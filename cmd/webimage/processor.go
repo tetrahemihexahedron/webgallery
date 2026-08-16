@@ -12,11 +12,12 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"time"
+
 	"tetrahemihexahedron/webimage/internal/config"
 	"tetrahemihexahedron/webimage/internal/image"
 	"tetrahemihexahedron/webimage/internal/metadata"
 	"tetrahemihexahedron/webimage/internal/variants"
-	"time"
 )
 
 type metadataReader interface {

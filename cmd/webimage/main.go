@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+
 	"tetrahemihexahedron/webimage/internal/config"
 	"tetrahemihexahedron/webimage/internal/metadata"
 	"tetrahemihexahedron/webimage/internal/variants"
