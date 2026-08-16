@@ -28,15 +28,15 @@ type variantGenerator interface {
 	Generate(source string, specs []variants.Spec) (variants.Result, error)
 }
 
-type Result struct {
-	DirProcessed string
-	Images       []image.Processed
-	Problems     []FileProblem
+type result struct {
+	dirProcessed string
+	images       []image.Processed
+	problems     []fileProblem
 }
 
-type FileProblem struct {
-	FileName string
-	Message  string
+type fileProblem struct {
+	fileName string
+	message  string
 }
 
 type processor struct {
@@ -45,29 +45,29 @@ type processor struct {
 	variantGenerator variantGenerator
 }
 
-func (p *processor) ProcessDir() (Result, error) {
+func (p *processor) processDir() (result, error) {
 	inDir := p.cfg.InDir
 	metadataResult, err := p.metadataReader.Read(inDir)
 	if err != nil {
-		return Result{}, err
+		return result{}, err
 	}
 
-	result := Result{
-		DirProcessed: inDir,
+	result := result{
+		dirProcessed: inDir,
 	}
 
 	for _, problem := range metadataResult.FileProblems {
-		result.Problems = append(result.Problems, FileProblem{
-			FileName: problem.FileName,
-			Message:  problem.Message,
+		result.problems = append(result.problems, fileProblem{
+			fileName: problem.FileName,
+			message:  problem.Message,
 		})
 	}
 
 	for _, metadata := range metadataResult.Metadata {
 		if image.ParseFormat(metadata.Format) != image.FormatJPEG {
-			result.Problems = append(result.Problems, FileProblem{
-				FileName: metadata.FileName,
-				Message: fmt.Sprintf(
+			result.problems = append(result.problems, fileProblem{
+				fileName: metadata.FileName,
+				message: fmt.Sprintf(
 					"skipping file %q: format is %s, not JPEG",
 					metadata.FileName,
 					metadata.Format,
@@ -79,12 +79,12 @@ func (p *processor) ProcessDir() (Result, error) {
 		imageProcessed, err := p.processFile(metadata)
 
 		if err != nil {
-			result.Problems = append(result.Problems, FileProblem{
-				FileName: metadata.FileName,
-				Message:  fmt.Sprintf("file processing error: %v", err),
+			result.problems = append(result.problems, fileProblem{
+				fileName: metadata.FileName,
+				message:  fmt.Sprintf("file processing error: %v", err),
 			})
 		} else {
-			result.Images = append(result.Images, imageProcessed)
+			result.images = append(result.images, imageProcessed)
 		}
 	}
 	return result, nil

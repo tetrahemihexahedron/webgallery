@@ -23,16 +23,16 @@ func main() {
 		variantGenerator: &variants.Vipsthumbnail{},
 	}
 
-	result, err := processor.ProcessDir()
+	result, err := processor.processDir()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	for _, image := range result.Images {
+	for _, image := range result.images {
 		fmt.Printf("%s: %d variants\n", image.Dir, len(image.Variants))
 	}
 
-	for _, problem := range result.Problems {
-		fmt.Printf("%s: %s\n", problem.FileName, problem.Message)
+	for _, problem := range result.problems {
+		fmt.Printf("%s: %s\n", problem.fileName, problem.message)
 	}
 }
