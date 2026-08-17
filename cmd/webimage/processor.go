@@ -16,6 +16,7 @@ import (
 
 	"tetrahemihexahedron/webimage/internal/config"
 	"tetrahemihexahedron/webimage/internal/image"
+	"tetrahemihexahedron/webimage/internal/manifest"
 	"tetrahemihexahedron/webimage/internal/metadata"
 	"tetrahemihexahedron/webimage/internal/variants"
 )
@@ -177,6 +178,11 @@ func (p *processor) processFile(metadata image.Metadata) (image.Processed, error
 	}
 
 	processedImg.Variants = identifyVariants(result.Generated())
+
+	if err := manifest.Write(processedImg); err != nil {
+		deleteRemnants(imageDir)
+		return image.Processed{}, fmt.Errorf("unable to write manifest: %w", err)
+	}
 
 	return processedImg, nil
 }
