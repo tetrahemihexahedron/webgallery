@@ -182,8 +182,8 @@ func variantSpecs(img image.Processed) []variants.Spec {
 	for _, ext := range desiredExts {
 		for _, width := range widths {
 			filename := filename(width, ext)
-			filepath := filepath.Join(img.Dir, filename)
-			specs = append(specs, variants.Spec{OutPath: filepath, Width: width})
+			outPath := filepath.Join(img.Dir, filename)
+			specs = append(specs, variants.Spec{OutPath: outPath, Width: width})
 		}
 	}
 	return specs
