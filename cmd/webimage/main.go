@@ -10,15 +10,15 @@ import (
 )
 
 func main() {
-	config, err := config.Load()
+	cfg, err := config.Load()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("Processing directory %s\n", config.InDir)
+	fmt.Printf("Processing directory %s\n", cfg.InDir)
 
 	processor := processor{
-		cfg:              config,
+		cfg:              cfg,
 		metadataReader:   &metadata.Exiftool{},
 		variantGenerator: &variants.Vipsthumbnail{},
 	}
