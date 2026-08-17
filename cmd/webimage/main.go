@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"io"
 	"log"
 	"os"
@@ -29,16 +28,8 @@ func main() {
 		progressReporter: progressReporter,
 	}
 
-	result, err := processor.processDir()
+	_, err = processor.processDir()
 	if err != nil {
 		log.Fatal(err)
-	}
-
-	for _, image := range result.images {
-		fmt.Printf("%s: %d variants\n", image.Dir, len(image.Variants))
-	}
-
-	for _, problem := range result.problems {
-		fmt.Printf("%s: %s\n", problem.fileName, problem.message)
 	}
 }

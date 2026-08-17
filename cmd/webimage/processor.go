@@ -56,19 +56,42 @@ func (p *processor) processDir() (result, error) {
 		return result{}, err
 	}
 
+	fmt.Fprintf(
+		p.progressReporter,
+		"Read metadata from %d file(s) with %d error(s)\n",
+		len(metadataResult.Metadata)+len(metadataResult.FileProblems),
+		len(metadataResult.FileProblems),
+	)
+
 	result := result{
 		dirProcessed: inDir,
 	}
 
 	for _, problem := range metadataResult.FileProblems {
+		fmt.Fprintf(
+			p.progressReporter,
+			"\t%q: %s\n",
+			problem.FileName,
+			problem.Message,
+		)
+
 		result.problems = append(result.problems, fileProblem{
 			fileName: problem.FileName,
 			message:  problem.Message,
 		})
 	}
 
+	fmt.Fprint(p.progressReporter, "\n----------------\n")
+
 	for _, metadata := range metadataResult.Metadata {
 		if image.ParseFormat(metadata.Format) != image.FormatJPEG {
+			fmt.Fprintf(
+				p.progressReporter,
+				"Skipping %q: format is %s, not JPEG\n",
+				metadata.FileName,
+				metadata.Format,
+			)
+
 			result.problems = append(result.problems, fileProblem{
 				fileName: metadata.FileName,
 				message: fmt.Sprintf(
@@ -83,11 +106,26 @@ func (p *processor) processDir() (result, error) {
 		imageProcessed, err := p.processFile(metadata)
 
 		if err != nil {
+			fmt.Fprintf(
+				p.progressReporter,
+				"Error processing %q: %v\n",
+				metadata.FileName,
+				err,
+			)
+
 			result.problems = append(result.problems, fileProblem{
 				fileName: metadata.FileName,
 				message:  fmt.Sprintf("file processing error: %v", err),
 			})
 		} else {
+			fmt.Fprintf(
+				p.progressReporter,
+				"Processed %q:\n\t%d variants generated in %q\n",
+				metadata.FileName,
+				len(imageProcessed.Variants),
+				imageProcessed.Dir,
+			)
+
 			result.images = append(result.images, imageProcessed)
 		}
 	}
