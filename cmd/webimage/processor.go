@@ -178,7 +178,7 @@ func (p *processor) processFile(metadata image.Metadata) (image.Processed, error
 
 	processedImg.Variants = identifyVariants(result.Generated())
 
-	return processedImg, err
+	return processedImg, nil
 }
 
 func hashFile(filename string) (string, error) {
