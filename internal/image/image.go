@@ -41,6 +41,10 @@ const (
 	FormatOther Format = "OTHER"
 )
 
+func (f Format) String() string {
+	return string(f)
+}
+
 func ParseFormat(s string) Format {
 	switch strings.ToLower(s) {
 	case "jpeg", "jpg", ".jpeg", ".jpg":
