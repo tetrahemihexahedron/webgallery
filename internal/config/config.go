@@ -6,8 +6,9 @@ import (
 )
 
 type Config struct {
-	InDir  string
-	OutDir string
+	InDir   string
+	OutDir  string
+	IsQuiet bool
 }
 
 func Load() (Config, error) {
@@ -15,6 +16,7 @@ func Load() (Config, error) {
 
 	flag.StringVar(&config.InDir, "incoming", "", "incoming directory")
 	flag.StringVar(&config.OutDir, "output", "", "output directory")
+	flag.BoolVar(&config.IsQuiet, "quiet", false, "suppress progress output")
 
 	flag.Parse()
 

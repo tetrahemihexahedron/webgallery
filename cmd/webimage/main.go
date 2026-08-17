@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
+	"os"
 
 	"tetrahemihexahedron/webimage/internal/config"
 	"tetrahemihexahedron/webimage/internal/metadata"
@@ -15,12 +17,16 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("Processing directory %s\n", cfg.InDir)
+	progressReporter := io.Writer(os.Stdout)
+	if cfg.IsQuiet {
+		progressReporter = io.Discard
+	}
 
 	processor := processor{
 		cfg:              cfg,
 		metadataReader:   &metadata.Exiftool{},
 		variantGenerator: &variants.Vipsthumbnail{},
+		progressReporter: progressReporter,
 	}
 
 	result, err := processor.processDir()

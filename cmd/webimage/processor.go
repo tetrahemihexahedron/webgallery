@@ -43,10 +43,14 @@ type processor struct {
 	cfg              config.Config
 	metadataReader   metadataReader
 	variantGenerator variantGenerator
+	progressReporter io.Writer
 }
 
 func (p *processor) processDir() (result, error) {
 	inDir := p.cfg.InDir
+
+	fmt.Fprintf(p.progressReporter, "Processing image files in %q\n", inDir)
+
 	metadataResult, err := p.metadataReader.Read(inDir)
 	if err != nil {
 		return result{}, err
