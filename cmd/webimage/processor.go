@@ -163,6 +163,7 @@ func (p *processor) processFile(metadata image.Metadata) (image.Processed, error
 	processedImg := image.Processed{
 		Source:      sourceFile,
 		Dir:         imageDir,
+		Title:       metadata.Title,
 		Description: metadata.Description,
 	}
 

@@ -29,6 +29,7 @@ type Variant struct {
 type Processed struct {
 	Source      Source
 	Dir         string
+	Title       string
 	Description string
 	Variants    []Variant
 }
