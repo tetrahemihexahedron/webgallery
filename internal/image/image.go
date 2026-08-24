@@ -32,6 +32,7 @@ type Processed struct {
 	Dir         string
 	Title       string
 	Description string
+	CapturedAt  string
 	Variants    []Variant
 }
 

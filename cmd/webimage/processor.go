@@ -165,6 +165,7 @@ func (p *processor) processFile(metadata image.Metadata) (image.Processed, error
 		Dir:         imageDir,
 		Title:       metadata.Title,
 		Description: metadata.Description,
+		CapturedAt:  metadata.CapturedAt,
 	}
 
 	specs := variantSpecs(processedImg)
