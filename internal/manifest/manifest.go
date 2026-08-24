@@ -12,6 +12,7 @@ import (
 type manifest struct {
 	Title        string                 `json:"title"`
 	Description  string                 `json:"description"`
+	CapturedAt   string                 `json:"capturedAt"`
 	SourceWidth  int                    `json:"width"`
 	SourceHeight int                    `json:"height"`
 	Variants     map[string][]imageFile `json:"variants"`
@@ -27,6 +28,7 @@ func Write(img image.Processed) error {
 	mani := manifest{
 		Title:        img.Title,
 		Description:  img.Description,
+		CapturedAt:   img.CapturedAt,
 		SourceWidth:  img.Source.Width,
 		SourceHeight: img.Source.Height,
 		Variants:     manifestVariants(img),
