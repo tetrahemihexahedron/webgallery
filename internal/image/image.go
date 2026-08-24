@@ -9,6 +9,7 @@ type Metadata struct {
 	Format      string
 	Title       string
 	Description string
+	CapturedAt  string
 	Width       int
 	Height      int
 }

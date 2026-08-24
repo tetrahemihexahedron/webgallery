@@ -32,13 +32,14 @@ func (e *Exiftool) Read(path string) (Result, error) {
 }
 
 type exiftoolOutput struct {
-	FileName    string `json:"FileName"`
-	FileType    string `json:"FileType"`
-	Title       string `json:"Title"`
-	Description string `json:"Description"`
-	Width       int    `json:"ImageWidth"`
-	Height      int    `json:"ImageHeight"`
-	Error       string `json:"Error"`
+	FileName         string `json:"FileName"`
+	FileType         string `json:"FileType"`
+	Title            string `json:"Title"`
+	Description      string `json:"Description"`
+	DateTimeOriginal string `json:"DateTimeOriginal"`
+	Width            int    `json:"ImageWidth"`
+	Height           int    `json:"ImageHeight"`
+	Error            string `json:"Error"`
 }
 
 func fetchExiftoolOutput(path string) ([]exiftoolOutput, error) {
@@ -91,6 +92,7 @@ func processOutput(output []exiftoolOutput) Result {
 			Format:      out.FileType,
 			Title:       out.Title,
 			Description: out.Description,
+			CapturedAt:  out.DateTimeOriginal,
 			Width:       out.Width,
 			Height:      out.Height,
 		})
