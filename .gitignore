@@ -3,3 +3,5 @@
 # gitignore the built executable
 /webimage
 tmp
+
+.pi
