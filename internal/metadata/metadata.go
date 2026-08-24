@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
+	"strings"
+	"time"
 
 	"tetrahemihexahedron/webimage/internal/image"
 )
@@ -40,6 +42,21 @@ type exiftoolOutput struct {
 	Width            int    `json:"ImageWidth"`
 	Height           int    `json:"ImageHeight"`
 	Error            string `json:"Error"`
+}
+
+const dateTimeOriginalLayout = "2006:01:02 15:04:05"
+
+func parseDateTimeOriginal(s string) (time.Time, error) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return time.Time{}, errors.New("DateTimeOriginal is empty")
+	}
+
+	capturedAt, err := time.Parse(dateTimeOriginalLayout, s)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("parsing DateTimeOriginal %q: %w", s, err)
+	}
+	return capturedAt, nil
 }
 
 func fetchExiftoolOutput(path string) ([]exiftoolOutput, error) {
