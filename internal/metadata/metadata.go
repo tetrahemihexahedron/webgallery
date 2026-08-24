@@ -104,12 +104,25 @@ func processOutput(output []exiftoolOutput) Result {
 			continue
 		}
 
+		capturedAt := ""
+		if strings.TrimSpace(out.DateTimeOriginal) != "" {
+			parsedCapturedAt, err := parseDateTimeOriginal(out.DateTimeOriginal)
+			if err != nil {
+				problems = append(problems, Problem{
+					FileName: out.FileName,
+					Message:  fmt.Sprintf("invalid DateTimeOriginal %q: %v", out.DateTimeOriginal, err),
+				})
+				continue
+			}
+			capturedAt = image.FormatCapturedAt(parsedCapturedAt)
+		}
+
 		metadata = append(metadata, image.Metadata{
 			FileName:    out.FileName,
 			Format:      out.FileType,
 			Title:       out.Title,
 			Description: out.Description,
-			CapturedAt:  out.DateTimeOriginal,
+			CapturedAt:  capturedAt,
 			Width:       out.Width,
 			Height:      out.Height,
 		})
