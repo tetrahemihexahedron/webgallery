@@ -90,12 +90,18 @@ func generateVariant(source string, spec Spec) VariantResult {
 		return result
 	}
 
+	absoluteOutPath, err := filepath.Abs(spec.OutPath)
+	if err != nil {
+		result.Err = wrapError(fmt.Errorf("unable to form absolute output path: %w", err), spec)
+		return result
+	}
+
 	// appending '>' tells libvips to only shrink; if the image is already
 	// smaller than the requested size, the size won't change
 	width := strconv.Itoa(spec.Width) + "x>"
-	path := spec.OutPath + options
+	path := absoluteOutPath + options
 
-	cmd := exec.Command("vipsthumbnail", source, "--size", width, "--path", path)
+	cmd := exec.Command("vipsthumbnail", source, "--size", width, "--output", path)
 
 	out, err := cmd.CombinedOutput()
 
