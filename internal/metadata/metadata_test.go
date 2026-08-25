@@ -2,6 +2,7 @@ package metadata_test
 
 import (
 	"errors"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"slices"
@@ -81,6 +82,57 @@ func TestExiftoolRead(t *testing.T) {
 	}
 }
 
+func TestExiftoolReadReadsDirectories(t *testing.T) {
+	t.Run("empty directory", func(t *testing.T) {
+		path := t.TempDir()
+		got, err := (&metadata.Exiftool{}).Read(path)
+		if err != nil {
+			t.Fatalf("Exiftool.Read(%q) returned error: %v", path, err)
+		}
+		if len(got.Metadata) != 0 {
+			t.Errorf("Exiftool.Read(%q) returned metadata: %+v", path, got.Metadata)
+		}
+		if len(got.FileProblems) != 0 {
+			t.Errorf("Exiftool.Read(%q) returned file problems: %+v", path, got.FileProblems)
+		}
+	})
+
+	t.Run("directory with good and bad files", func(t *testing.T) {
+		path := t.TempDir()
+		copyFixture(t, path, "complete_metadata.jpg")
+		copyFixture(t, path, "empty.jpg")
+
+		wantMetadata := []image.Metadata{
+			{
+				FileName:    "complete_metadata.jpg",
+				Format:      "JPEG",
+				Title:       "2024 August After kleenex destruction",
+				Description: "A fluffy Rosie, looking innocent after having shredded a kleenex lying nearby",
+				CapturedAt:  "2024-08-04T05:42:02",
+				Width:       4032,
+				Height:      3024,
+			},
+		}
+		wantProblems := []metadata.Problem{
+			{
+				FileName: "empty.jpg",
+				Message:  "reported by exiftool: File is empty",
+			},
+		}
+
+		got, err := (&metadata.Exiftool{}).Read(path)
+		if err != nil {
+			t.Fatalf("Exiftool.Read(%q) returned error: %v", path, err)
+		}
+		if !slices.Equal(got.Metadata, wantMetadata) {
+			t.Errorf("Exiftool.Read(%q) metadata mismatch\n got: %+v\nwant: %+v", path, got.Metadata, wantMetadata)
+		}
+		if !slices.Equal(got.FileProblems, wantProblems) {
+			t.Errorf("Exiftool.Read(%q) file problems mismatch\n got: %+v\nwant: %+v", path, got.FileProblems, wantProblems)
+		}
+	})
+}
+
 func TestExiftoolReadReportsFileProblems(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -133,6 +185,21 @@ func TestExiftoolReadReportsFileProblems(t *testing.T) {
 				t.Errorf("Exiftool.Read(%q) file problems mismatch\n got: %+v\nwant: %+v", path, got.FileProblems, tc.wantProblems)
 			}
 		})
+	}
+}
+
+func copyFixture(t *testing.T, dir, name string) {
+	t.Helper()
+
+	src := filepath.Join("testdata", name)
+	dst := filepath.Join(dir, name)
+
+	data, err := os.ReadFile(src)
+	if err != nil {
+		t.Fatalf("reading fixture %q: %v", src, err)
+	}
+	if err := os.WriteFile(dst, data, 0644); err != nil {
+		t.Fatalf("writing fixture copy %q: %v", dst, err)
 	}
 }
 
