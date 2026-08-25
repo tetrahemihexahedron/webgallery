@@ -1,4 +1,4 @@
-package metadata
+package metadata_test
 
 import (
 	"errors"
@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"tetrahemihexahedron/webimage/internal/image"
+	"tetrahemihexahedron/webimage/internal/metadata"
 )
 
 func TestExiftoolRead(t *testing.T) {
@@ -66,7 +67,7 @@ func TestExiftoolRead(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			path := filepath.Join("testdata", tc.file)
-			got, err := (&Exiftool{}).Read(path)
+			got, err := (&metadata.Exiftool{}).Read(path)
 			if err != nil {
 				t.Fatalf("Exiftool.Read(%q) returned error: %v", path, err)
 			}
@@ -84,12 +85,12 @@ func TestExiftoolReadReportsFileProblems(t *testing.T) {
 	tests := []struct {
 		name         string
 		file         string
-		wantProblems []Problem
+		wantProblems []metadata.Problem
 	}{
 		{
 			name: "errors reported by exiftool",
 			file: "empty.jpg",
-			wantProblems: []Problem{
+			wantProblems: []metadata.Problem{
 				{
 					FileName: "empty.jpg",
 					Message:  "reported by exiftool: File is empty",
@@ -99,7 +100,7 @@ func TestExiftoolReadReportsFileProblems(t *testing.T) {
 		{
 			name: "missing required metadata",
 			file: "missing_metadata.jpg",
-			wantProblems: []Problem{
+			wantProblems: []metadata.Problem{
 				{
 					FileName: "missing_metadata.jpg",
 					Message:  "missing required metadata: [Width Height]",
@@ -109,7 +110,7 @@ func TestExiftoolReadReportsFileProblems(t *testing.T) {
 		{
 			name: "invalid DateTimeOriginal",
 			file: "bad_datetimeoriginal.jpg",
-			wantProblems: []Problem{
+			wantProblems: []metadata.Problem{
 				{
 					FileName: "bad_datetimeoriginal.jpg",
 					Message:  `invalid DateTimeOriginal "2020-01-02T03:04:05": parsing time "2020-01-02T03:04:05" as "2006:01:02 15:04:05": cannot parse "-01-02T03:04:05" as ":"`,
@@ -121,7 +122,7 @@ func TestExiftoolReadReportsFileProblems(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			path := filepath.Join("testdata", tc.file)
-			got, err := (&Exiftool{}).Read(path)
+			got, err := (&metadata.Exiftool{}).Read(path)
 			if err != nil {
 				t.Fatalf("Exiftool.Read(%q) returned error: %v", path, err)
 			}
@@ -151,7 +152,7 @@ func TestExiftoolReadReturnsError(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			path := filepath.Join("testdata", tc.file)
-			got, err := (&Exiftool{}).Read(path)
+			got, err := (&metadata.Exiftool{}).Read(path)
 			if !slices.Equal(got.Metadata, tc.wantMetadata) {
 				t.Errorf("Exiftool.Read(%q) metadata mismatch\n got: %+v\nwant: %+v", path, got.Metadata, tc.wantMetadata)
 			}
