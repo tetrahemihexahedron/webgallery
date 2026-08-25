@@ -69,13 +69,13 @@ func TestExiftoolRead(t *testing.T) {
 			exiftool := Exiftool{}
 			got, err := exiftool.Read(path)
 			if err != nil {
-				t.Errorf("Unexpected error returned: %v", err)
+				t.Fatalf("Exiftool.Read(%q) returned error: %v", path, err)
 			}
 			if len(got.FileProblems) != 0 {
-				t.Errorf("Unexpected problems identified: %v", got.FileProblems)
+				t.Errorf("Exiftool.Read(%q) returned file problems: %v", path, got.FileProblems)
 			}
 			if !slices.Equal(got.Metadata, tc.wantMetadata) {
-				t.Errorf("Image metadata incorrect.\n\n   Got: %+v\n\n   Want: %+v", got.Metadata, tc.wantMetadata)
+				t.Errorf("Exiftool.Read(%q) metadata mismatch\n got: %+v\nwant: %+v", path, got.Metadata, tc.wantMetadata)
 			}
 		})
 	}
@@ -100,13 +100,13 @@ func TestExiftoolReadReturnsErrorForMissingFile(t *testing.T) {
 			exiftool := Exiftool{}
 			got, err := exiftool.Read(path)
 			if !slices.Equal(got.Metadata, tc.wantMetadata) {
-				t.Errorf("Image metadata incorrect.\n\n   Got: %+v\n\n   Want: %+v", got, tc.wantMetadata)
+				t.Errorf("Exiftool.Read(%q) metadata mismatch\n got: %+v\nwant: %+v", path, got.Metadata, tc.wantMetadata)
 			}
 			if err == nil {
-				t.Fatal("Want an exec.ExitError but got no errors")
+				t.Fatalf("Exiftool.Read(%q) returned nil error, want error wrapping *exec.ExitError", path)
 			}
 			if _, ok := errors.AsType[*exec.ExitError](err); !ok {
-				t.Errorf("Want an exec.ExitError but got: %#v", err)
+				t.Errorf("Exiftool.Read(%q) returned error %v (%T), want error wrapping *exec.ExitError", path, err, err)
 			}
 		})
 	}
