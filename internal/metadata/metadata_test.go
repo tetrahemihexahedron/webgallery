@@ -18,10 +18,10 @@ func TestExiftoolRead(t *testing.T) {
 	}{
 		{
 			name: "reads complete metadata",
-			file: "IMG_3916.jpeg",
+			file: "complete_metadata.jpg",
 			wantMetadata: []image.Metadata{
 				{
-					FileName:    "IMG_3916.jpeg",
+					FileName:    "complete_metadata.jpg",
 					Format:      "JPEG",
 					Title:       "2024 August After kleenex destruction",
 					Description: "A fluffy Rosie, looking innocent after having shredded a kleenex lying nearby",
@@ -33,10 +33,10 @@ func TestExiftoolRead(t *testing.T) {
 		},
 		{
 			name: "handles quotes in metadata",
-			file: "riveter_chew_it_1024x1535.jpeg",
+			file: "quotes_in_metadata.jpg",
 			wantMetadata: []image.Metadata{
 				{
-					FileName:    "riveter_chew_it_1024x1535.jpeg",
+					FileName:    "quotes_in_metadata.jpg",
 					Format:      "JPEG",
 					Title:       "AIgen We can chew it poster",
 					Description: "A parody of the classic Rosie the Riveter poster, with a poodle in a red bandana saying \"We can chew it\"",
@@ -48,10 +48,10 @@ func TestExiftoolRead(t *testing.T) {
 		},
 		{
 			name: "handles missing optional metadata",
-			file: "squash.jpg",
+			file: "partial_metadata.jpg",
 			wantMetadata: []image.Metadata{
 				{
-					FileName:    "squash.jpg",
+					FileName:    "partial_metadata.jpg",
 					Format:      "JPEG",
 					Title:       "",
 					Description: "",
