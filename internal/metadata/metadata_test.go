@@ -75,7 +75,7 @@ func TestExiftoolRead(t *testing.T) {
 				t.Errorf("Unexpected problems identified: %v", got.FileProblems)
 			}
 			if !slices.Equal(got.Metadata, tc.wantMetadata) {
-				t.Errorf("Image metadata incorrect.\n\n   Got: %+v\n\n   Want: %+v", got, tc.wantMetadata)
+				t.Errorf("Image metadata incorrect.\n\n   Got: %+v\n\n   Want: %+v", got.Metadata, tc.wantMetadata)
 			}
 		})
 	}
