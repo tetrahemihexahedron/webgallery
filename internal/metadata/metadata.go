@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -66,11 +67,21 @@ func fetchExiftoolOutput(path string) ([]exiftoolOutput, error) {
 
 	if len(rawOutput) == 0 {
 		if commandErr == nil {
+			// This is normal for an empty directory
+			empty, err := isEmptyDir(path)
+			if err != nil {
+				return nil, fmt.Errorf("checking whether %q is an empty directory: %w", path, err)
+			}
+			if empty {
+				return nil, nil
+			}
 			return nil, fmt.Errorf("running exiftool on %q returned no output and no error", path)
 		}
+
 		if exitErr, ok := errors.AsType[*exec.ExitError](commandErr); ok {
 			return nil, fmt.Errorf("running exiftool on %q: %w %s", path, commandErr, exitErr.Stderr)
 		}
+
 		return nil, fmt.Errorf("running exiftool on %q: %w", path, commandErr)
 	}
 
@@ -81,6 +92,22 @@ func fetchExiftoolOutput(path string) ([]exiftoolOutput, error) {
 		return nil, fmt.Errorf("unmarshalling exiftool output for %q: %w", path, err)
 	}
 	return output, nil
+}
+
+func isEmptyDir(path string) (bool, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return false, err
+	}
+	if !info.IsDir() {
+		return false, nil
+	}
+
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		return false, err
+	}
+	return len(entries) == 0, nil
 }
 
 func processOutput(output []exiftoolOutput) Result {
