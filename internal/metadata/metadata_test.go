@@ -10,7 +10,7 @@ import (
 	"tetrahemihexahedron/webimage/internal/image"
 )
 
-func TestFetchMetadata(t *testing.T) {
+func TestExiftoolRead(t *testing.T) {
 	var tests = map[string]struct {
 		path            string
 		desiredMetadata []image.Metadata
@@ -76,7 +76,7 @@ func TestFetchMetadata(t *testing.T) {
 	}
 }
 
-func TestFetchMetadataExecError(t *testing.T) {
+func TestExiftoolReadReturnsErrorForMissingFile(t *testing.T) {
 	var tests = map[string]struct {
 		path            string
 		desiredMetadata []image.Metadata
