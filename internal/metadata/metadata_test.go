@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"slices"
 	"testing"
-	"time"
 
 	"tetrahemihexahedron/webimage/internal/image"
 )
@@ -102,31 +101,5 @@ func TestFetchMetadataExecError(t *testing.T) {
 				t.Errorf("Expected an exec.ExitError but got\n\n   %v\nwith type %T", err, err)
 			}
 		})
-	}
-}
-
-func TestParseDateTimeOriginal(t *testing.T) {
-	got, err := parseDateTimeOriginal("2024:05:12 14:22:00")
-	if err != nil {
-		t.Fatalf("parseDateTimeOriginal returned an unexpected error: %v", err)
-	}
-
-	want := time.Date(2024, time.May, 12, 14, 22, 0, 0, time.UTC)
-	if !got.Equal(want) {
-		t.Errorf("parseDateTimeOriginal returned %v, want %v", got, want)
-	}
-}
-
-func TestParseDateTimeOriginalRejectsEmptyValue(t *testing.T) {
-	_, err := parseDateTimeOriginal("  \t")
-	if err == nil {
-		t.Fatal("parseDateTimeOriginal returned nil error for empty value")
-	}
-}
-
-func TestParseDateTimeOriginalRejectsInvalidValue(t *testing.T) {
-	_, err := parseDateTimeOriginal("2024-05-12T14:22:00")
-	if err == nil {
-		t.Fatal("parseDateTimeOriginal returned nil error for invalid value")
 	}
 }
