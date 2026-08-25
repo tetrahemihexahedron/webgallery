@@ -80,7 +80,7 @@ func TestExiftoolRead(t *testing.T) {
 	}
 }
 
-func TestExiftoolReadReturnsErrorForMissingFile(t *testing.T) {
+func TestExiftoolReadReturnsError(t *testing.T) {
 	tests := []struct {
 		name         string
 		file         string
