@@ -55,7 +55,7 @@ func parseDateTimeOriginal(s string) (time.Time, error) {
 
 	capturedAt, err := time.Parse(dateTimeOriginalLayout, s)
 	if err != nil {
-		return time.Time{}, fmt.Errorf("parsing DateTimeOriginal %q: %w", s, err)
+		return time.Time{}, err
 	}
 	return capturedAt, nil
 }
