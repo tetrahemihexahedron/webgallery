@@ -11,13 +11,15 @@ import (
 )
 
 func TestExiftoolRead(t *testing.T) {
-	var tests = map[string]struct {
-		path            string
-		desiredMetadata []image.Metadata
+	tests := []struct {
+		name         string
+		file         string
+		wantMetadata []image.Metadata
 	}{
-		"IMG_3916.jpeg": {
-			path: filepath.Join("testdata", "IMG_3916.jpeg"),
-			desiredMetadata: []image.Metadata{
+		{
+			name: "reads complete metadata",
+			file: "IMG_3916.jpeg",
+			wantMetadata: []image.Metadata{
 				{
 					FileName:    "IMG_3916.jpeg",
 					Format:      "JPEG",
@@ -29,9 +31,10 @@ func TestExiftoolRead(t *testing.T) {
 				},
 			},
 		},
-		"riveter_chew_it_1024x1535.jpeg": {
-			path: filepath.Join("testdata", "riveter_chew_it_1024x1535.jpeg"),
-			desiredMetadata: []image.Metadata{
+		{
+			name: "handles quotes in metadata",
+			file: "riveter_chew_it_1024x1535.jpeg",
+			wantMetadata: []image.Metadata{
 				{
 					FileName:    "riveter_chew_it_1024x1535.jpeg",
 					Format:      "JPEG",
@@ -43,9 +46,10 @@ func TestExiftoolRead(t *testing.T) {
 				},
 			},
 		},
-		"squash.jpg": {
-			path: filepath.Join("testdata", "squash.jpg"),
-			desiredMetadata: []image.Metadata{
+		{
+			name: "handles missing optional metadata",
+			file: "squash.jpg",
+			wantMetadata: []image.Metadata{
 				{
 					FileName:    "squash.jpg",
 					Format:      "JPEG",
@@ -59,46 +63,50 @@ func TestExiftoolRead(t *testing.T) {
 		},
 	}
 
-	for testname, testdata := range tests {
-		t.Run(testname, func(t *testing.T) {
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			path := filepath.Join("testdata", tc.file)
 			exiftool := Exiftool{}
-			result, err := exiftool.Read(testdata.path)
+			got, err := exiftool.Read(path)
 			if err != nil {
-				t.Errorf("Unexpected error returned when fetching metadata for %q: %v", testdata.path, err)
+				t.Errorf("Unexpected error returned: %v", err)
 			}
-			if len(result.FileProblems) != 0 {
-				t.Errorf("Unexpected problems identified: %v", result.FileProblems)
+			if len(got.FileProblems) != 0 {
+				t.Errorf("Unexpected problems identified: %v", got.FileProblems)
 			}
-			if !slices.Equal(result.Metadata, testdata.desiredMetadata) {
-				t.Errorf("Image metadata incorrect for %q.\n\n   Got: %+v\n\n   Wanted: %+v", testdata.path, result, testdata.desiredMetadata)
+			if !slices.Equal(got.Metadata, tc.wantMetadata) {
+				t.Errorf("Image metadata incorrect.\n\n   Got: %+v\n\n   Want: %+v", got, tc.wantMetadata)
 			}
 		})
 	}
 }
 
 func TestExiftoolReadReturnsErrorForMissingFile(t *testing.T) {
-	var tests = map[string]struct {
-		path            string
-		desiredMetadata []image.Metadata
+	tests := []struct {
+		name         string
+		file         string
+		wantMetadata []image.Metadata
 	}{
-		"nonexistent.jpg": {
-			path:            filepath.Join("testdata", "nonexistent.jpg"),
-			desiredMetadata: nil,
+		{
+			name:         "missing file",
+			file:         "nonexistent.jpg",
+			wantMetadata: nil,
 		},
 	}
 
-	for testname, testdata := range tests {
-		t.Run(testname, func(t *testing.T) {
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			path := filepath.Join("testdata", tc.file)
 			exiftool := Exiftool{}
-			result, err := exiftool.Read(testdata.path)
-			if !slices.Equal(result.Metadata, testdata.desiredMetadata) {
-				t.Errorf("Image metadata incorrect for %q.\n\n   Got: %+v\n\n   Wanted: %+v", testdata.path, result, testdata.desiredMetadata)
+			got, err := exiftool.Read(path)
+			if !slices.Equal(got.Metadata, tc.wantMetadata) {
+				t.Errorf("Image metadata incorrect.\n\n   Got: %+v\n\n   Want: %+v", got, tc.wantMetadata)
 			}
 			if err == nil {
-				t.Fatalf("Expected an error for %q.\n\n   Wanted 1 exec.ExitError but got none", testdata.path)
+				t.Fatal("Want an exec.ExitError but got no errors")
 			}
 			if _, ok := errors.AsType[*exec.ExitError](err); !ok {
-				t.Errorf("Expected an exec.ExitError but got\n\n   %v\nwith type %T", err, err)
+				t.Errorf("Want an exec.ExitError but got: %#v", err)
 			}
 		})
 	}
