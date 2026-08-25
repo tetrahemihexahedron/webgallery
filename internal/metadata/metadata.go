@@ -161,18 +161,20 @@ func processOutput(output []exiftoolOutput) Result {
 }
 
 func missingMetadata(out exiftoolOutput) []string {
-	required := map[string]bool{
-		"FileName": out.FileName == "",
-		"FileType": out.FileType == "",
-		"Width":    out.Width == 0,
-		"Height":   out.Height == 0,
-	}
 	var missing []string
 
-	for field, isMissing := range required {
-		if isMissing {
-			missing = append(missing, field)
-		}
+	if out.FileName == "" {
+		missing = append(missing, "FileName")
 	}
+	if out.FileType == "" {
+		missing = append(missing, "FileType")
+	}
+	if out.Width == 0 {
+		missing = append(missing, "Width")
+	}
+	if out.Height == 0 {
+		missing = append(missing, "Height")
+	}
+
 	return missing
 }
