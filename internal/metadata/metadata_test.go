@@ -80,6 +80,61 @@ func TestExiftoolRead(t *testing.T) {
 	}
 }
 
+func TestExiftoolReadReportsFileProblems(t *testing.T) {
+	tests := []struct {
+		name         string
+		file         string
+		wantProblems []Problem
+	}{
+		{
+			name: "errors reported by exiftool",
+			file: "empty.jpg",
+			wantProblems: []Problem{
+				{
+					FileName: "empty.jpg",
+					Message:  "reported by exiftool: File is empty",
+				},
+			},
+		},
+		{
+			name: "missing required metadata",
+			file: "missing_metadata.jpg",
+			wantProblems: []Problem{
+				{
+					FileName: "missing_metadata.jpg",
+					Message:  "missing required metadata: [Width Height]",
+				},
+			},
+		},
+		{
+			name: "invalid DateTimeOriginal",
+			file: "bad_datetimeoriginal.jpg",
+			wantProblems: []Problem{
+				{
+					FileName: "bad_datetimeoriginal.jpg",
+					Message:  `invalid DateTimeOriginal "2020-01-02T03:04:05": parsing time "2020-01-02T03:04:05" as "2006:01:02 15:04:05": cannot parse "-01-02T03:04:05" as ":"`,
+				},
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			path := filepath.Join("testdata", tc.file)
+			got, err := (&Exiftool{}).Read(path)
+			if err != nil {
+				t.Fatalf("Exiftool.Read(%q) returned error: %v", path, err)
+			}
+			if len(got.Metadata) != 0 {
+				t.Errorf("Exiftool.Read(%q) returned metadata: %+v", path, got.Metadata)
+			}
+			if !slices.Equal(got.FileProblems, tc.wantProblems) {
+				t.Errorf("Exiftool.Read(%q) file problems mismatch\n got: %+v\nwant: %+v", path, got.FileProblems, tc.wantProblems)
+			}
+		})
+	}
+}
+
 func TestExiftoolReadReturnsError(t *testing.T) {
 	tests := []struct {
 		name         string
