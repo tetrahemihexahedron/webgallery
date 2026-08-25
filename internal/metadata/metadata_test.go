@@ -66,8 +66,7 @@ func TestExiftoolRead(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			path := filepath.Join("testdata", tc.file)
-			exiftool := Exiftool{}
-			got, err := exiftool.Read(path)
+			got, err := (&Exiftool{}).Read(path)
 			if err != nil {
 				t.Fatalf("Exiftool.Read(%q) returned error: %v", path, err)
 			}
@@ -97,8 +96,7 @@ func TestExiftoolReadReturnsErrorForMissingFile(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			path := filepath.Join("testdata", tc.file)
-			exiftool := Exiftool{}
-			got, err := exiftool.Read(path)
+			got, err := (&Exiftool{}).Read(path)
 			if !slices.Equal(got.Metadata, tc.wantMetadata) {
 				t.Errorf("Exiftool.Read(%q) metadata mismatch\n got: %+v\nwant: %+v", path, got.Metadata, tc.wantMetadata)
 			}
