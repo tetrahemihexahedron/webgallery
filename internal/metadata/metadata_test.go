@@ -188,21 +188,6 @@ func TestExiftoolReadReportsFileProblems(t *testing.T) {
 	}
 }
 
-func copyFixture(t *testing.T, dir, name string) {
-	t.Helper()
-
-	src := filepath.Join("testdata", name)
-	dst := filepath.Join(dir, name)
-
-	data, err := os.ReadFile(src)
-	if err != nil {
-		t.Fatalf("reading fixture %q: %v", src, err)
-	}
-	if err := os.WriteFile(dst, data, 0644); err != nil {
-		t.Fatalf("writing fixture copy %q: %v", dst, err)
-	}
-}
-
 func TestExiftoolReadReturnsError(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -230,5 +215,20 @@ func TestExiftoolReadReturnsError(t *testing.T) {
 				t.Errorf("Exiftool.Read(%q) returned error %v (%T), want error wrapping *exec.ExitError", path, err, err)
 			}
 		})
+	}
+}
+
+func copyFixture(t *testing.T, dir, name string) {
+	t.Helper()
+
+	src := filepath.Join("testdata", name)
+	dst := filepath.Join(dir, name)
+
+	data, err := os.ReadFile(src)
+	if err != nil {
+		t.Fatalf("reading fixture %q: %v", src, err)
+	}
+	if err := os.WriteFile(dst, data, 0644); err != nil {
+		t.Fatalf("writing fixture copy %q: %v", dst, err)
 	}
 }
