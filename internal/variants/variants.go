@@ -27,7 +27,7 @@ type Failure struct {
 	Err  error
 }
 
-func (r Result) Err() error {
+func (r Result) err() error {
 	var errs []error
 	for _, failure := range r.Failed {
 		errs = append(errs, failure.Err)
@@ -53,7 +53,7 @@ func (v *Vipsthumbnail) Generate(source string, specs []Spec) (Result, error) {
 		}
 		result.Generated = append(result.Generated, spec)
 	}
-	return result, result.Err()
+	return result, result.err()
 }
 
 func generateVariant(source string, spec Spec) error {
