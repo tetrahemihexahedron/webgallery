@@ -1,0 +1,125 @@
+package manifest_test
+
+import (
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"reflect"
+	"testing"
+
+	"tetrahemihexahedron/webimage/internal/image"
+	"tetrahemihexahedron/webimage/internal/manifest"
+)
+
+type manifestFile struct {
+	Title        string                 `json:"title"`
+	Description  string                 `json:"description"`
+	CapturedAt   string                 `json:"capturedAt"`
+	SourceWidth  int                    `json:"width"`
+	SourceHeight int                    `json:"height"`
+	Variants     map[string][]imageFile `json:"variants"`
+}
+
+type imageFile struct {
+	Path   string `json:"src"`
+	Width  int    `json:"width"`
+	Height int    `json:"height"`
+}
+
+func TestWrite(t *testing.T) {
+	tests := []struct {
+		name string
+		img  image.Processed
+		want manifestFile
+	}{
+		{
+			name: "writes complete metadata",
+			img: image.Processed{
+				Source: image.Source{
+					Width:  800,
+					Height: 1067,
+				},
+				Title:       "2023 October Posing",
+				Description: "Rosie as a small puppy, sitting and looking directly at the camera.",
+				CapturedAt:  "2023-10-03T17:26:39",
+				Variants: []image.Variant{
+					{Path: "w400.jpg", Format: image.FormatJPEG, Width: 400},
+					{Path: "w800.jpg", Format: image.FormatJPEG, Width: 800},
+					{Path: "w400.avif", Format: image.FormatAVIF, Width: 400},
+				},
+			},
+			want: manifestFile{
+				Title:        "2023 October Posing",
+				Description:  "Rosie as a small puppy, sitting and looking directly at the camera.",
+				CapturedAt:   "2023-10-03T17:26:39",
+				SourceWidth:  800,
+				SourceHeight: 1067,
+				Variants: map[string][]imageFile{
+					"JPEG": {
+						{Path: "w400.jpg", Width: 400, Height: 534},
+						{Path: "w800.jpg", Width: 800, Height: 1067},
+					},
+					"AVIF": {
+						{Path: "w400.avif", Width: 400, Height: 534},
+					},
+				},
+			},
+		},
+		{
+			name: "handles no variants",
+			img: image.Processed{
+				Source: image.Source{
+					Width:  4032,
+					Height: 3024,
+				},
+			},
+			want: manifestFile{
+				SourceWidth:  4032,
+				SourceHeight: 3024,
+				Variants:     map[string][]imageFile{},
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			img := tc.img
+			img.Dir = t.TempDir()
+
+			if err := manifest.Write(img); err != nil {
+				t.Fatalf("manifest.Write(%+v) returned error: %v", img, err)
+			}
+
+			got := readManifest(t, img.Dir)
+			if !reflect.DeepEqual(got, tc.want) {
+				t.Errorf("manifest.Write(%+v) manifest mismatch\n got: %+v\nwant: %+v", img, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestWriteReturnsErrorForMissingDir(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "missing")
+	img := image.Processed{Dir: dir}
+
+	if err := manifest.Write(img); err == nil {
+		t.Fatalf("manifest.Write(%+v) returned nil error, want error", img)
+	}
+}
+
+func readManifest(t *testing.T, dir string) manifestFile {
+	t.Helper()
+
+	path := filepath.Join(dir, "manifest.json")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("reading manifest %q: %v", path, err)
+	}
+
+	var got manifestFile
+	if err := json.Unmarshal(data, &got); err != nil {
+		t.Fatalf("unmarshaling manifest %q: %v", path, err)
+	}
+
+	return got
+}
