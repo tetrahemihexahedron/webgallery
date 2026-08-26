@@ -171,7 +171,7 @@ func (p *processor) processFile(metadata image.Metadata) (image.Processed, error
 	specs := variantSpecs(processedImg)
 	result, err := p.variantGenerator.Generate(source, specs)
 
-	if len(result.Generated()) == 0 {
+	if len(result.Generated) == 0 {
 		deleteRemnants(imageDir)
 		if err == nil {
 			err = fmt.Errorf("%d variants were attempted, and no errors were reported", len(specs))
@@ -179,7 +179,7 @@ func (p *processor) processFile(metadata image.Metadata) (image.Processed, error
 		return image.Processed{}, fmt.Errorf("no variants were generated: %w", err)
 	}
 
-	processedImg.Variants = identifyVariants(result.Generated())
+	processedImg.Variants = identifyVariants(result.Generated)
 
 	if err := manifest.Write(processedImg); err != nil {
 		deleteRemnants(imageDir)

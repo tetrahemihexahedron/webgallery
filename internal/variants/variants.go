@@ -9,45 +9,28 @@ import (
 	"strings"
 )
 
+// Spec describes one output image variant to generate.
 type Spec struct {
 	OutPath string
 	Width   int
 }
 
+// Result reports which variants were generated and which failed.
 type Result struct {
-	Variants []VariantResult
+	Generated []Spec
+	Failed    []Failure
 }
 
-type VariantResult struct {
-	Spec      Spec
-	Generated bool
-	Err       error
-}
-
-func (r Result) Generated() []Spec {
-	var generated []Spec
-	for _, variant := range r.Variants {
-		if variant.Generated {
-			generated = append(generated, variant.Spec)
-		}
-	}
-	return generated
-}
-
-func (r Result) Failed() []VariantResult {
-	var failed []VariantResult
-	for _, variant := range r.Variants {
-		if variant.Err != nil {
-			failed = append(failed, variant)
-		}
-	}
-	return failed
+// Failure reports why one variant could not be generated.
+type Failure struct {
+	Spec Spec
+	Err  error
 }
 
 func (r Result) Err() error {
 	var errs []error
-	for _, result := range r.Failed() {
-		errs = append(errs, result.Err)
+	for _, failure := range r.Failed {
+		errs = append(errs, failure.Err)
 	}
 	return errors.Join(errs...)
 }
@@ -60,40 +43,35 @@ func (v *Vipsthumbnail) Generate(source string, specs []Spec) (Result, error) {
 	}
 
 	result := Result{
-		Variants: make([]VariantResult, 0, len(specs)),
+		Generated: make([]Spec, 0, len(specs)),
 	}
 
 	for _, spec := range specs {
-		variantResult := generateVariant(source, spec)
-		result.Variants = append(result.Variants, variantResult)
+		if err := generateVariant(source, spec); err != nil {
+			result.Failed = append(result.Failed, Failure{Spec: spec, Err: err})
+			continue
+		}
+		result.Generated = append(result.Generated, spec)
 	}
 	return result, result.Err()
 }
 
-func generateVariant(source string, spec Spec) VariantResult {
-	result := VariantResult{
-		Spec: spec,
-	}
-
+func generateVariant(source string, spec Spec) error {
 	if err := validateSpec(spec); err != nil {
-		result.Err = wrapError(err, spec)
-		return result
+		return wrapError(err, spec)
 	}
 	if filepath.Clean(source) == filepath.Clean(spec.OutPath) {
-		result.Err = wrapError(errors.New("source and output file paths cannot be the same"), spec)
-		return result
+		return wrapError(errors.New("source and output file paths cannot be the same"), spec)
 	}
 
 	options, err := determineEncoderOptions(spec.OutPath)
 	if err != nil {
-		result.Err = wrapError(err, spec)
-		return result
+		return wrapError(err, spec)
 	}
 
 	absoluteOutPath, err := filepath.Abs(spec.OutPath)
 	if err != nil {
-		result.Err = wrapError(fmt.Errorf("unable to form absolute output path: %w", err), spec)
-		return result
+		return wrapError(fmt.Errorf("unable to form absolute output path: %w", err), spec)
 	}
 
 	// appending '>' tells libvips to only shrink; if the image is already
@@ -106,17 +84,14 @@ func generateVariant(source string, spec Spec) VariantResult {
 	out, err := cmd.CombinedOutput()
 
 	if err != nil {
-		result.Err = wrapError(fmt.Errorf("image generation failed: %s; %w", out, err), spec)
-		return result
+		return wrapError(fmt.Errorf("image generation failed: %s; %w", out, err), spec)
 	}
 	// out is expected to be empty when image generation was successful
 	if len(out) != 0 {
-		result.Err = wrapError(fmt.Errorf("unexpected output from image generation: %s", out), spec)
-		return result
+		return wrapError(fmt.Errorf("unexpected output from image generation: %s", out), spec)
 	}
 
-	result.Generated = true
-	return result
+	return nil
 }
 
 func wrapError(err error, spec Spec) error {
