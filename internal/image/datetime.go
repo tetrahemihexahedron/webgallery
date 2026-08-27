@@ -25,3 +25,7 @@ func ParseCapturedAt(s string) (time.Time, error) {
 func FormatCapturedAt(t time.Time) string {
 	return t.Format(capturedAtLayout)
 }
+
+func FormatProcessedAt(t time.Time) string {
+	return t.UTC().Format(time.RFC3339)
+}
