@@ -134,8 +134,9 @@ func (p *processor) processDir() (result, error) {
 }
 
 func (p *processor) processFile(metadata image.Metadata) (image.Processed, error) {
+	processedAt := time.Now().UTC()
 	source := filepath.Join(p.cfg.InDir, metadata.FileName)
-	dirDate, err := dirDate(p.cfg.DirDate, metadata.CapturedAt, time.Now())
+	dirDate, err := dirDate(p.cfg.DirDate, metadata.CapturedAt, processedAt)
 	if err != nil {
 		return image.Processed{}, err
 	}
@@ -170,6 +171,7 @@ func (p *processor) processFile(metadata image.Metadata) (image.Processed, error
 		Title:       metadata.Title,
 		Description: metadata.Description,
 		CapturedAt:  metadata.CapturedAt,
+		ProcessedAt: image.FormatProcessedAt(processedAt),
 	}
 
 	specs := variantSpecs(processedImg)
