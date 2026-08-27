@@ -29,5 +29,6 @@ type Processed struct {
 	Title       string
 	Description string
 	CapturedAt  string
+	ProcessedAt string
 	Variants    []Variant
 }
