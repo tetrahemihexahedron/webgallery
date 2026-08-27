@@ -135,7 +135,11 @@ func (p *processor) processDir() (result, error) {
 
 func (p *processor) processFile(metadata image.Metadata) (image.Processed, error) {
 	source := filepath.Join(p.cfg.InDir, metadata.FileName)
-	imageDir := filepath.Join(p.cfg.OutDir, imageDir())
+	dirDate, err := dirDate(p.cfg.DirDate, metadata.CapturedAt, time.Now())
+	if err != nil {
+		return image.Processed{}, err
+	}
+	imageDir := filepath.Join(p.cfg.OutDir, imageDir(dirDate))
 
 	if err := os.MkdirAll(imageDir, 0755); err != nil {
 		return image.Processed{}, fmt.Errorf("unable to make image directory %s: %w", imageDir, err)
@@ -204,7 +208,22 @@ func hashFile(filename string) (string, error) {
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
-func imageDir() string {
+func dirDate(dirDate config.DirDate, capturedAt string, processedAt time.Time) (time.Time, error) {
+	switch dirDate {
+	case config.DirDateProcessed:
+		return processedAt, nil
+	case config.DirDateCaptured:
+		capturedDate, err := image.ParseCapturedAt(capturedAt)
+		if err != nil {
+			return time.Time{}, fmt.Errorf("--dir-date=captured requires a valid capturedAt: %w", err)
+		}
+		return capturedDate, nil
+	default:
+		return time.Time{}, fmt.Errorf("invalid directory date %q", dirDate)
+	}
+}
+
+func imageDir(date time.Time) string {
 	randId := ""
 	b := make([]byte, 7)
 	re := regexp.MustCompile(`^[a-zA-Z0-9]+$`)
@@ -216,10 +235,7 @@ func imageDir() string {
 		randId = base64.RawURLEncoding.EncodeToString(b)
 	}
 
-	year := time.Now().Year()
-	month := time.Now().Month()
-
-	return fmt.Sprintf("%d/%02d/%s/", year, month, randId)
+	return fmt.Sprintf("%d/%02d/%s/", date.Year(), date.Month(), randId)
 }
 
 func variantSpecs(img image.Processed) []variants.Spec {
