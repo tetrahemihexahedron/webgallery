@@ -63,12 +63,33 @@ func TestParseCapturedAtReturnsError(t *testing.T) {
 	}
 }
 
-func TestFormatCapturedAt(t *testing.T) {
-	capturedAt := time.Date(2024, time.May, 12, 14, 22, 0, 0, time.FixedZone("Mountain", -6*60*60))
+func TestFormat(t *testing.T) {
+	tests := []struct {
+		name   string
+		format func(time.Time) string
+		value  time.Time
+		want   string
+	}{
+		{
+			name:   "FormatCapturedAt preserves wall-clock time",
+			format: image.FormatCapturedAt,
+			value:  time.Date(2024, time.May, 12, 14, 22, 0, 0, time.FixedZone("Mountain", -6*60*60)),
+			want:   "2024-05-12T14:22:00",
+		},
+		{
+			name:   "FormatProcessedAt converts to UTC RFC3339",
+			format: image.FormatProcessedAt,
+			value:  time.Date(2024, time.May, 12, 14, 22, 0, 123, time.FixedZone("Mountain", -6*60*60)),
+			want:   "2024-05-12T20:22:00Z",
+		},
+	}
 
-	got := image.FormatCapturedAt(capturedAt)
-	want := "2024-05-12T14:22:00"
-	if got != want {
-		t.Errorf("image.FormatCapturedAt(%v) = %q, want %q", capturedAt, got, want)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := tc.format(tc.value)
+			if got != tc.want {
+				t.Errorf("format(%v) = %q, want %q", tc.value, got, tc.want)
+			}
+		})
 	}
 }
