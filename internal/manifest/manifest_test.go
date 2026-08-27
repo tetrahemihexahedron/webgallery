@@ -12,14 +12,14 @@ import (
 )
 
 type manifestFile struct {
-	Title        string                 `json:"title"`
-	Description  string                 `json:"description"`
-	CapturedAt   string                 `json:"capturedAt"`
-	ProcessedAt  string                 `json:"processedAt"`
-	SHA256       string                 `json:"sha256"`
-	SourceWidth  int                    `json:"width"`
-	SourceHeight int                    `json:"height"`
-	Variants     map[string][]imageFile `json:"variants"`
+	Title       string                 `json:"title"`
+	Description string                 `json:"description"`
+	CapturedAt  string                 `json:"capturedAt"`
+	ProcessedAt string                 `json:"processedAt"`
+	SHA256      string                 `json:"sha256"`
+	Width       int                    `json:"width"`
+	Height      int                    `json:"height"`
+	Variants    map[string][]imageFile `json:"variants"`
 }
 
 type imageFile struct {
@@ -53,13 +53,13 @@ func TestWrite(t *testing.T) {
 				},
 			},
 			want: manifestFile{
-				Title:        "2023 October Posing",
-				Description:  "Rosie as a small puppy, sitting and looking directly at the camera.",
-				CapturedAt:   "2023-10-03T17:26:39",
-				ProcessedAt:  "2026-08-24T18:00:00Z",
-				SHA256:       "7f43b6f0a877e8590c4f0c7d55d99b188a671de7bf58156ac0d3ac38df842cc9",
-				SourceWidth:  800,
-				SourceHeight: 1067,
+				Title:       "2023 October Posing",
+				Description: "Rosie as a small puppy, sitting and looking directly at the camera.",
+				CapturedAt:  "2023-10-03T17:26:39",
+				ProcessedAt: "2026-08-24T18:00:00Z",
+				SHA256:      "7f43b6f0a877e8590c4f0c7d55d99b188a671de7bf58156ac0d3ac38df842cc9",
+				Width:       800,
+				Height:      1067,
 				Variants: map[string][]imageFile{
 					"JPEG": {
 						{Path: "w400.jpg", Width: 400, Height: 534},
@@ -80,9 +80,9 @@ func TestWrite(t *testing.T) {
 				},
 			},
 			want: manifestFile{
-				SourceWidth:  4032,
-				SourceHeight: 3024,
-				Variants:     map[string][]imageFile{},
+				Width:    4032,
+				Height:   3024,
+				Variants: map[string][]imageFile{},
 			},
 		},
 	}
