@@ -97,3 +97,74 @@ func TestReadReturnsErrorForUnreadableIndex(t *testing.T) {
 		t.Errorf("index.Read(%q) error = %q, want message containing %q", dir, err, "reading index")
 	}
 }
+
+func TestImagesBySHA256(t *testing.T) {
+	imgA := index.Image{
+		Dir:    "2024/05/abc123",
+		SHA256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+	}
+	imgB := index.Image{
+		Dir:    "2024/05/def456",
+		SHA256: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+	}
+
+	tests := []struct {
+		name string
+		idx  index.Index
+		want map[string]index.Image
+	}{
+		{
+			name: "empty index",
+			idx:  index.Index{},
+			want: map[string]index.Image{},
+		},
+		{
+			name: "no images",
+			idx:  index.Index{Images: []index.Image{}},
+			want: map[string]index.Image{},
+		},
+		{
+			name: "multiple images",
+			idx:  index.Index{Images: []index.Image{imgA, imgB}},
+			want: map[string]index.Image{
+				imgA.SHA256: imgA,
+				imgB.SHA256: imgB,
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := tc.idx.ImagesBySHA256()
+			if err != nil {
+				t.Fatalf("Index.ImagesBySHA256() returned error: %v", err)
+			}
+			if !reflect.DeepEqual(got, tc.want) {
+				t.Errorf("Index.ImagesBySHA256() returned %+v, want %+v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestImagesBySHA256ReturnsErrorForDuplicateHash(t *testing.T) {
+	idx := index.Index{
+		Images: []index.Image{
+			{
+				Dir:    "2024/05/abc123",
+				SHA256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+			},
+			{
+				Dir:    "2024/05/def456",
+				SHA256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+			},
+		},
+	}
+
+	_, err := idx.ImagesBySHA256()
+	if err == nil {
+		t.Fatalf("Index.ImagesBySHA256() returned nil error, want error")
+	}
+	if !strings.Contains(err.Error(), "duplicate sha256") {
+		t.Errorf("Index.ImagesBySHA256() error = %q, want message containing %q", err, "duplicate sha256")
+	}
+}
