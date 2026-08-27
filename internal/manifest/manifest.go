@@ -13,6 +13,8 @@ type manifest struct {
 	Title        string                 `json:"title"`
 	Description  string                 `json:"description"`
 	CapturedAt   string                 `json:"capturedAt"`
+	ProcessedAt  string                 `json:"processedAt"`
+	SHA256       string                 `json:"sha256"`
 	SourceWidth  int                    `json:"width"`
 	SourceHeight int                    `json:"height"`
 	Variants     map[string][]imageFile `json:"variants"`
@@ -29,6 +31,8 @@ func Write(img image.Processed) error {
 		Title:        img.Title,
 		Description:  img.Description,
 		CapturedAt:   img.CapturedAt,
+		ProcessedAt:  img.ProcessedAt,
+		SHA256:       img.Source.Hash,
 		SourceWidth:  img.Source.Width,
 		SourceHeight: img.Source.Height,
 		Variants:     manifestVariants(img),
