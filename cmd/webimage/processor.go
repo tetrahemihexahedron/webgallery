@@ -104,7 +104,24 @@ func (p *processor) processDir() (result, error) {
 			continue
 		}
 
-		imageProcessed, err := p.processFile(metadata)
+		source := filepath.Join(p.cfg.InDir, metadata.FileName)
+		sourceHash, err := hashFile(source)
+		if err != nil {
+			fmt.Fprintf(
+				p.progressReporter,
+				"Error hashing %q: %v\n",
+				metadata.FileName,
+				err,
+			)
+
+			result.problems = append(result.problems, fileProblem{
+				fileName: metadata.FileName,
+				message:  fmt.Sprintf("file hashing error: %v", err),
+			})
+			continue
+		}
+
+		imageProcessed, err := p.processFile(metadata, sourceHash)
 
 		if err != nil {
 			fmt.Fprintf(
@@ -133,7 +150,7 @@ func (p *processor) processDir() (result, error) {
 	return result, nil
 }
 
-func (p *processor) processFile(metadata image.Metadata) (image.Processed, error) {
+func (p *processor) processFile(metadata image.Metadata, sourceHash string) (image.Processed, error) {
 	processedAt := time.Now().UTC()
 	source := filepath.Join(p.cfg.InDir, metadata.FileName)
 	dirDate, err := dirDate(p.cfg.DirDate, metadata.CapturedAt, processedAt)
@@ -146,12 +163,6 @@ func (p *processor) processFile(metadata image.Metadata) (image.Processed, error
 		return image.Processed{}, fmt.Errorf("unable to make image directory %s: %w", imageDir, err)
 	}
 
-	hash, err := hashFile(source)
-	if err != nil {
-		deleteRemnants(imageDir)
-		return image.Processed{}, fmt.Errorf("unable to hash file %s: %w", source, err)
-	}
-
 	sourceDest := filepath.Join(imageDir, "orig.jpg")
 	if err = copyFile(source, sourceDest); err != nil {
 		deleteRemnants(imageDir)
@@ -159,7 +170,7 @@ func (p *processor) processFile(metadata image.Metadata) (image.Processed, error
 	}
 
 	sourceFile := image.Source{
-		Hash:   hash,
+		Hash:   sourceHash,
 		Path:   sourceDest,
 		Width:  metadata.Width,
 		Height: metadata.Height,
