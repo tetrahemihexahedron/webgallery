@@ -16,6 +16,7 @@ import (
 
 	"tetrahemihexahedron/webimage/internal/config"
 	"tetrahemihexahedron/webimage/internal/image"
+	"tetrahemihexahedron/webimage/internal/index"
 	"tetrahemihexahedron/webimage/internal/manifest"
 	"tetrahemihexahedron/webimage/internal/metadata"
 	"tetrahemihexahedron/webimage/internal/variants"
@@ -51,6 +52,16 @@ func (p *processor) processDir() (result, error) {
 	inDir := p.cfg.InDir
 
 	fmt.Fprintf(p.progressReporter, "Processing image files in %q\n", inDir)
+
+	imageIndex, err := index.Read(p.cfg.OutDir)
+	if err != nil {
+		return result{}, err
+	}
+
+	imagesByHash, err := imageIndex.ImagesBySHA256()
+	if err != nil {
+		return result{}, err
+	}
 
 	metadataResult, err := p.metadataReader.Read(inDir)
 	if err != nil {
@@ -121,6 +132,21 @@ func (p *processor) processDir() (result, error) {
 			continue
 		}
 
+		if existingImage, ok := imagesByHash[sourceHash]; ok {
+			fmt.Fprintf(
+				p.progressReporter,
+				"Skipping %q: duplicate of image in %q\n",
+				metadata.FileName,
+				existingImage.Dir,
+			)
+
+			result.problems = append(result.problems, fileProblem{
+				fileName: metadata.FileName,
+				message:  fmt.Sprintf("skipping duplicate of image in %q", existingImage.Dir),
+			})
+			continue
+		}
+
 		imageProcessed, err := p.processFile(metadata, sourceHash)
 
 		if err != nil {
@@ -136,6 +162,11 @@ func (p *processor) processDir() (result, error) {
 				message:  fmt.Sprintf("file processing error: %v", err),
 			})
 		} else {
+			imagesByHash[sourceHash] = index.Image{
+				Dir:    imageProcessed.Dir,
+				SHA256: sourceHash,
+			}
+
 			fmt.Fprintf(
 				p.progressReporter,
 				"Processed %q:\n\t%d variants generated in %q\n",
