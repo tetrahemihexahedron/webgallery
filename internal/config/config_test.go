@@ -2,6 +2,7 @@ package config
 
 import (
 	"io"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -16,8 +17,8 @@ func TestParseArgs(t *testing.T) {
 			name: "required flags only",
 			args: []string{"-incoming", "incoming", "-output", "output"},
 			want: Config{
-				InDir:   "incoming",
-				OutDir:  "output",
+				InDir:   mustAbs(t, "incoming"),
+				OutDir:  mustAbs(t, "output"),
 				DirDate: DirDateProcessed,
 			},
 		},
@@ -25,8 +26,8 @@ func TestParseArgs(t *testing.T) {
 			name: "quiet",
 			args: []string{"-incoming", "incoming", "-output", "output", "-quiet"},
 			want: Config{
-				InDir:   "incoming",
-				OutDir:  "output",
+				InDir:   mustAbs(t, "incoming"),
+				OutDir:  mustAbs(t, "output"),
 				IsQuiet: true,
 				DirDate: DirDateProcessed,
 			},
@@ -35,8 +36,8 @@ func TestParseArgs(t *testing.T) {
 			name: "captured dir date",
 			args: []string{"-incoming", "incoming", "-output", "output", "-dir-date", "captured"},
 			want: Config{
-				InDir:   "incoming",
-				OutDir:  "output",
+				InDir:   mustAbs(t, "incoming"),
+				OutDir:  mustAbs(t, "output"),
 				DirDate: DirDateCaptured,
 			},
 		},
@@ -91,4 +92,15 @@ func TestParseArgsErrors(t *testing.T) {
 			}
 		})
 	}
+}
+
+func mustAbs(t *testing.T, path string) string {
+	t.Helper()
+
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		t.Fatalf("filepath.Abs(%q) error = %v, want nil", path, err)
+	}
+
+	return absPath
 }

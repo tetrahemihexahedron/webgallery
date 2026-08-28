@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 )
 
 type DirDate string
@@ -64,6 +65,18 @@ func parseArgs(args []string, output io.Writer) (Config, error) {
 	if cfg.OutDir == "" {
 		return Config{}, errors.New("missing required '--output' flag")
 	}
+
+	inDir, err := filepath.Abs(cfg.InDir)
+	if err != nil {
+		return Config{}, fmt.Errorf("making --incoming path absolute: %w", err)
+	}
+	cfg.InDir = inDir
+
+	outDir, err := filepath.Abs(cfg.OutDir)
+	if err != nil {
+		return Config{}, fmt.Errorf("making --output path absolute: %w", err)
+	}
+	cfg.OutDir = outDir
 
 	return cfg, nil
 }
