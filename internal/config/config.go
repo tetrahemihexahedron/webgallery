@@ -4,6 +4,8 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
+	"os"
 )
 
 type DirDate string
@@ -30,29 +32,38 @@ type Config struct {
 }
 
 func Load() (Config, error) {
-	var config Config
+	return parseArgs(os.Args[1:], os.Stderr)
+}
 
-	flag.StringVar(&config.InDir, "incoming", "", "incoming directory")
-	flag.StringVar(&config.OutDir, "output", "", "output directory")
-	flag.BoolVar(&config.IsQuiet, "quiet", false, "suppress progress output")
+func parseArgs(args []string, output io.Writer) (Config, error) {
+	var cfg Config
+
+	flags := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+	flags.SetOutput(output)
+
+	flags.StringVar(&cfg.InDir, "incoming", "", "incoming directory")
+	flags.StringVar(&cfg.OutDir, "output", "", "output directory")
+	flags.BoolVar(&cfg.IsQuiet, "quiet", false, "suppress progress output")
 
 	dirDate := string(DirDateProcessed)
-	flag.StringVar(&dirDate, "dir-date", dirDate, "source date for output directories: processed or captured")
+	flags.StringVar(&dirDate, "dir-date", dirDate, "source date for output directories: processed or captured")
 
-	flag.Parse()
+	if err := flags.Parse(args); err != nil {
+		return Config{}, err
+	}
 
-	config.DirDate = DirDate(dirDate)
-	if !config.DirDate.isValid() {
+	cfg.DirDate = DirDate(dirDate)
+	if !cfg.DirDate.isValid() {
 		return Config{}, fmt.Errorf("invalid '--dir-date' value %q: want %q or %q", dirDate, DirDateProcessed, DirDateCaptured)
 	}
 
-	if config.InDir == "" {
+	if cfg.InDir == "" {
 		return Config{}, errors.New("missing required '--incoming' flag")
 	}
 
-	if config.OutDir == "" {
+	if cfg.OutDir == "" {
 		return Config{}, errors.New("missing required '--output' flag")
 	}
 
-	return config, nil
+	return cfg, nil
 }
