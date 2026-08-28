@@ -20,7 +20,7 @@ The developer is fairly inexperienced with Go and wants to learn how to write ex
 
 Generally, test exported behavior. Prefer external test packages such as `package metadata_test`; use same-package tests only when an unexported helper is complicated enough to justify direct coverage.
 
-It is okay not to test thin wrappers around package-global state, such as CLI flag parsing with `flag.CommandLine`. If flag parsing needs tests, prefer refactoring to parse an explicit argument slice with a fresh `flag.FlagSet` rather than mutating global `os.Args` or `flag.CommandLine` in tests. (See https://eli.thegreenplace.net/2020/testing-flag-parsing-in-go-programs/.)
+Full test coverage is not a goal; remember that this will be used only by the developer.
 
 Assume external tools, like exiftool and libvips/vipsthumbnail, are available in the testing environment. Integration-style tests for wrappers around those tools are useful, but test this project’s behavior rather than exhaustively testing the external tools.
 
