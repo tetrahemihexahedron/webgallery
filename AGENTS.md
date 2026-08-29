@@ -12,6 +12,11 @@ Package layout: internal/config parses CLI flags; internal/metadata wraps exifto
 
 This script is going to be used only by the developer and should not be made more general than needed or incorporate unneeded features.
 
+The code does not need to be Windows compatible and can assume that file paths have Unix-style separators. Leave a comment in files that make use of that assumption, like
+```
+// Note: These tests assume Unix-style paths and are not Windows compatible.
+```
+
 Be reticent to add dependencies: make sure they add enough value to compensate for the extra maintenance burden.
 
 The developer is fairly inexperienced with Go and wants to learn how to write excellent Go code, following best practices. The code should be well-organized and easy to understand, maintain, and modify. Refactor often, striving for simplicity, consistency, and well-designed code.
