@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"tetrahemihexahedron/webimage/internal/image"
+	"tetrahemihexahedron/webimage/internal/paths"
 )
 
 type Result struct {
@@ -24,8 +25,8 @@ type Problem struct {
 
 type Exiftool struct{}
 
-func (e *Exiftool) Read(path string) (Result, error) {
-	output, err := fetchExiftoolOutput(path)
+func (e *Exiftool) Read(path paths.AbsPath) (Result, error) {
+	output, err := fetchExiftoolOutput(path.String())
 	if err != nil {
 		return Result{}, err
 	}

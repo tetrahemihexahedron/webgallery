@@ -19,11 +19,12 @@ import (
 	"tetrahemihexahedron/webimage/internal/index"
 	"tetrahemihexahedron/webimage/internal/manifest"
 	"tetrahemihexahedron/webimage/internal/metadata"
+	"tetrahemihexahedron/webimage/internal/paths"
 	"tetrahemihexahedron/webimage/internal/variants"
 )
 
 type metadataReader interface {
-	Read(path string) (metadata.Result, error)
+	Read(path paths.AbsPath) (metadata.Result, error)
 }
 
 type variantGenerator interface {
@@ -63,7 +64,7 @@ func (p *processor) processDir() (result, error) {
 		return result{}, err
 	}
 
-	metadataResult, err := p.metadataReader.Read(inDirAbsPath)
+	metadataResult, err := p.metadataReader.Read(p.cfg.InDir)
 	if err != nil {
 		return result{}, err
 	}
