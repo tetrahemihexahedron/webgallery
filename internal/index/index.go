@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 )
 
-const filename = "index.json"
+const idxFilename = "index.json"
 
 // Index describes the processed images in a directory.
 type Index struct {
@@ -44,7 +44,7 @@ func (idx Index) ImagesBySHA256() (map[string]Image, error) {
 // Read reads index.json from dir. If the file does not exist, Read
 // returns an empty Index.
 func Read(dir string) (Index, error) {
-	path := filepath.Join(dir, filename)
+	path := filepath.Join(dir, idxFilename)
 	var idx Index
 
 	data, err := os.ReadFile(path)
