@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"tetrahemihexahedron/webimage/internal/paths"
 )
 
 func TestParseArgs(t *testing.T) {
@@ -17,28 +19,28 @@ func TestParseArgs(t *testing.T) {
 			name: "required flags only",
 			args: []string{"-incoming", "incoming", "-output", "output"},
 			want: Config{
-				InDirAbsPath:  mustAbs(t, "incoming"),
-				OutDirAbsPath: mustAbs(t, "output"),
-				DirDate:       DirDateProcessed,
+				InDir:   mustAbs(t, "incoming"),
+				OutDir:  mustAbs(t, "output"),
+				DirDate: DirDateProcessed,
 			},
 		},
 		{
 			name: "quiet",
 			args: []string{"-incoming", "incoming", "-output", "output", "-quiet"},
 			want: Config{
-				InDirAbsPath:  mustAbs(t, "incoming"),
-				OutDirAbsPath: mustAbs(t, "output"),
-				IsQuiet:       true,
-				DirDate:       DirDateProcessed,
+				InDir:   mustAbs(t, "incoming"),
+				OutDir:  mustAbs(t, "output"),
+				IsQuiet: true,
+				DirDate: DirDateProcessed,
 			},
 		},
 		{
 			name: "captured dir date",
 			args: []string{"-incoming", "incoming", "-output", "output", "-dir-date", "captured"},
 			want: Config{
-				InDirAbsPath:  mustAbs(t, "incoming"),
-				OutDirAbsPath: mustAbs(t, "output"),
-				DirDate:       DirDateCaptured,
+				InDir:   mustAbs(t, "incoming"),
+				OutDir:  mustAbs(t, "output"),
+				DirDate: DirDateCaptured,
 			},
 		},
 	}
@@ -94,7 +96,7 @@ func TestParseArgsErrors(t *testing.T) {
 	}
 }
 
-func mustAbs(t *testing.T, path string) string {
+func mustAbs(t *testing.T, path string) paths.AbsPath {
 	t.Helper()
 
 	absPath, err := filepath.Abs(path)
@@ -102,5 +104,10 @@ func mustAbs(t *testing.T, path string) string {
 		t.Fatalf("filepath.Abs(%q) error = %v, want nil", path, err)
 	}
 
-	return absPath
+	p, err := paths.NewAbsPath(absPath)
+	if err != nil {
+		t.Fatalf("paths.NewAbsPath(%q) error = %v, want nil", absPath, err)
+	}
+
+	return p
 }

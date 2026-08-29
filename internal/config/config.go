@@ -7,6 +7,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+
+	"tetrahemihexahedron/webimage/internal/paths"
 )
 
 type DirDate string
@@ -26,10 +28,10 @@ func (d DirDate) isValid() bool {
 }
 
 type Config struct {
-	InDirAbsPath  string
-	OutDirAbsPath string
-	IsQuiet       bool
-	DirDate       DirDate
+	InDir   paths.AbsPath
+	OutDir  paths.AbsPath
+	IsQuiet bool
+	DirDate DirDate
 }
 
 func Load() (Config, error) {
@@ -38,12 +40,14 @@ func Load() (Config, error) {
 
 func parseArgs(args []string, output io.Writer) (Config, error) {
 	var cfg Config
+	var inDirPath string
+	var outDirPath string
 
 	flags := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	flags.SetOutput(output)
 
-	flags.StringVar(&cfg.InDirAbsPath, "incoming", "", "incoming directory")
-	flags.StringVar(&cfg.OutDirAbsPath, "output", "", "output directory")
+	flags.StringVar(&inDirPath, "incoming", "", "incoming directory")
+	flags.StringVar(&outDirPath, "output", "", "output directory")
 	flags.BoolVar(&cfg.IsQuiet, "quiet", false, "suppress progress output")
 
 	dirDate := string(DirDateProcessed)
@@ -58,25 +62,31 @@ func parseArgs(args []string, output io.Writer) (Config, error) {
 		return Config{}, fmt.Errorf("invalid '--dir-date' value %q: want %q or %q", dirDate, DirDateProcessed, DirDateCaptured)
 	}
 
-	if cfg.InDirAbsPath == "" {
+	if inDirPath == "" {
 		return Config{}, errors.New("missing required '--incoming' flag")
 	}
 
-	if cfg.OutDirAbsPath == "" {
+	if outDirPath == "" {
 		return Config{}, errors.New("missing required '--output' flag")
 	}
 
-	inDir, err := filepath.Abs(cfg.InDirAbsPath)
+	inDirAbs, err := filepath.Abs(inDirPath)
 	if err != nil {
-		return Config{}, fmt.Errorf("making --incoming path absolute: %w", err)
+		return Config{}, err
 	}
-	cfg.InDirAbsPath = inDir
+	cfg.InDir, err = paths.NewAbsPath(inDirAbs)
+	if err != nil {
+		return Config{}, err
+	}
 
-	outDir, err := filepath.Abs(cfg.OutDirAbsPath)
+	outDirAbs, err := filepath.Abs(outDirPath)
 	if err != nil {
-		return Config{}, fmt.Errorf("making --output path absolute: %w", err)
+		return Config{}, err
 	}
-	cfg.OutDirAbsPath = outDir
+	cfg.OutDir, err = paths.NewAbsPath(outDirAbs)
+	if err != nil {
+		return Config{}, err
+	}
 
 	return cfg, nil
 }
