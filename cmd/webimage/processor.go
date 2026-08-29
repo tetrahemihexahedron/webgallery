@@ -183,7 +183,7 @@ func (p *processor) processDir() (result, error) {
 
 func (p *processor) processFile(metadata image.Metadata, sourceHash string) (image.Processed, error) {
 	processedAt := time.Now().UTC()
-	source := filepath.Join(p.cfg.InDirAbsPath, metadata.FileName)
+	sourceAbsPath := filepath.Join(p.cfg.InDirAbsPath, metadata.FileName)
 	dirDate, err := dirDate(p.cfg.DirDate, metadata.CapturedAt, processedAt)
 	if err != nil {
 		return image.Processed{}, err
@@ -195,9 +195,9 @@ func (p *processor) processFile(metadata image.Metadata, sourceHash string) (ima
 	}
 
 	sourceDest := filepath.Join(imageDir, "orig.jpg")
-	if err = copyFile(source, sourceDest); err != nil {
+	if err = copyFile(sourceAbsPath, sourceDest); err != nil {
 		deleteRemnants(imageDir)
-		return image.Processed{}, fmt.Errorf("unable to copy source %s to %s: %w", source, imageDir, err)
+		return image.Processed{}, fmt.Errorf("unable to copy source %s to %s: %w", sourceAbsPath, imageDir, err)
 	}
 
 	sourceFile := image.Source{
@@ -217,7 +217,7 @@ func (p *processor) processFile(metadata image.Metadata, sourceHash string) (ima
 	}
 
 	specs := variantSpecs(processedImg)
-	result, err := p.variantGenerator.Generate(source, specs)
+	result, err := p.variantGenerator.Generate(sourceAbsPath, specs)
 
 	if len(result.Generated) == 0 {
 		deleteRemnants(imageDir)
