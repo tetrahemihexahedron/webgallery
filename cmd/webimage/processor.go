@@ -115,8 +115,8 @@ func (p *processor) processDir() (result, error) {
 			continue
 		}
 
-		source := filepath.Join(p.cfg.InDirAbsPath, metadata.FileName)
-		sourceHash, err := hashFile(source)
+		sourceAbsPath := filepath.Join(p.cfg.InDirAbsPath, metadata.FileName)
+		sourceHash, err := hashFile(sourceAbsPath)
 		if err != nil {
 			fmt.Fprintf(
 				p.progressReporter,
