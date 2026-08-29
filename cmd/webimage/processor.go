@@ -49,9 +49,9 @@ type processor struct {
 }
 
 func (p *processor) processDir() (result, error) {
-	inDir := p.cfg.InDirAbsPath
+	inDirAbsPath := p.cfg.InDirAbsPath
 
-	fmt.Fprintf(p.progressReporter, "Processing image files in %q\n", inDir)
+	fmt.Fprintf(p.progressReporter, "Processing image files in %q\n", inDirAbsPath)
 
 	imageIndex, err := index.Read(p.cfg.OutDirAbsPath)
 	if err != nil {
@@ -63,7 +63,7 @@ func (p *processor) processDir() (result, error) {
 		return result{}, err
 	}
 
-	metadataResult, err := p.metadataReader.Read(inDir)
+	metadataResult, err := p.metadataReader.Read(inDirAbsPath)
 	if err != nil {
 		return result{}, err
 	}
@@ -76,7 +76,7 @@ func (p *processor) processDir() (result, error) {
 	)
 
 	result := result{
-		dirProcessed: inDir,
+		dirProcessed: inDirAbsPath,
 	}
 
 	for _, problem := range metadataResult.FileProblems {
