@@ -188,16 +188,16 @@ func (p *processor) processFile(metadata image.Metadata, sourceHash string) (ima
 	if err != nil {
 		return image.Processed{}, err
 	}
-	imageDir := filepath.Join(p.cfg.OutDirAbsPath, imageDir(dirDate))
+	imgDirAbsPath := filepath.Join(p.cfg.OutDirAbsPath, imgDirRelPath(dirDate))
 
-	if err := os.MkdirAll(imageDir, 0755); err != nil {
-		return image.Processed{}, fmt.Errorf("unable to make image directory %s: %w", imageDir, err)
+	if err := os.MkdirAll(imgDirAbsPath, 0755); err != nil {
+		return image.Processed{}, fmt.Errorf("unable to make image directory %s: %w", imgDirAbsPath, err)
 	}
 
-	sourceDest := filepath.Join(imageDir, "orig.jpg")
+	sourceDest := filepath.Join(imgDirAbsPath, "orig.jpg")
 	if err = copyFile(sourceAbsPath, sourceDest); err != nil {
-		deleteRemnants(imageDir)
-		return image.Processed{}, fmt.Errorf("unable to copy source %s to %s: %w", sourceAbsPath, imageDir, err)
+		deleteRemnants(imgDirAbsPath)
+		return image.Processed{}, fmt.Errorf("unable to copy source %s to %s: %w", sourceAbsPath, imgDirAbsPath, err)
 	}
 
 	sourceFile := image.Source{
@@ -209,7 +209,7 @@ func (p *processor) processFile(metadata image.Metadata, sourceHash string) (ima
 
 	processedImg := image.Processed{
 		Source:      sourceFile,
-		Dir:         imageDir,
+		Dir:         imgDirAbsPath,
 		Title:       metadata.Title,
 		Description: metadata.Description,
 		CapturedAt:  metadata.CapturedAt,
@@ -220,7 +220,7 @@ func (p *processor) processFile(metadata image.Metadata, sourceHash string) (ima
 	result, err := p.variantGenerator.Generate(sourceAbsPath, specs)
 
 	if len(result.Generated) == 0 {
-		deleteRemnants(imageDir)
+		deleteRemnants(imgDirAbsPath)
 		if err == nil {
 			err = fmt.Errorf("%d variants were attempted, and no errors were reported", len(specs))
 		}
@@ -230,7 +230,7 @@ func (p *processor) processFile(metadata image.Metadata, sourceHash string) (ima
 	processedImg.Variants = identifyVariants(result.Generated)
 
 	if err := manifest.Write(processedImg); err != nil {
-		deleteRemnants(imageDir)
+		deleteRemnants(imgDirAbsPath)
 		return image.Processed{}, fmt.Errorf("unable to write manifest: %w", err)
 	}
 
@@ -267,7 +267,7 @@ func dirDate(dirDate config.DirDate, capturedAt string, processedAt time.Time) (
 	}
 }
 
-func imageDir(date time.Time) string {
+func imgDirRelPath(date time.Time) string {
 	randId := ""
 	b := make([]byte, 7)
 	re := regexp.MustCompile(`^[a-zA-Z0-9]+$`)
