@@ -26,7 +26,7 @@ type Problem struct {
 type Exiftool struct{}
 
 func (e *Exiftool) Read(path paths.AbsPath) (Result, error) {
-	output, err := fetchExiftoolOutput(path.String())
+	output, err := fetchExiftoolOutput(path)
 	if err != nil {
 		return Result{}, err
 	}
@@ -61,8 +61,8 @@ func parseDateTimeOriginal(s string) (time.Time, error) {
 	return capturedAt, nil
 }
 
-func fetchExiftoolOutput(path string) ([]exiftoolOutput, error) {
-	cmd := exec.Command("exiftool", "-json", path)
+func fetchExiftoolOutput(path paths.AbsPath) ([]exiftoolOutput, error) {
+	cmd := exec.Command("exiftool", "-json", path.String())
 
 	rawOutput, commandErr := cmd.Output()
 
@@ -95,8 +95,8 @@ func fetchExiftoolOutput(path string) ([]exiftoolOutput, error) {
 	return output, nil
 }
 
-func isEmptyDir(path string) (bool, error) {
-	info, err := os.Stat(path)
+func isEmptyDir(path paths.AbsPath) (bool, error) {
+	info, err := os.Stat(path.String())
 	if err != nil {
 		return false, err
 	}
@@ -104,7 +104,7 @@ func isEmptyDir(path string) (bool, error) {
 		return false, nil
 	}
 
-	entries, err := os.ReadDir(path)
+	entries, err := os.ReadDir(path.String())
 	if err != nil {
 		return false, err
 	}
