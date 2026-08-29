@@ -7,6 +7,8 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+
+	"tetrahemihexahedron/webimage/internal/paths"
 )
 
 const idxFilename = "index.json"
@@ -43,8 +45,8 @@ func (idx Index) ImagesBySHA256() (map[string]Image, error) {
 
 // Read reads index.json from dir. If the file does not exist, Read
 // returns an empty Index.
-func Read(dir string) (Index, error) {
-	path := filepath.Join(dir, idxFilename)
+func Read(dir paths.AbsPath) (Index, error) {
+	path := filepath.Join(dir.String(), idxFilename)
 	var idx Index
 
 	data, err := os.ReadFile(path)

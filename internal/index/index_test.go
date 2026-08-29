@@ -8,10 +8,11 @@ import (
 	"testing"
 
 	"tetrahemihexahedron/webimage/internal/index"
+	"tetrahemihexahedron/webimage/internal/paths"
 )
 
 func TestReadReturnsEmptyIndexWhenFileIsMissing(t *testing.T) {
-	dir := t.TempDir()
+	dir := mustAbs(t, t.TempDir())
 
 	got, err := index.Read(dir)
 	if err != nil {
@@ -27,12 +28,12 @@ func TestReadReturnsEmptyIndexWhenFileIsMissing(t *testing.T) {
 func TestRead(t *testing.T) {
 	tests := []struct {
 		name string
-		dir  string
+		dir  paths.AbsPath
 		want index.Index
 	}{
 		{
 			name: "with images",
-			dir:  filepath.Join("testdata", "valid"),
+			dir:  mustAbs(t, filepath.Join("testdata", "valid")),
 			want: index.Index{
 				GeneratedAt: "2026-08-24T18:00:00Z",
 				Images: []index.Image{
@@ -49,7 +50,7 @@ func TestRead(t *testing.T) {
 		},
 		{
 			name: "with no images",
-			dir:  filepath.Join("testdata", "no_images"),
+			dir:  mustAbs(t, filepath.Join("testdata", "no_images")),
 			want: index.Index{
 				GeneratedAt: "2026-08-24T18:00:00Z",
 				Images:      []index.Image{},
@@ -72,7 +73,7 @@ func TestRead(t *testing.T) {
 }
 
 func TestReadReturnsErrorForMalformedJSON(t *testing.T) {
-	dir := filepath.Join("testdata", "malformed")
+	dir := mustAbs(t, filepath.Join("testdata", "malformed"))
 
 	_, err := index.Read(dir)
 	if err == nil {
@@ -84,10 +85,11 @@ func TestReadReturnsErrorForMalformedJSON(t *testing.T) {
 }
 
 func TestReadReturnsErrorForUnreadableIndex(t *testing.T) {
-	dir := t.TempDir()
-	if err := os.Mkdir(filepath.Join(dir, "index.json"), 0755); err != nil {
+	dirPath := t.TempDir()
+	if err := os.Mkdir(filepath.Join(dirPath, "index.json"), 0755); err != nil {
 		t.Fatalf("making test directory: %v", err)
 	}
+	dir := mustAbs(t, dirPath)
 
 	_, err := index.Read(dir)
 	if err == nil {
@@ -167,4 +169,20 @@ func TestImagesBySHA256ReturnsErrorForDuplicateHash(t *testing.T) {
 	if !strings.Contains(err.Error(), "duplicate sha256") {
 		t.Errorf("Index.ImagesBySHA256() error = %q, want message containing %q", err, "duplicate sha256")
 	}
+}
+
+func mustAbs(t *testing.T, path string) paths.AbsPath {
+	t.Helper()
+
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		t.Fatalf("filepath.Abs(%q) error = %v, want nil", path, err)
+	}
+
+	p, err := paths.NewAbsPath(absPath)
+	if err != nil {
+		t.Fatalf("paths.NewAbsPath(%q) error = %v, want nil", absPath, err)
+	}
+
+	return p
 }
