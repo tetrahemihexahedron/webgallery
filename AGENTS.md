@@ -1,4 +1,4 @@
-This directory contains the code for a command-line script written in Go used to prepare image files for webpages.
+This directory contains the code for a command-line script written in Go used to prepare image files for webpages. It is a work in progress, so some features may be only partially implemented.
 
 ## Application
 
