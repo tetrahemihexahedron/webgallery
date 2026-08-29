@@ -49,11 +49,11 @@ type processor struct {
 }
 
 func (p *processor) processDir() (result, error) {
-	inDir := p.cfg.InDir
+	inDir := p.cfg.InDirAbsPath
 
 	fmt.Fprintf(p.progressReporter, "Processing image files in %q\n", inDir)
 
-	imageIndex, err := index.Read(p.cfg.OutDir)
+	imageIndex, err := index.Read(p.cfg.OutDirAbsPath)
 	if err != nil {
 		return result{}, err
 	}
@@ -115,7 +115,7 @@ func (p *processor) processDir() (result, error) {
 			continue
 		}
 
-		source := filepath.Join(p.cfg.InDir, metadata.FileName)
+		source := filepath.Join(p.cfg.InDirAbsPath, metadata.FileName)
 		sourceHash, err := hashFile(source)
 		if err != nil {
 			fmt.Fprintf(
@@ -183,12 +183,12 @@ func (p *processor) processDir() (result, error) {
 
 func (p *processor) processFile(metadata image.Metadata, sourceHash string) (image.Processed, error) {
 	processedAt := time.Now().UTC()
-	source := filepath.Join(p.cfg.InDir, metadata.FileName)
+	source := filepath.Join(p.cfg.InDirAbsPath, metadata.FileName)
 	dirDate, err := dirDate(p.cfg.DirDate, metadata.CapturedAt, processedAt)
 	if err != nil {
 		return image.Processed{}, err
 	}
-	imageDir := filepath.Join(p.cfg.OutDir, imageDir(dirDate))
+	imageDir := filepath.Join(p.cfg.OutDirAbsPath, imageDir(dirDate))
 
 	if err := os.MkdirAll(imageDir, 0755); err != nil {
 		return image.Processed{}, fmt.Errorf("unable to make image directory %s: %w", imageDir, err)

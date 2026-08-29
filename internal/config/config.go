@@ -26,10 +26,10 @@ func (d DirDate) isValid() bool {
 }
 
 type Config struct {
-	InDir   string
-	OutDir  string
-	IsQuiet bool
-	DirDate DirDate
+	InDirAbsPath  string
+	OutDirAbsPath string
+	IsQuiet       bool
+	DirDate       DirDate
 }
 
 func Load() (Config, error) {
@@ -42,8 +42,8 @@ func parseArgs(args []string, output io.Writer) (Config, error) {
 	flags := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	flags.SetOutput(output)
 
-	flags.StringVar(&cfg.InDir, "incoming", "", "incoming directory")
-	flags.StringVar(&cfg.OutDir, "output", "", "output directory")
+	flags.StringVar(&cfg.InDirAbsPath, "incoming", "", "incoming directory")
+	flags.StringVar(&cfg.OutDirAbsPath, "output", "", "output directory")
 	flags.BoolVar(&cfg.IsQuiet, "quiet", false, "suppress progress output")
 
 	dirDate := string(DirDateProcessed)
@@ -58,25 +58,25 @@ func parseArgs(args []string, output io.Writer) (Config, error) {
 		return Config{}, fmt.Errorf("invalid '--dir-date' value %q: want %q or %q", dirDate, DirDateProcessed, DirDateCaptured)
 	}
 
-	if cfg.InDir == "" {
+	if cfg.InDirAbsPath == "" {
 		return Config{}, errors.New("missing required '--incoming' flag")
 	}
 
-	if cfg.OutDir == "" {
+	if cfg.OutDirAbsPath == "" {
 		return Config{}, errors.New("missing required '--output' flag")
 	}
 
-	inDir, err := filepath.Abs(cfg.InDir)
+	inDir, err := filepath.Abs(cfg.InDirAbsPath)
 	if err != nil {
 		return Config{}, fmt.Errorf("making --incoming path absolute: %w", err)
 	}
-	cfg.InDir = inDir
+	cfg.InDirAbsPath = inDir
 
-	outDir, err := filepath.Abs(cfg.OutDir)
+	outDir, err := filepath.Abs(cfg.OutDirAbsPath)
 	if err != nil {
 		return Config{}, fmt.Errorf("making --output path absolute: %w", err)
 	}
-	cfg.OutDir = outDir
+	cfg.OutDirAbsPath = outDir
 
 	return cfg, nil
 }
