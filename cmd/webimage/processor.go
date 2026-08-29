@@ -32,7 +32,7 @@ type variantGenerator interface {
 }
 
 type result struct {
-	dirProcessed string
+	dirProcessed paths.AbsPath
 	images       []image.Processed
 	problems     []fileProblem
 }
@@ -77,7 +77,7 @@ func (p *processor) processDir() (result, error) {
 	)
 
 	result := result{
-		dirProcessed: inDirAbsPath,
+		dirProcessed: p.cfg.InDir,
 	}
 
 	for _, problem := range metadataResult.FileProblems {
