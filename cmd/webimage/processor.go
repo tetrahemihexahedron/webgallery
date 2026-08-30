@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -204,7 +203,11 @@ func (p *processor) processFile(metadata image.Metadata, sourceHash string) (ima
 	if err != nil {
 		return image.Processed{}, err
 	}
-	imgDirAbsPath := filepath.Join(p.cfg.OutDir.String(), imgDirRelPath(dirDate))
+	imgDirRelPath, err := imgDirRelPath(dirDate)
+	if err != nil {
+		return image.Processed{}, err
+	}
+	imgDirAbsPath := filepath.Join(p.cfg.OutDir.String(), imgDirRelPath.String())
 
 	if err := os.MkdirAll(imgDirAbsPath, 0755); err != nil {
 		return image.Processed{}, fmt.Errorf("unable to make image directory %s: %w", imgDirAbsPath, err)
@@ -283,19 +286,24 @@ func dirDate(dirDate config.DirDate, capturedAt string, processedAt time.Time) (
 	}
 }
 
-func imgDirRelPath(date time.Time) string {
+func imgDirRelPath(date time.Time) (paths.RelPath, error) {
 	randId := ""
 	b := make([]byte, 7)
 	re := regexp.MustCompile(`^[a-zA-Z0-9]+$`)
 
 	for !re.MatchString(randId) {
 		if _, err := rand.Read(b); err != nil {
-			log.Fatal(err)
+			return paths.RelPath{}, fmt.Errorf("generating random image directory ID: %w", err)
 		}
 		randId = base64.RawURLEncoding.EncodeToString(b)
 	}
 
-	return fmt.Sprintf("%d/%02d/%s/", date.Year(), date.Month(), randId)
+	path, err := paths.NewRelPath(fmt.Sprintf("%d/%02d/%s", date.Year(), date.Month(), randId))
+	if err != nil {
+		return paths.RelPath{}, fmt.Errorf("building image directory relative path: %w", err)
+	}
+
+	return path, nil
 }
 
 func variantSpecs(img image.Processed) []variants.Spec {
