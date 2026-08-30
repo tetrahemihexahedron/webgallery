@@ -116,7 +116,22 @@ func (p *processor) processDir() (result, error) {
 			continue
 		}
 
-		sourceAbsPath := filepath.Join(p.cfg.InDir.String(), metadata.FileName)
+		sourceAbsPath, err := paths.NewAbsPath(filepath.Join(p.cfg.InDir.String(), metadata.FileName))
+		if err != nil {
+			fmt.Fprintf(
+				p.progressReporter,
+				"Error building path for %q: %v\n",
+				metadata.FileName,
+				err,
+			)
+
+			result.problems = append(result.problems, fileProblem{
+				fileName: metadata.FileName,
+				message:  fmt.Sprintf("source path error: %v", err),
+			})
+			continue
+		}
+
 		sourceHash, err := hashFile(sourceAbsPath)
 		if err != nil {
 			fmt.Fprintf(
@@ -238,8 +253,8 @@ func (p *processor) processFile(metadata image.Metadata, sourceHash string) (ima
 	return processedImg, nil
 }
 
-func hashFile(filename string) (string, error) {
-	f, err := os.Open(filename)
+func hashFile(path paths.AbsPath) (string, error) {
+	f, err := os.Open(path.String())
 	if err != nil {
 		return "", err
 	}
