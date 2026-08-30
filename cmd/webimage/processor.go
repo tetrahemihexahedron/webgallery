@@ -198,7 +198,10 @@ func (p *processor) processDir() (result, error) {
 
 func (p *processor) processFile(metadata image.Metadata, sourceHash string) (image.Processed, error) {
 	processedAt := time.Now().UTC()
-	sourceAbsPath := filepath.Join(p.cfg.InDir.String(), metadata.FileName)
+	sourceAbsPath, err := paths.NewAbsPath(filepath.Join(p.cfg.InDir.String(), metadata.FileName))
+	if err != nil {
+		return image.Processed{}, err
+	}
 	dirDate, err := dirDate(p.cfg.DirDate, metadata.CapturedAt, processedAt)
 	if err != nil {
 		return image.Processed{}, err
@@ -216,7 +219,11 @@ func (p *processor) processFile(metadata image.Metadata, sourceHash string) (ima
 		return image.Processed{}, fmt.Errorf("unable to make image directory %s: %w", imgDirAbsPath, err)
 	}
 
-	sourceDest := filepath.Join(imgDirAbsPath.String(), "orig.jpg")
+	sourceDest, err := paths.NewAbsPath(filepath.Join(imgDirAbsPath.String(), "orig.jpg"))
+	if err != nil {
+		deleteRemnants(imgDirAbsPath)
+		return image.Processed{}, err
+	}
 	if err = copyFile(sourceAbsPath, sourceDest); err != nil {
 		deleteRemnants(imgDirAbsPath)
 		return image.Processed{}, fmt.Errorf("unable to copy source %s to %s: %w", sourceAbsPath, imgDirAbsPath, err)
@@ -224,7 +231,7 @@ func (p *processor) processFile(metadata image.Metadata, sourceHash string) (ima
 
 	sourceFile := image.Source{
 		Hash:   sourceHash,
-		Path:   sourceDest,
+		Path:   sourceDest.String(),
 		Width:  metadata.Width,
 		Height: metadata.Height,
 	}
@@ -240,7 +247,7 @@ func (p *processor) processFile(metadata image.Metadata, sourceHash string) (ima
 	}
 
 	specs := variantSpecs(processedImg)
-	result, err := p.variantGenerator.Generate(sourceAbsPath, specs)
+	result, err := p.variantGenerator.Generate(sourceAbsPath.String(), specs)
 
 	if len(result.Generated) == 0 {
 		deleteRemnants(imgDirAbsPath)
@@ -345,14 +352,14 @@ func filename(width int, ext string) string {
 	return "w" + strconv.Itoa(width) + ext
 }
 
-func copyFile(source string, dest string) error {
-	sourcefile, err := os.Open(source)
+func copyFile(source paths.AbsPath, dest paths.AbsPath) error {
+	sourcefile, err := os.Open(source.String())
 	if err != nil {
 		return err
 	}
 	defer sourcefile.Close()
 
-	destination, err := os.Create(dest)
+	destination, err := os.Create(dest.String())
 	if err != nil {
 		return err
 	}
