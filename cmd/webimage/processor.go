@@ -178,7 +178,7 @@ func (p *processor) processDir() (result, error) {
 			})
 		} else {
 			imagesByHash[sourceHash] = index.Image{
-				Dir:    imageProcessed.Dir,
+				Dir:    imageProcessed.DirAbsPath.String(),
 				SHA256: sourceHash,
 			}
 
@@ -187,7 +187,7 @@ func (p *processor) processDir() (result, error) {
 				"Processed %q:\n\t%d variants generated in %q\n",
 				metadata.FileName,
 				len(imageProcessed.Variants),
-				imageProcessed.Dir,
+				imageProcessed.DirAbsPath,
 			)
 
 			result.images = append(result.images, imageProcessed)
@@ -207,13 +207,16 @@ func (p *processor) processFile(metadata image.Metadata, sourceHash string) (ima
 	if err != nil {
 		return image.Processed{}, err
 	}
-	imgDirAbsPath := filepath.Join(p.cfg.OutDir.String(), imgDirRelPath.String())
+	imgDirAbsPath, err := paths.NewAbsPath(filepath.Join(p.cfg.OutDir.String(), imgDirRelPath.String()))
+	if err != nil {
+		return image.Processed{}, err
+	}
 
-	if err := os.MkdirAll(imgDirAbsPath, 0755); err != nil {
+	if err := os.MkdirAll(imgDirAbsPath.String(), 0755); err != nil {
 		return image.Processed{}, fmt.Errorf("unable to make image directory %s: %w", imgDirAbsPath, err)
 	}
 
-	sourceDest := filepath.Join(imgDirAbsPath, "orig.jpg")
+	sourceDest := filepath.Join(imgDirAbsPath.String(), "orig.jpg")
 	if err = copyFile(sourceAbsPath, sourceDest); err != nil {
 		deleteRemnants(imgDirAbsPath)
 		return image.Processed{}, fmt.Errorf("unable to copy source %s to %s: %w", sourceAbsPath, imgDirAbsPath, err)
@@ -228,7 +231,7 @@ func (p *processor) processFile(metadata image.Metadata, sourceHash string) (ima
 
 	processedImg := image.Processed{
 		Source:      sourceFile,
-		Dir:         imgDirAbsPath,
+		DirAbsPath:  imgDirAbsPath,
 		Title:       metadata.Title,
 		Description: metadata.Description,
 		CapturedAt:  metadata.CapturedAt,
@@ -317,7 +320,7 @@ func variantSpecs(img image.Processed) []variants.Spec {
 	for _, ext := range desiredExts {
 		for _, width := range widths {
 			filename := filename(width, ext)
-			outPath := filepath.Join(img.Dir, filename)
+			outPath := filepath.Join(img.DirAbsPath.String(), filename)
 			specs = append(specs, variants.Spec{OutPath: outPath, Width: width})
 		}
 	}
@@ -358,8 +361,8 @@ func copyFile(source string, dest string) error {
 	return err
 }
 
-func deleteRemnants(dir string) error {
-	return os.RemoveAll(dir)
+func deleteRemnants(dir paths.AbsPath) error {
+	return os.RemoveAll(dir.String())
 }
 
 func identifyVariants(specs []variants.Spec) []image.Variant {

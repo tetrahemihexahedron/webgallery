@@ -43,7 +43,7 @@ func Write(img image.Processed) error {
 		return err
 	}
 
-	outPath := filepath.Join(img.Dir, "manifest.json")
+	outPath := filepath.Join(img.DirAbsPath.String(), "manifest.json")
 	if err = os.WriteFile(outPath, jsonBytes, 0644); err != nil {
 		return err
 	}

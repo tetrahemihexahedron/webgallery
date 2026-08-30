@@ -1,5 +1,7 @@
 package image
 
+import "tetrahemihexahedron/webimage/internal/paths"
+
 type Metadata struct {
 	FileName    string
 	Format      string
@@ -25,7 +27,7 @@ type Variant struct {
 
 type Processed struct {
 	Source      Source
-	Dir         string
+	DirAbsPath  paths.AbsPath
 	Title       string
 	Description string
 	CapturedAt  string

@@ -9,6 +9,7 @@ import (
 
 	"tetrahemihexahedron/webimage/internal/image"
 	"tetrahemihexahedron/webimage/internal/manifest"
+	"tetrahemihexahedron/webimage/internal/paths"
 )
 
 type manifestFile struct {
@@ -90,13 +91,13 @@ func TestWrite(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			img := tc.img
-			img.Dir = t.TempDir()
+			img.DirAbsPath = mustAbs(t, t.TempDir())
 
 			if err := manifest.Write(img); err != nil {
 				t.Fatalf("manifest.Write(%+v) returned error: %v", img, err)
 			}
 
-			got := readManifest(t, img.Dir)
+			got := readManifest(t, img.DirAbsPath)
 			if !reflect.DeepEqual(got, tc.want) {
 				t.Errorf("manifest.Write(%+v) manifest mismatch\n got: %+v\nwant: %+v", img, got, tc.want)
 			}
@@ -105,18 +106,18 @@ func TestWrite(t *testing.T) {
 }
 
 func TestWriteReturnsErrorForMissingDir(t *testing.T) {
-	dir := filepath.Join(t.TempDir(), "missing")
-	img := image.Processed{Dir: dir}
+	dir := mustAbs(t, filepath.Join(t.TempDir(), "missing"))
+	img := image.Processed{DirAbsPath: dir}
 
 	if err := manifest.Write(img); err == nil {
 		t.Fatalf("manifest.Write(%+v) returned nil error, want error", img)
 	}
 }
 
-func readManifest(t *testing.T, dir string) manifestFile {
+func readManifest(t *testing.T, dir paths.AbsPath) manifestFile {
 	t.Helper()
 
-	path := filepath.Join(dir, "manifest.json")
+	path := filepath.Join(dir.String(), "manifest.json")
 	data, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("reading manifest %q: %v", path, err)
@@ -128,4 +129,15 @@ func readManifest(t *testing.T, dir string) manifestFile {
 	}
 
 	return got
+}
+
+func mustAbs(t *testing.T, path string) paths.AbsPath {
+	t.Helper()
+
+	p, err := paths.NewAbsPath(path)
+	if err != nil {
+		t.Fatalf("paths.NewAbsPath(%q) error = %v, want nil", path, err)
+	}
+
+	return p
 }
