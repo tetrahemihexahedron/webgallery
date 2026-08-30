@@ -232,6 +232,7 @@ func (p *processor) processFile(metadata image.Metadata, sourceHash string) (ima
 	processedImg := image.Processed{
 		Source:      sourceFile,
 		DirAbsPath:  imgDirAbsPath,
+		DirRelPath:  imgDirRelPath,
 		Title:       metadata.Title,
 		Description: metadata.Description,
 		CapturedAt:  metadata.CapturedAt,
