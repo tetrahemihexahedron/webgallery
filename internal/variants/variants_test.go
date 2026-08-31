@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"tetrahemihexahedron/webimage/internal/paths"
 	"tetrahemihexahedron/webimage/internal/variants"
 )
 
@@ -19,7 +20,7 @@ type imageSize struct {
 
 func TestVipsthumbnailGenerate(t *testing.T) {
 	dir := t.TempDir()
-	source := filepath.Join("testdata", "image_800x1067.jpg")
+	source := mustAbs(t, filepath.Join("testdata", "image_800x1067.jpg"))
 
 	tests := []struct {
 		name      string
@@ -29,9 +30,9 @@ func TestVipsthumbnailGenerate(t *testing.T) {
 		{
 			name: "generates supported formats",
 			specs: []variants.Spec{
-				{OutPath: filepath.Join(dir, "w400.jpg"), Width: 400},
-				{OutPath: filepath.Join(dir, "w400.jpeg"), Width: 400},
-				{OutPath: filepath.Join(dir, "w400.avif"), Width: 400},
+				{OutPath: mustAbs(t, filepath.Join(dir, "w400.jpg")), Width: 400},
+				{OutPath: mustAbs(t, filepath.Join(dir, "w400.jpeg")), Width: 400},
+				{OutPath: mustAbs(t, filepath.Join(dir, "w400.avif")), Width: 400},
 			},
 			wantSizes: []imageSize{
 				{width: 400, height: 534},
@@ -42,7 +43,7 @@ func TestVipsthumbnailGenerate(t *testing.T) {
 		{
 			name: "does not enlarge images",
 			specs: []variants.Spec{
-				{OutPath: filepath.Join(dir, "w1600.jpg"), Width: 1600},
+				{OutPath: mustAbs(t, filepath.Join(dir, "w1600.jpg")), Width: 1600},
 			},
 			wantSizes: []imageSize{
 				{width: 800, height: 1067},
@@ -79,11 +80,20 @@ func TestVipsthumbnailGenerate(t *testing.T) {
 
 func TestVipsthumbnailGenerateReturnsPartialResult(t *testing.T) {
 	dir := t.TempDir()
-	source := filepath.Join("testdata", "image_800x1067.jpg")
+	source := mustAbs(t, filepath.Join("testdata", "image_800x1067.jpg"))
 
-	validJPG := variants.Spec{OutPath: filepath.Join(dir, "w400.jpg"), Width: 400}
-	invalid := variants.Spec{OutPath: filepath.Join(dir, "w400.webp"), Width: 400}
-	validAVIF := variants.Spec{OutPath: filepath.Join(dir, "w400.avif"), Width: 400}
+	validJPG := variants.Spec{
+		OutPath: mustAbs(t, filepath.Join(dir, "w400.jpg")),
+		Width:   400,
+	}
+	invalid := variants.Spec{
+		OutPath: mustAbs(t, filepath.Join(dir, "w400.webp")),
+		Width:   400,
+	}
+	validAVIF := variants.Spec{
+		OutPath: mustAbs(t, filepath.Join(dir, "w400.avif")),
+		Width:   400,
+	}
 	specs := []variants.Spec{validJPG, invalid, validAVIF}
 	wantGenerated := []variants.Spec{validJPG, validAVIF}
 	wantProblem := "unsupported output file extension"
@@ -117,7 +127,7 @@ func TestVipsthumbnailGenerateReturnsPartialResult(t *testing.T) {
 
 func TestVipsthumbnailGenerateReportsSpecProblems(t *testing.T) {
 	dir := t.TempDir()
-	source := filepath.Join("testdata", "image_800x1067.jpg")
+	source := mustAbs(t, filepath.Join("testdata", "image_800x1067.jpg"))
 
 	tests := []struct {
 		name        string
@@ -126,12 +136,12 @@ func TestVipsthumbnailGenerateReportsSpecProblems(t *testing.T) {
 	}{
 		{
 			name:        "empty output path",
-			spec:        variants.Spec{OutPath: "", Width: 400},
+			spec:        variants.Spec{Width: 400},
 			wantProblem: "output file path cannot be empty",
 		},
 		{
 			name:        "non-positive width",
-			spec:        variants.Spec{OutPath: filepath.Join(dir, "w0.jpg"), Width: 0},
+			spec:        variants.Spec{OutPath: mustAbs(t, filepath.Join(dir, "w0.jpg")), Width: 0},
 			wantProblem: "width must be positive",
 		},
 		{
@@ -141,7 +151,7 @@ func TestVipsthumbnailGenerateReportsSpecProblems(t *testing.T) {
 		},
 		{
 			name:        "unsupported output extension",
-			spec:        variants.Spec{OutPath: filepath.Join(dir, "w400.webp"), Width: 400},
+			spec:        variants.Spec{OutPath: mustAbs(t, filepath.Join(dir, "w400.webp")), Width: 400},
 			wantProblem: "unsupported output file extension",
 		},
 	}
@@ -182,24 +192,25 @@ func TestVipsthumbnailGenerateReportsSpecProblems(t *testing.T) {
 
 func TestVipsthumbnailGenerateReturnsError(t *testing.T) {
 	t.Run("empty source path", func(t *testing.T) {
-		specs := []variants.Spec{{OutPath: filepath.Join(t.TempDir(), "w400.jpg"), Width: 400}}
-		got, err := (&variants.Vipsthumbnail{}).Generate("", specs)
+		var source paths.AbsPath
+		specs := []variants.Spec{{OutPath: mustAbs(t, filepath.Join(t.TempDir(), "w400.jpg")), Width: 400}}
+		got, err := (&variants.Vipsthumbnail{}).Generate(source, specs)
 		wantProblem := "source file path cannot be empty"
 
 		if err == nil {
-			t.Fatalf("Vipsthumbnail.Generate(%q, %+v) returned nil error, want error containing %q", "", specs, wantProblem)
+			t.Fatalf("Vipsthumbnail.Generate(%q, %+v) returned nil error, want error containing %q", source, specs, wantProblem)
 		}
 		if !strings.Contains(err.Error(), wantProblem) {
-			t.Errorf("Vipsthumbnail.Generate(%q, %+v) error = %v, want message containing %q", "", specs, err, wantProblem)
+			t.Errorf("Vipsthumbnail.Generate(%q, %+v) error = %v, want message containing %q", source, specs, err, wantProblem)
 		}
 		if len(got.Generated) != 0 || len(got.Failed) != 0 {
-			t.Errorf("Vipsthumbnail.Generate(%q, %+v) result = %+v, want no generated or failed variants", "", specs, got)
+			t.Errorf("Vipsthumbnail.Generate(%q, %+v) result = %+v, want no generated or failed variants", source, specs, got)
 		}
 	})
 
 	t.Run("vipsthumbnail command fails for missing source", func(t *testing.T) {
-		source := filepath.Join("testdata", "nonexistent.jpg")
-		spec := variants.Spec{OutPath: filepath.Join(t.TempDir(), "w400.jpg"), Width: 400}
+		source := mustAbs(t, filepath.Join("testdata", "nonexistent.jpg"))
+		spec := variants.Spec{OutPath: mustAbs(t, filepath.Join(t.TempDir(), "w400.jpg")), Width: 400}
 		specs := []variants.Spec{spec}
 		got, err := (&variants.Vipsthumbnail{}).Generate(source, specs)
 
@@ -221,11 +232,11 @@ func TestVipsthumbnailGenerateReturnsError(t *testing.T) {
 	})
 }
 
-func readImageSize(t *testing.T, path string) imageSize {
+func readImageSize(t *testing.T, path paths.AbsPath) imageSize {
 	t.Helper()
 
 	// -s3 causes exiftool to output the values of the fields only
-	out, err := exec.Command("exiftool", "-ImageWidth", "-ImageHeight", "-s3", path).Output()
+	out, err := exec.Command("exiftool", "-ImageWidth", "-ImageHeight", "-s3", path.String()).Output()
 	if err != nil {
 		t.Fatalf("reading image size for %q: %v", path, err)
 	}
@@ -245,4 +256,20 @@ func readImageSize(t *testing.T, path string) imageSize {
 	}
 
 	return imageSize{width: width, height: height}
+}
+
+func mustAbs(t *testing.T, path string) paths.AbsPath {
+	t.Helper()
+
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		t.Fatalf("filepath.Abs(%q) error = %v, want nil", path, err)
+	}
+
+	p, err := paths.NewAbsPath(absPath)
+	if err != nil {
+		t.Fatalf("paths.NewAbsPath(%q) error = %v, want nil", absPath, err)
+	}
+
+	return p
 }

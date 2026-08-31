@@ -27,7 +27,7 @@ type metadataReader interface {
 }
 
 type variantGenerator interface {
-	Generate(source string, specs []variants.Spec) (variants.Result, error)
+	Generate(source paths.AbsPath, specs []variants.Spec) (variants.Result, error)
 }
 
 type result struct {
@@ -246,8 +246,12 @@ func (p *processor) processFile(metadata image.Metadata, sourceHash string) (ima
 		ProcessedAt: image.FormatProcessedAt(processedAt),
 	}
 
-	specs := variantSpecs(processedImg)
-	result, err := p.variantGenerator.Generate(sourceAbsPath.String(), specs)
+	specs, err := variantSpecs(processedImg)
+	if err != nil {
+		deleteRemnants(imgDirAbsPath)
+		return image.Processed{}, err
+	}
+	result, err := p.variantGenerator.Generate(sourceAbsPath, specs)
 
 	if len(result.Generated) == 0 {
 		deleteRemnants(imgDirAbsPath)
@@ -317,7 +321,7 @@ func imgDirRelPath(date time.Time) (paths.RelPath, error) {
 	return path, nil
 }
 
-func variantSpecs(img image.Processed) []variants.Spec {
+func variantSpecs(img image.Processed) ([]variants.Spec, error) {
 	var desiredWidths = []int{400, 800, 1200, 1600}
 	var desiredExts = []string{".jpg", ".avif"}
 
@@ -328,11 +332,14 @@ func variantSpecs(img image.Processed) []variants.Spec {
 	for _, ext := range desiredExts {
 		for _, width := range widths {
 			filename := filename(width, ext)
-			outPath := filepath.Join(img.DirAbsPath.String(), filename)
+			outPath, err := paths.NewAbsPath(filepath.Join(img.DirAbsPath.String(), filename))
+			if err != nil {
+				return nil, err
+			}
 			specs = append(specs, variants.Spec{OutPath: outPath, Width: width})
 		}
 	}
-	return specs
+	return specs, nil
 }
 
 func variantWidths(sourceWidth int, desired []int) []int {
@@ -377,8 +384,8 @@ func identifyVariants(specs []variants.Spec) []image.Variant {
 	variants := make([]image.Variant, 0, len(specs))
 	for _, spec := range specs {
 		variants = append(variants, image.Variant{
-			Path:   spec.OutPath,
-			Format: image.ParseFormat(filepath.Ext(spec.OutPath)),
+			Path:   spec.OutPath.String(),
+			Format: image.ParseFormat(filepath.Ext(spec.OutPath.String())),
 			Width:  spec.Width,
 		})
 	}

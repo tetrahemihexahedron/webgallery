@@ -7,11 +7,13 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"tetrahemihexahedron/webimage/internal/paths"
 )
 
 // Spec describes one output image variant to generate.
 type Spec struct {
-	OutPath string
+	OutPath paths.AbsPath
 	Width   int
 }
 
@@ -37,8 +39,8 @@ func (r Result) err() error {
 
 type Vipsthumbnail struct{}
 
-func (v *Vipsthumbnail) Generate(source string, specs []Spec) (Result, error) {
-	if source == "" {
+func (v *Vipsthumbnail) Generate(source paths.AbsPath, specs []Spec) (Result, error) {
+	if source.String() == "" {
 		return Result{}, errors.New("source file path cannot be empty")
 	}
 
@@ -56,11 +58,11 @@ func (v *Vipsthumbnail) Generate(source string, specs []Spec) (Result, error) {
 	return result, result.err()
 }
 
-func generateVariant(source string, spec Spec) error {
+func generateVariant(source paths.AbsPath, spec Spec) error {
 	if err := validateSpec(spec); err != nil {
 		return wrapError(err, spec)
 	}
-	if filepath.Clean(source) == filepath.Clean(spec.OutPath) {
+	if source == spec.OutPath {
 		return wrapError(errors.New("source and output file paths cannot be the same"), spec)
 	}
 
@@ -69,17 +71,12 @@ func generateVariant(source string, spec Spec) error {
 		return wrapError(err, spec)
 	}
 
-	absoluteOutPath, err := filepath.Abs(spec.OutPath)
-	if err != nil {
-		return wrapError(fmt.Errorf("unable to form absolute output path: %w", err), spec)
-	}
-
 	// appending '>' tells libvips to only shrink; if the image is already
 	// smaller than the requested size, the size won't change
 	width := strconv.Itoa(spec.Width) + "x>"
-	path := absoluteOutPath + options
+	path := spec.OutPath.String() + options
 
-	cmd := exec.Command("vipsthumbnail", source, "--size", width, "--output", path)
+	cmd := exec.Command("vipsthumbnail", source.String(), "--size", width, "--output", path)
 
 	out, err := cmd.CombinedOutput()
 
@@ -104,7 +101,7 @@ func wrapError(err error, spec Spec) error {
 }
 
 func validateSpec(spec Spec) error {
-	if spec.OutPath == "" {
+	if spec.OutPath.String() == "" {
 		return errors.New("output file path cannot be empty")
 	}
 
@@ -115,16 +112,14 @@ func validateSpec(spec Spec) error {
 	return nil
 }
 
-func determineEncoderOptions(path string) (string, error) {
-	switch strings.ToLower(filepath.Ext(path)) {
+func determineEncoderOptions(path paths.AbsPath) (string, error) {
+	ext := filepath.Ext(path.String())
+	switch strings.ToLower(ext) {
 	case ".jpeg", ".jpg":
 		return "[Q=75,keep=none]", nil
 	case ".avif":
 		return "[Q=75,effort=6,keep=none]", nil
 	default:
-		return "", fmt.Errorf(
-			"unsupported output file extension %q",
-			filepath.Ext(path),
-		)
+		return "", fmt.Errorf("unsupported output file extension %q", ext)
 	}
 }
