@@ -48,9 +48,9 @@ func TestWrite(t *testing.T) {
 				CapturedAt:  "2023-10-03T17:26:39",
 				ProcessedAt: "2026-08-24T18:00:00Z",
 				Variants: []image.Variant{
-					{Path: "w400.jpg", Format: image.FormatJPEG, Width: 400},
-					{Path: "w800.jpg", Format: image.FormatJPEG, Width: 800},
-					{Path: "w400.avif", Format: image.FormatAVIF, Width: 400},
+					{Path: mustRel(t, "w400.jpg"), Format: image.FormatJPEG, Width: 400},
+					{Path: mustRel(t, "w800.jpg"), Format: image.FormatJPEG, Width: 800},
+					{Path: mustRel(t, "w400.avif"), Format: image.FormatAVIF, Width: 400},
 				},
 			},
 			want: manifestFile{
@@ -137,6 +137,17 @@ func mustAbs(t *testing.T, path string) paths.AbsPath {
 	p, err := paths.NewAbsPath(path)
 	if err != nil {
 		t.Fatalf("paths.NewAbsPath(%q) error = %v, want nil", path, err)
+	}
+
+	return p
+}
+
+func mustRel(t *testing.T, path string) paths.RelPath {
+	t.Helper()
+
+	p, err := paths.NewRelPath(path)
+	if err != nil {
+		t.Fatalf("paths.NewRelPath(%q) error = %v, want nil", path, err)
 	}
 
 	return p

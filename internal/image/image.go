@@ -20,7 +20,7 @@ type Source struct {
 }
 
 type Variant struct {
-	Path   string
+	Path   paths.RelPath
 	Format Format
 	Width  int
 }

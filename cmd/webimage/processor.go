@@ -261,7 +261,11 @@ func (p *processor) processFile(metadata image.Metadata, sourceHash string) (ima
 		return image.Processed{}, fmt.Errorf("no variants were generated: %w", err)
 	}
 
-	processedImg.Variants = identifyVariants(result.Generated)
+	processedImg.Variants, err = identifyVariants(result.Generated)
+	if err != nil {
+		deleteRemnants(imgDirAbsPath)
+		return image.Processed{}, fmt.Errorf("unable to identify generated variants: %w", err)
+	}
 
 	if err := manifest.Write(processedImg); err != nil {
 		deleteRemnants(imgDirAbsPath)
@@ -380,14 +384,20 @@ func deleteRemnants(dir paths.AbsPath) error {
 	return os.RemoveAll(dir.String())
 }
 
-func identifyVariants(specs []variants.Spec) []image.Variant {
+func identifyVariants(specs []variants.Spec) ([]image.Variant, error) {
 	variants := make([]image.Variant, 0, len(specs))
 	for _, spec := range specs {
+		filename := filepath.Base(spec.OutPath.String())
+		path, err := paths.NewRelPath(filename)
+		if err != nil {
+			return nil, fmt.Errorf("determining relative path for %s: %w", spec.OutPath, err)
+		}
+
 		variants = append(variants, image.Variant{
-			Path:   spec.OutPath.String(),
-			Format: image.ParseFormat(filepath.Ext(spec.OutPath.String())),
+			Path:   path,
+			Format: image.ParseFormat(filepath.Ext(filename)),
 			Width:  spec.Width,
 		})
 	}
-	return variants
+	return variants, nil
 }

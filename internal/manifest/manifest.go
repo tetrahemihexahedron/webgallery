@@ -60,7 +60,7 @@ func manifestVariants(i image.Processed) map[string][]imageFile {
 		maniVariants[format] = append(
 			maniVariants[format],
 			imageFile{
-				Path:   v.Path,
+				Path:   v.Path.String(),
 				Width:  v.Width,
 				Height: int(math.Round(float64(v.Width) * aspectRatio)),
 			},
