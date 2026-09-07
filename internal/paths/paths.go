@@ -46,3 +46,12 @@ func NewRelPath(p string) (RelPath, error) {
 func (p RelPath) String() string {
 	return p.s
 }
+
+// JoinAbs joins base and rel and returns the result as an AbsPath.
+func JoinAbs(base AbsPath, rel RelPath) (AbsPath, error) {
+	if rel.String() == "" {
+		return AbsPath{}, fmt.Errorf("relative path cannot be empty")
+	}
+
+	return NewAbsPath(filepath.Join(base.String(), rel.String()))
+}

@@ -63,6 +63,57 @@ func TestNewAbsPath(t *testing.T) {
 	}
 }
 
+func TestJoinAbs(t *testing.T) {
+	base := mustAbs(t, t.TempDir())
+
+	tests := []struct {
+		name    string
+		base    paths.AbsPath
+		rel     paths.RelPath
+		want    string
+		wantErr bool
+	}{
+		{
+			name: "joins absolute base and relative path",
+			base: base,
+			rel:  mustRel(t, "photos/dog.jpg"),
+			want: base.String() + "/photos/dog.jpg",
+		},
+		{
+			name:    "empty base fails",
+			base:    paths.AbsPath{},
+			rel:     mustRel(t, "dog.jpg"),
+			wantErr: true,
+		},
+		{
+			name:    "empty relative path fails",
+			base:    base,
+			rel:     paths.RelPath{},
+			wantErr: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := paths.JoinAbs(tc.base, tc.rel)
+			if err != nil {
+				if tc.wantErr {
+					return
+				}
+				t.Fatalf("paths.JoinAbs(%q, %q) error = %v, want nil", tc.base, tc.rel, err)
+			}
+
+			if tc.wantErr {
+				t.Fatalf("paths.JoinAbs(%q, %q) error = nil, want error", tc.base, tc.rel)
+			}
+
+			if got.String() != tc.want {
+				t.Errorf("paths.JoinAbs(%q, %q).String() = %q, want %q", tc.base, tc.rel, got.String(), tc.want)
+			}
+		})
+	}
+}
+
 func TestNewRelPath(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -121,4 +172,26 @@ func TestNewRelPath(t *testing.T) {
 			}
 		})
 	}
+}
+
+func mustAbs(t *testing.T, path string) paths.AbsPath {
+	t.Helper()
+
+	p, err := paths.NewAbsPath(path)
+	if err != nil {
+		t.Fatalf("paths.NewAbsPath(%q) error = %v, want nil", path, err)
+	}
+
+	return p
+}
+
+func mustRel(t *testing.T, path string) paths.RelPath {
+	t.Helper()
+
+	p, err := paths.NewRelPath(path)
+	if err != nil {
+		t.Fatalf("paths.NewRelPath(%q) error = %v, want nil", path, err)
+	}
+
+	return p
 }
