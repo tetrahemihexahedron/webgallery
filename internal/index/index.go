@@ -43,18 +43,18 @@ type imageFile struct {
 	SHA256      string `json:"sha256"`
 }
 
-// ImagesBySHA256 returns the index's images keyed by their SHA-256 hashes.
-func (idx Index) ImagesBySHA256() (map[string]Image, error) {
-	images := make(map[string]Image, len(idx.Images))
+// ImageDirsBySHA256 returns the index's image directories keyed by their SHA-256 hashes.
+func (idx Index) ImageDirsBySHA256() (map[string]paths.RelPath, error) {
+	imageDirs := make(map[string]paths.RelPath, len(idx.Images))
 
 	for _, img := range idx.Images {
-		if previous, ok := images[img.SHA256]; ok {
-			return nil, fmt.Errorf("index contains duplicate sha256 %q for dirs %q and %q", img.SHA256, previous.Dir, img.Dir)
+		if previousDir, ok := imageDirs[img.SHA256]; ok {
+			return nil, fmt.Errorf("index contains duplicate sha256 %q for dirs %q and %q", img.SHA256, previousDir, img.Dir)
 		}
 
-		images[img.SHA256] = img
+		imageDirs[img.SHA256] = img.Dir
 	}
-	return images, nil
+	return imageDirs, nil
 }
 
 // Read reads index.json from dir. If the file does not exist, Read

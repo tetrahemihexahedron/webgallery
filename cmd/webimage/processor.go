@@ -58,7 +58,7 @@ func (p *processor) processDir() (result, error) {
 		return result{}, err
 	}
 
-	imagesByHash, err := imageIndex.ImagesBySHA256()
+	imageDirsByHash, err := imageIndex.ImageDirsBySHA256()
 	if err != nil {
 		return result{}, err
 	}
@@ -147,17 +147,17 @@ func (p *processor) processDir() (result, error) {
 			continue
 		}
 
-		if existingImage, ok := imagesByHash[sourceHash]; ok {
+		if existingImgDir, ok := imageDirsByHash[sourceHash]; ok {
 			fmt.Fprintf(
 				p.progressReporter,
 				"Skipping %q: duplicate of image in %q\n",
 				metadata.FileName,
-				existingImage.Dir,
+				existingImgDir,
 			)
 
 			result.problems = append(result.problems, fileProblem{
 				fileName: metadata.FileName,
-				message:  fmt.Sprintf("skipping duplicate of image in %q", existingImage.Dir),
+				message:  fmt.Sprintf("skipping duplicate of image in %q", existingImgDir),
 			})
 			continue
 		}
@@ -177,19 +177,7 @@ func (p *processor) processDir() (result, error) {
 				message:  fmt.Sprintf("file processing error: %v", err),
 			})
 		} else {
-			manifestRelPath, err := paths.NewRelPath(filepath.Join(imageProcessed.DirRelPath.String(), "manifest.json"))
-			if err != nil {
-				return result, fmt.Errorf("building index manifest path: %w", err)
-			}
-
-			imagesByHash[sourceHash] = index.Image{
-				Dir:         imageProcessed.DirRelPath,
-				Manifest:    manifestRelPath,
-				Title:       imageProcessed.Title,
-				CapturedAt:  imageProcessed.CapturedAt,
-				ProcessedAt: imageProcessed.ProcessedAt,
-				SHA256:      sourceHash,
-			}
+			imageDirsByHash[sourceHash] = imageProcessed.DirRelPath
 
 			fmt.Fprintf(
 				p.progressReporter,

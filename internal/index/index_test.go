@@ -1,5 +1,7 @@
 package index_test
 
+// Note: These tests assume Unix-style paths and are not Windows compatible.
+
 import (
 	"os"
 	"path/filepath"
@@ -100,78 +102,74 @@ func TestReadReturnsErrorForUnreadableIndex(t *testing.T) {
 	}
 }
 
-func TestImagesBySHA256(t *testing.T) {
+func TestImageDirsBySHA256(t *testing.T) {
 	imgA := index.Image{
-		Dir:      mustRel(t, "2024/05/abc123"),
-		Manifest: mustRel(t, "2024/05/abc123/manifest.json"),
-		SHA256:   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+		Dir:    mustRel(t, "2024/05/abc123"),
+		SHA256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 	}
 	imgB := index.Image{
-		Dir:      mustRel(t, "2024/05/def456"),
-		Manifest: mustRel(t, "2024/05/def456/manifest.json"),
-		SHA256:   "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+		Dir:    mustRel(t, "2024/05/def456"),
+		SHA256: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
 	}
 
 	tests := []struct {
 		name string
 		idx  index.Index
-		want map[string]index.Image
+		want map[string]paths.RelPath
 	}{
 		{
 			name: "empty index",
 			idx:  index.Index{},
-			want: map[string]index.Image{},
+			want: map[string]paths.RelPath{},
 		},
 		{
 			name: "no images",
 			idx:  index.Index{Images: []index.Image{}},
-			want: map[string]index.Image{},
+			want: map[string]paths.RelPath{},
 		},
 		{
 			name: "multiple images",
 			idx:  index.Index{Images: []index.Image{imgA, imgB}},
-			want: map[string]index.Image{
-				imgA.SHA256: imgA,
-				imgB.SHA256: imgB,
+			want: map[string]paths.RelPath{
+				imgA.SHA256: imgA.Dir,
+				imgB.SHA256: imgB.Dir,
 			},
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := tc.idx.ImagesBySHA256()
+			got, err := tc.idx.ImageDirsBySHA256()
 			if err != nil {
-				t.Fatalf("Index.ImagesBySHA256() returned error: %v", err)
+				t.Fatalf("Index.ImageDirsBySHA256() returned error: %v", err)
 			}
 			if !reflect.DeepEqual(got, tc.want) {
-				t.Errorf("Index.ImagesBySHA256() returned %+v, want %+v", got, tc.want)
+				t.Errorf("Index.ImageDirsBySHA256() returned %+v, want %+v", got, tc.want)
 			}
 		})
 	}
 }
 
-func TestImagesBySHA256ReturnsErrorForDuplicateHash(t *testing.T) {
+func TestImageDirsBySHA256ReturnsErrorForDuplicateHash(t *testing.T) {
 	idx := index.Index{
 		Images: []index.Image{
 			{
-				Dir:      mustRel(t, "2024/05/abc123"),
-				Manifest: mustRel(t, "2024/05/abc123/manifest.json"),
-				SHA256:   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+				Dir:    mustRel(t, "2024/05/abc123"),
+				SHA256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 			},
 			{
-				Dir:      mustRel(t, "2024/05/def456"),
-				Manifest: mustRel(t, "2024/05/def456/manifest.json"),
-				SHA256:   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+				Dir:    mustRel(t, "2024/05/def456"),
+				SHA256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 			},
 		},
 	}
 
-	_, err := idx.ImagesBySHA256()
+	_, err := idx.ImageDirsBySHA256()
 	if err == nil {
-		t.Fatalf("Index.ImagesBySHA256() returned nil error, want error")
+		t.Fatalf("Index.ImageDirsBySHA256() returned nil error, want error")
 	}
 	if !strings.Contains(err.Error(), "duplicate sha256") {
-		t.Errorf("Index.ImagesBySHA256() error = %q, want message containing %q", err, "duplicate sha256")
+		t.Errorf("Index.ImageDirsBySHA256() error = %q, want message containing %q", err, "duplicate sha256")
 	}
 }
 
