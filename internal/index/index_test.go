@@ -38,8 +38,8 @@ func TestRead(t *testing.T) {
 				GeneratedAt: "2026-08-24T18:00:00Z",
 				Images: []index.Image{
 					{
-						Dir:         "2024/05/abc123",
-						Manifest:    "2024/05/abc123/manifest.json",
+						Dir:         mustRel(t, "2024/05/abc123"),
+						Manifest:    mustRel(t, "2024/05/abc123/manifest.json"),
 						Title:       "Rosie posing",
 						CapturedAt:  "2024-05-12T14:22:00",
 						ProcessedAt: "2026-08-24T18:00:00Z",
@@ -102,12 +102,14 @@ func TestReadReturnsErrorForUnreadableIndex(t *testing.T) {
 
 func TestImagesBySHA256(t *testing.T) {
 	imgA := index.Image{
-		Dir:    "2024/05/abc123",
-		SHA256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+		Dir:      mustRel(t, "2024/05/abc123"),
+		Manifest: mustRel(t, "2024/05/abc123/manifest.json"),
+		SHA256:   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 	}
 	imgB := index.Image{
-		Dir:    "2024/05/def456",
-		SHA256: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+		Dir:      mustRel(t, "2024/05/def456"),
+		Manifest: mustRel(t, "2024/05/def456/manifest.json"),
+		SHA256:   "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
 	}
 
 	tests := []struct {
@@ -152,12 +154,14 @@ func TestImagesBySHA256ReturnsErrorForDuplicateHash(t *testing.T) {
 	idx := index.Index{
 		Images: []index.Image{
 			{
-				Dir:    "2024/05/abc123",
-				SHA256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+				Dir:      mustRel(t, "2024/05/abc123"),
+				Manifest: mustRel(t, "2024/05/abc123/manifest.json"),
+				SHA256:   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 			},
 			{
-				Dir:    "2024/05/def456",
-				SHA256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+				Dir:      mustRel(t, "2024/05/def456"),
+				Manifest: mustRel(t, "2024/05/def456/manifest.json"),
+				SHA256:   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 			},
 		},
 	}
@@ -182,6 +186,17 @@ func mustAbs(t *testing.T, path string) paths.AbsPath {
 	p, err := paths.NewAbsPath(absPath)
 	if err != nil {
 		t.Fatalf("paths.NewAbsPath(%q) error = %v, want nil", absPath, err)
+	}
+
+	return p
+}
+
+func mustRel(t *testing.T, path string) paths.RelPath {
+	t.Helper()
+
+	p, err := paths.NewRelPath(path)
+	if err != nil {
+		t.Fatalf("paths.NewRelPath(%q) error = %v, want nil", path, err)
 	}
 
 	return p

@@ -177,9 +177,18 @@ func (p *processor) processDir() (result, error) {
 				message:  fmt.Sprintf("file processing error: %v", err),
 			})
 		} else {
+			manifestRelPath, err := paths.NewRelPath(filepath.Join(imageProcessed.DirRelPath.String(), "manifest.json"))
+			if err != nil {
+				return result, fmt.Errorf("building index manifest path: %w", err)
+			}
+
 			imagesByHash[sourceHash] = index.Image{
-				Dir:    imageProcessed.DirAbsPath.String(),
-				SHA256: sourceHash,
+				Dir:         imageProcessed.DirRelPath,
+				Manifest:    manifestRelPath,
+				Title:       imageProcessed.Title,
+				CapturedAt:  imageProcessed.CapturedAt,
+				ProcessedAt: imageProcessed.ProcessedAt,
+				SHA256:      sourceHash,
 			}
 
 			fmt.Fprintf(
