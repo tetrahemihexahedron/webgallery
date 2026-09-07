@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"math"
 	"os"
-	"path/filepath"
 
 	"tetrahemihexahedron/webimage/internal/image"
+	"tetrahemihexahedron/webimage/internal/paths"
 )
 
 type manifest struct {
@@ -43,8 +43,15 @@ func Write(img image.Processed) error {
 		return err
 	}
 
-	outPath := filepath.Join(img.DirAbsPath.String(), "manifest.json")
-	if err = os.WriteFile(outPath, jsonBytes, 0644); err != nil {
+	manifestRelPath, err := paths.NewRelPath("manifest.json")
+	if err != nil {
+		return err
+	}
+	outPath, err := paths.JoinAbs(img.DirAbsPath, manifestRelPath)
+	if err != nil {
+		return err
+	}
+	if err = os.WriteFile(outPath.String(), jsonBytes, 0644); err != nil {
 		return err
 	}
 

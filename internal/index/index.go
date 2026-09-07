@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
-	"path/filepath"
 
 	"tetrahemihexahedron/webimage/internal/paths"
 )
@@ -60,10 +59,17 @@ func (idx Index) ImageDirsBySHA256() (map[string]paths.RelPath, error) {
 // Read reads index.json from dir. If the file does not exist, Read
 // returns an empty Index.
 func Read(dir paths.AbsPath) (Index, error) {
-	path := filepath.Join(dir.String(), idxFilename)
+	idxRelPath, err := paths.NewRelPath(idxFilename)
+	if err != nil {
+		return Index{}, fmt.Errorf("building index path: %w", err)
+	}
+	path, err := paths.JoinAbs(dir, idxRelPath)
+	if err != nil {
+		return Index{}, fmt.Errorf("building index path: %w", err)
+	}
 	var file indexFile
 
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path.String())
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			return Index{Images: []Image{}}, nil

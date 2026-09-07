@@ -115,7 +115,23 @@ func (p *processor) processDir() (result, error) {
 			continue
 		}
 
-		sourceAbsPath, err := paths.NewAbsPath(filepath.Join(p.cfg.InDir.String(), metadata.FileName))
+		sourceRelPath, err := paths.NewRelPath(metadata.FileName)
+		if err != nil {
+			fmt.Fprintf(
+				p.progressReporter,
+				"Error building path for %q: %v\n",
+				metadata.FileName,
+				err,
+			)
+
+			result.problems = append(result.problems, fileProblem{
+				fileName: metadata.FileName,
+				message:  fmt.Sprintf("source path error: %v", err),
+			})
+			continue
+		}
+
+		sourceAbsPath, err := paths.JoinAbs(p.cfg.InDir, sourceRelPath)
 		if err != nil {
 			fmt.Fprintf(
 				p.progressReporter,
@@ -162,7 +178,7 @@ func (p *processor) processDir() (result, error) {
 			continue
 		}
 
-		imageProcessed, err := p.processFile(metadata, sourceHash)
+		imageProcessed, err := p.processFile(metadata, sourceHash, sourceAbsPath)
 
 		if err != nil {
 			fmt.Fprintf(
@@ -193,12 +209,8 @@ func (p *processor) processDir() (result, error) {
 	return result, nil
 }
 
-func (p *processor) processFile(metadata image.Metadata, sourceHash string) (image.Processed, error) {
+func (p *processor) processFile(metadata image.Metadata, sourceHash string, sourceAbsPath paths.AbsPath) (image.Processed, error) {
 	processedAt := time.Now().UTC()
-	sourceAbsPath, err := paths.NewAbsPath(filepath.Join(p.cfg.InDir.String(), metadata.FileName))
-	if err != nil {
-		return image.Processed{}, err
-	}
 	dirDate, err := dirDate(p.cfg.DirDate, metadata.CapturedAt, processedAt)
 	if err != nil {
 		return image.Processed{}, err
@@ -207,7 +219,7 @@ func (p *processor) processFile(metadata image.Metadata, sourceHash string) (ima
 	if err != nil {
 		return image.Processed{}, err
 	}
-	imgDirAbsPath, err := paths.NewAbsPath(filepath.Join(p.cfg.OutDir.String(), imgDirRelPath.String()))
+	imgDirAbsPath, err := paths.JoinAbs(p.cfg.OutDir, imgDirRelPath)
 	if err != nil {
 		return image.Processed{}, err
 	}
@@ -216,7 +228,12 @@ func (p *processor) processFile(metadata image.Metadata, sourceHash string) (ima
 		return image.Processed{}, fmt.Errorf("unable to make image directory %s: %w", imgDirAbsPath, err)
 	}
 
-	sourceDest, err := paths.NewAbsPath(filepath.Join(imgDirAbsPath.String(), "orig.jpg"))
+	sourceDestRelPath, err := paths.NewRelPath("orig.jpg")
+	if err != nil {
+		deleteRemnants(imgDirAbsPath)
+		return image.Processed{}, err
+	}
+	sourceDest, err := paths.JoinAbs(imgDirAbsPath, sourceDestRelPath)
 	if err != nil {
 		deleteRemnants(imgDirAbsPath)
 		return image.Processed{}, err
@@ -333,7 +350,11 @@ func variantSpecs(img image.Processed) ([]variants.Spec, error) {
 	for _, ext := range desiredExts {
 		for _, width := range widths {
 			filename := filename(width, ext)
-			outPath, err := paths.NewAbsPath(filepath.Join(img.DirAbsPath.String(), filename))
+			variantRelPath, err := paths.NewRelPath(filename)
+			if err != nil {
+				return nil, err
+			}
+			outPath, err := paths.JoinAbs(img.DirAbsPath, variantRelPath)
 			if err != nil {
 				return nil, err
 			}
