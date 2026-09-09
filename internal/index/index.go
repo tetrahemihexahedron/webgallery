@@ -6,7 +6,10 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"path/filepath"
 
+	"tetrahemihexahedron/webimage/internal/image"
+	"tetrahemihexahedron/webimage/internal/manifest"
 	"tetrahemihexahedron/webimage/internal/paths"
 )
 
@@ -55,6 +58,45 @@ func IndexPath(outRoot paths.AbsPath) (paths.AbsPath, error) {
 	}
 
 	return path, nil
+}
+
+func imageFromProcessed(outRoot paths.AbsPath, img image.Processed) (Image, error) {
+	if img.DirRelPath.String() == "" {
+		return Image{}, fmt.Errorf("dir relative path is required")
+	}
+
+	imgDirAbsPath, err := paths.JoinAbs(outRoot, img.DirRelPath)
+	if err != nil {
+		return Image{}, fmt.Errorf("building image directory path: %w", err)
+	}
+
+	manifestAbsPath, err := manifest.ManifestPath(imgDirAbsPath)
+	if err != nil {
+		return Image{}, fmt.Errorf("building manifest path: %w", err)
+	}
+
+	manifestRelPath, err := relPathFromAbs(outRoot, manifestAbsPath)
+	if err != nil {
+		return Image{}, fmt.Errorf("building manifest relative path: %w", err)
+	}
+
+	return Image{
+		Dir:         img.DirRelPath,
+		Manifest:    manifestRelPath,
+		Title:       img.Title,
+		CapturedAt:  img.CapturedAt,
+		ProcessedAt: img.ProcessedAt,
+		SHA256:      img.Source.Hash,
+	}, nil
+}
+
+func relPathFromAbs(base paths.AbsPath, target paths.AbsPath) (paths.RelPath, error) {
+	relPath, err := filepath.Rel(base.String(), target.String())
+	if err != nil {
+		return paths.RelPath{}, err
+	}
+
+	return paths.NewRelPath(relPath)
 }
 
 // ImageDirsBySHA256 returns the index's image directories keyed by their SHA-256 hashes.
