@@ -14,7 +14,6 @@ type Metadata struct {
 
 type Source struct {
 	Hash   string
-	Path   string
 	Width  int
 	Height int
 }
@@ -27,7 +26,6 @@ type Variant struct {
 
 type Processed struct {
 	Source      Source
-	DirAbsPath  paths.AbsPath
 	DirRelPath  paths.RelPath
 	Title       string
 	Description string

@@ -91,15 +91,15 @@ func TestWrite(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			img := tc.img
-			img.DirAbsPath = mustAbs(t, t.TempDir())
+			dir := mustAbs(t, t.TempDir())
 
-			if err := manifest.Write(img); err != nil {
-				t.Fatalf("manifest.Write(%+v) returned error: %v", img, err)
+			if err := manifest.Write(dir, img); err != nil {
+				t.Fatalf("manifest.Write(%q, %+v) returned error: %v", dir, img, err)
 			}
 
-			got := readManifest(t, img.DirAbsPath)
+			got := readManifest(t, dir)
 			if !reflect.DeepEqual(got, tc.want) {
-				t.Errorf("manifest.Write(%+v) manifest mismatch\n got: %+v\nwant: %+v", img, got, tc.want)
+				t.Errorf("manifest.Write(%q, %+v) manifest mismatch\n got: %+v\nwant: %+v", dir, img, got, tc.want)
 			}
 		})
 	}
@@ -107,10 +107,10 @@ func TestWrite(t *testing.T) {
 
 func TestWriteReturnsErrorForMissingDir(t *testing.T) {
 	dir := mustAbs(t, filepath.Join(t.TempDir(), "missing"))
-	img := image.Processed{DirAbsPath: dir}
+	img := image.Processed{}
 
-	if err := manifest.Write(img); err == nil {
-		t.Fatalf("manifest.Write(%+v) returned nil error, want error", img)
+	if err := manifest.Write(dir, img); err == nil {
+		t.Fatalf("manifest.Write(%q, %+v) returned nil error, want error", dir, img)
 	}
 }
 

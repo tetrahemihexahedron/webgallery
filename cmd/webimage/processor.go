@@ -200,7 +200,7 @@ func (p *processor) processDir() (result, error) {
 				"Processed %q:\n\t%d variants generated in %q\n",
 				metadata.FileName,
 				len(imageProcessed.Variants),
-				imageProcessed.DirAbsPath,
+				imageProcessed.DirRelPath,
 			)
 
 			result.images = append(result.images, imageProcessed)
@@ -245,14 +245,12 @@ func (p *processor) processFile(metadata image.Metadata, sourceHash string, sour
 
 	sourceFile := image.Source{
 		Hash:   sourceHash,
-		Path:   sourceDest.String(),
 		Width:  metadata.Width,
 		Height: metadata.Height,
 	}
 
 	processedImg := image.Processed{
 		Source:      sourceFile,
-		DirAbsPath:  imgDirAbsPath,
 		DirRelPath:  imgDirRelPath,
 		Title:       metadata.Title,
 		Description: metadata.Description,
@@ -260,7 +258,7 @@ func (p *processor) processFile(metadata image.Metadata, sourceHash string, sour
 		ProcessedAt: image.FormatProcessedAt(processedAt),
 	}
 
-	specs, err := variantSpecs(processedImg)
+	specs, err := variantSpecs(imgDirAbsPath, processedImg)
 	if err != nil {
 		deleteRemnants(imgDirAbsPath)
 		return image.Processed{}, err
@@ -281,7 +279,7 @@ func (p *processor) processFile(metadata image.Metadata, sourceHash string, sour
 		return image.Processed{}, fmt.Errorf("unable to identify generated variants: %w", err)
 	}
 
-	if err := manifest.Write(processedImg); err != nil {
+	if err := manifest.Write(imgDirAbsPath, processedImg); err != nil {
 		deleteRemnants(imgDirAbsPath)
 		return image.Processed{}, fmt.Errorf("unable to write manifest: %w", err)
 	}
@@ -339,7 +337,7 @@ func imgDirRelPath(date time.Time) (paths.RelPath, error) {
 	return path, nil
 }
 
-func variantSpecs(img image.Processed) ([]variants.Spec, error) {
+func variantSpecs(imgDir paths.AbsPath, img image.Processed) ([]variants.Spec, error) {
 	var desiredWidths = []int{400, 800, 1200, 1600}
 	var desiredExts = []string{".jpg", ".avif"}
 
@@ -354,7 +352,7 @@ func variantSpecs(img image.Processed) ([]variants.Spec, error) {
 			if err != nil {
 				return nil, err
 			}
-			outPath, err := paths.JoinAbs(img.DirAbsPath, variantRelPath)
+			outPath, err := paths.JoinAbs(imgDir, variantRelPath)
 			if err != nil {
 				return nil, err
 			}

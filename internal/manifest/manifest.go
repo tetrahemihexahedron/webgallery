@@ -38,7 +38,7 @@ type imageFile struct {
 	Height int    `json:"height"`
 }
 
-func Write(img image.Processed) error {
+func Write(imgDir paths.AbsPath, img image.Processed) error {
 	mani := manifest{
 		Title:       img.Title,
 		Description: img.Description,
@@ -55,7 +55,7 @@ func Write(img image.Processed) error {
 		return err
 	}
 
-	outPath, err := ManifestPath(img.DirAbsPath)
+	outPath, err := ManifestPath(imgDir)
 	if err != nil {
 		return err
 	}
