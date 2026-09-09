@@ -107,7 +107,17 @@ func TestWrite(t *testing.T) {
 
 func TestWriteReturnsErrorForMissingDir(t *testing.T) {
 	dir := mustAbs(t, filepath.Join(t.TempDir(), "missing"))
-	img := image.Processed{}
+	img := image.Processed{
+		Source: image.Source{
+			Hash:   "7f43b6f0a877e8590c4f0c7d55d99b188a671de7bf58156ac0d3ac38df842cc9",
+			Width:  800,
+			Height: 1067,
+		},
+		DirRelPath:  mustRel(t, "2024/05/abc123"),
+		Title:       "Rosie posing",
+		CapturedAt:  "2024-05-12T14:22:00",
+		ProcessedAt: "2026-08-24T18:00:00Z",
+	}
 
 	if err := manifest.Write(dir, img); err == nil {
 		t.Fatalf("manifest.Write(%q, %+v) returned nil error, want error", dir, img)
