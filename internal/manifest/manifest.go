@@ -11,8 +11,8 @@ import (
 
 const filename = "manifest.json"
 
-// AbsPath returns the absolute path to an image directory's manifest file.
-func AbsPath(dir paths.AbsPath) (paths.AbsPath, error) {
+// ManifestPath returns the absolute path to an image directory's manifest file.
+func ManifestPath(dir paths.AbsPath) (paths.AbsPath, error) {
 	manifestRelPath, err := paths.NewRelPath(filename)
 	if err != nil {
 		return paths.AbsPath{}, err
@@ -55,7 +55,7 @@ func Write(img image.Processed) error {
 		return err
 	}
 
-	outPath, err := AbsPath(img.DirAbsPath)
+	outPath, err := ManifestPath(img.DirAbsPath)
 	if err != nil {
 		return err
 	}
