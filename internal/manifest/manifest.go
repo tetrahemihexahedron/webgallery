@@ -9,6 +9,18 @@ import (
 	"tetrahemihexahedron/webimage/internal/paths"
 )
 
+const filename = "manifest.json"
+
+// AbsPath returns the absolute path to an image directory's manifest file.
+func AbsPath(dir paths.AbsPath) (paths.AbsPath, error) {
+	manifestRelPath, err := paths.NewRelPath(filename)
+	if err != nil {
+		return paths.AbsPath{}, err
+	}
+
+	return paths.JoinAbs(dir, manifestRelPath)
+}
+
 type manifest struct {
 	Title       string                 `json:"title"`
 	Description string                 `json:"description"`
@@ -43,11 +55,7 @@ func Write(img image.Processed) error {
 		return err
 	}
 
-	manifestRelPath, err := paths.NewRelPath("manifest.json")
-	if err != nil {
-		return err
-	}
-	outPath, err := paths.JoinAbs(img.DirAbsPath, manifestRelPath)
+	outPath, err := AbsPath(img.DirAbsPath)
 	if err != nil {
 		return err
 	}
