@@ -42,6 +42,21 @@ type imageFile struct {
 	SHA256      string `json:"sha256"`
 }
 
+// IndexPath returns the absolute path to the collection index file in outRoot.
+func IndexPath(outRoot paths.AbsPath) (paths.AbsPath, error) {
+	idxRelPath, err := paths.NewRelPath(idxFilename)
+	if err != nil {
+		return paths.AbsPath{}, fmt.Errorf("building index path: %w", err)
+	}
+
+	path, err := paths.JoinAbs(outRoot, idxRelPath)
+	if err != nil {
+		return paths.AbsPath{}, fmt.Errorf("building index path: %w", err)
+	}
+
+	return path, nil
+}
+
 // ImageDirsBySHA256 returns the index's image directories keyed by their SHA-256 hashes.
 func (idx Index) ImageDirsBySHA256() (map[string]paths.RelPath, error) {
 	imageDirs := make(map[string]paths.RelPath, len(idx.Images))
@@ -59,13 +74,9 @@ func (idx Index) ImageDirsBySHA256() (map[string]paths.RelPath, error) {
 // Read reads index.json from dir. If the file does not exist, Read
 // returns an empty Index.
 func Read(dir paths.AbsPath) (Index, error) {
-	idxRelPath, err := paths.NewRelPath(idxFilename)
+	path, err := IndexPath(dir)
 	if err != nil {
-		return Index{}, fmt.Errorf("building index path: %w", err)
-	}
-	path, err := paths.JoinAbs(dir, idxRelPath)
-	if err != nil {
-		return Index{}, fmt.Errorf("building index path: %w", err)
+		return Index{}, err
 	}
 	var file indexFile
 
