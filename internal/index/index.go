@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"time"
 
 	"tetrahemihexahedron/webimage/internal/image"
 	"tetrahemihexahedron/webimage/internal/manifest"
@@ -58,6 +59,115 @@ func IndexPath(outRoot paths.AbsPath) (paths.AbsPath, error) {
 	}
 
 	return path, nil
+}
+
+// UpdateFile appends newImages to idx and writes the updated index file in outRoot.
+func (idx *Index) UpdateFile(outRoot paths.AbsPath, newImages []image.Processed) error {
+	return idx.updateFileAt(outRoot, newImages, time.Now())
+}
+
+func (idx *Index) updateFileAt(outRoot paths.AbsPath, newImages []image.Processed, generatedAt time.Time) error {
+	if len(newImages) == 0 {
+		return nil
+	}
+
+	updated, err := updatedIndex(*idx, outRoot, newImages, generatedAt)
+	if err != nil {
+		return err
+	}
+
+	if err := writeIndexFile(outRoot, updated); err != nil {
+		return err
+	}
+
+	*idx = updated
+	return nil
+}
+
+func updatedIndex(idx Index, outRoot paths.AbsPath, newImages []image.Processed, generatedAt time.Time) (Index, error) {
+	updated := Index{
+		GeneratedAt: formatGeneratedAt(generatedAt),
+		Images:      make([]Image, 0, len(idx.Images)+len(newImages)),
+	}
+	updated.Images = append(updated.Images, idx.Images...)
+
+	for i, img := range newImages {
+		indexImg, err := imageFromProcessed(outRoot, img)
+		if err != nil {
+			return Index{}, fmt.Errorf("new image %d: %w", i, err)
+		}
+
+		updated.Images = append(updated.Images, indexImg)
+	}
+
+	return updated, nil
+}
+
+func writeIndexFile(outRoot paths.AbsPath, idx Index) error {
+	path, err := IndexPath(outRoot)
+	if err != nil {
+		return err
+	}
+
+	jsonBytes, err := json.MarshalIndent(indexToFile(idx), "", "  ")
+	if err != nil {
+		return fmt.Errorf("marshaling index: %w", err)
+	}
+
+	tmpFile, err := os.CreateTemp(outRoot.String(), ".index-*.tmp")
+	if err != nil {
+		return fmt.Errorf("creating temporary index file in %q: %w", outRoot, err)
+	}
+	tmpPath := tmpFile.Name()
+	removeTemp := true
+	defer func() {
+		if removeTemp {
+			_ = os.Remove(tmpPath)
+		}
+	}()
+
+	if _, err := tmpFile.Write(jsonBytes); err != nil {
+		_ = tmpFile.Close()
+		return fmt.Errorf("writing temporary index %q: %w", tmpPath, err)
+	}
+	if err := tmpFile.Chmod(0644); err != nil {
+		_ = tmpFile.Close()
+		return fmt.Errorf("setting temporary index permissions %q: %w", tmpPath, err)
+	}
+	if err := tmpFile.Close(); err != nil {
+		return fmt.Errorf("closing temporary index %q: %w", tmpPath, err)
+	}
+
+	if err := os.Rename(tmpPath, path.String()); err != nil {
+		return fmt.Errorf("renaming temporary index %q to %q: %w", tmpPath, path, err)
+	}
+	removeTemp = false
+
+	return nil
+}
+
+func formatGeneratedAt(t time.Time) string {
+	return t.UTC().Format(time.RFC3339)
+}
+
+func indexToFile(idx Index) indexFile {
+	file := indexFile{
+		GeneratedAt: idx.GeneratedAt,
+		Images:      make([]imageFile, 0, len(idx.Images)),
+	}
+
+	for _, img := range idx.Images {
+		file.Images = append(file.Images, imageFile{
+			Dir:         img.Dir.String(),
+			Manifest:    img.Manifest.String(),
+			Title:       img.Title,
+			CapturedAt:  img.CapturedAt,
+			ProcessedAt: img.ProcessedAt,
+			SHA256:      img.SHA256,
+		})
+	}
+
+	return file
 }
 
 func imageFromProcessed(outRoot paths.AbsPath, img image.Processed) (Image, error) {
