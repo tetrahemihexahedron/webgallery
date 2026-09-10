@@ -8,7 +8,9 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
+	"tetrahemihexahedron/webimage/internal/image"
 	"tetrahemihexahedron/webimage/internal/index"
 	"tetrahemihexahedron/webimage/internal/paths"
 )
@@ -102,6 +104,103 @@ func TestReadReturnsErrorForUnreadableIndex(t *testing.T) {
 	}
 }
 
+func TestUpdateFile(t *testing.T) {
+	existingImage := index.Image{
+		Dir:         mustRel(t, "2024/05/abc123"),
+		Manifest:    mustRel(t, "2024/05/abc123/manifest.json"),
+		Title:       "Rosie posing",
+		CapturedAt:  "2024-05-12T14:22:00",
+		ProcessedAt: "2026-08-24T18:00:00Z",
+		SHA256:      "7f43b6f0a877e8590c4f0c7d55d99b188a671de7bf58156ac0d3ac38df842cc9",
+	}
+	newImage := image.Processed{
+		Source: image.Source{
+			Hash: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+		},
+		DirRelPath:  mustRel(t, "2025/01/def456"),
+		Title:       "Rosie running",
+		CapturedAt:  "2025-01-02T03:04:05",
+		ProcessedAt: "2026-08-25T12:00:00Z",
+	}
+
+	tests := []struct {
+		name                     string
+		newImages                []image.Processed
+		want                     index.Index
+		wantGeneratedAtRefreshed bool
+	}{
+		{
+			name:      "appends image",
+			newImages: []image.Processed{newImage},
+			want: index.Index{
+				GeneratedAt: "<checked separately>",
+				Images: []index.Image{
+					existingImage,
+					{
+						Dir:         mustRel(t, "2025/01/def456"),
+						Manifest:    mustRel(t, "2025/01/def456/manifest.json"),
+						Title:       "Rosie running",
+						CapturedAt:  "2025-01-02T03:04:05",
+						ProcessedAt: "2026-08-25T12:00:00Z",
+						SHA256:      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+					},
+				},
+			},
+			wantGeneratedAtRefreshed: true,
+		},
+		{
+			name:      "with no images",
+			newImages: []image.Processed{},
+			want: index.Index{
+				GeneratedAt: "2026-08-24T18:00:00Z",
+				Images:      []index.Image{existingImage},
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			outRoot := mustAbs(t, t.TempDir())
+			copyValidIndexFixture(t, outRoot)
+
+			idx, err := index.Read(outRoot)
+			if err != nil {
+				t.Fatalf("index.Read(%q) returned error before update: %v", outRoot, err)
+			}
+
+			before := time.Now().UTC().Add(-1 * time.Second)
+			if err := idx.UpdateFile(outRoot, tc.newImages); err != nil {
+				t.Fatalf("Index.UpdateFile(%q) returned error: %v", outRoot, err)
+			}
+			after := time.Now().UTC().Add(time.Second)
+
+			got, err := index.Read(outRoot)
+			if err != nil {
+				t.Fatalf("index.Read(%q) returned error after update: %v", outRoot, err)
+			}
+
+			if !reflect.DeepEqual(idx, got) {
+				t.Errorf("receiver index = %+v, want written index %+v", idx, got)
+			}
+
+			if tc.wantGeneratedAtRefreshed {
+				generatedAt, err := time.Parse(time.RFC3339, got.GeneratedAt)
+				if err != nil {
+					t.Fatalf("updated index GeneratedAt = %q, want RFC3339 time", got.GeneratedAt)
+				}
+				if generatedAt.Before(before) || generatedAt.After(after) {
+					t.Errorf("updated index GeneratedAt = %v, want between %v and %v", generatedAt, before, after)
+				}
+				got.GeneratedAt = tc.want.GeneratedAt
+			}
+
+			if !reflect.DeepEqual(got, tc.want) {
+				t.Errorf("updated index = %+v, want %+v", got, tc.want)
+			}
+		})
+	}
+}
+
 func TestImageDirsBySHA256(t *testing.T) {
 	imgA := index.Image{
 		Dir:    mustRel(t, "2024/05/abc123"),
@@ -170,6 +269,23 @@ func TestImageDirsBySHA256ReturnsErrorForDuplicateHash(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "duplicate sha256") {
 		t.Errorf("Index.ImageDirsBySHA256() error = %q, want message containing %q", err, "duplicate sha256")
+	}
+}
+
+func copyValidIndexFixture(t *testing.T, destDir paths.AbsPath) {
+	t.Helper()
+
+	data, err := os.ReadFile(filepath.Join("testdata", "valid", "index.json"))
+	if err != nil {
+		t.Fatalf("reading valid index fixture: %v", err)
+	}
+
+	destPath, err := index.IndexPath(destDir)
+	if err != nil {
+		t.Fatalf("building destination index path: %v", err)
+	}
+	if err := os.WriteFile(destPath.String(), data, 0644); err != nil {
+		t.Fatalf("writing valid index fixture to %q: %v", destPath, err)
 	}
 }
 
