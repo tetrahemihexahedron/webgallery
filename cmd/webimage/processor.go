@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -206,7 +207,34 @@ func (p *processor) processDir() (result, error) {
 			result.images = append(result.images, imageProcessed)
 		}
 	}
+
+	if err := imageIndex.UpdateFile(p.cfg.OutDir, result.images); err != nil {
+		updateErr := fmt.Errorf("updating index: %w", err)
+		if cleanupErr := deleteProcessedImageDirs(p.cfg.OutDir, result.images); cleanupErr != nil {
+			return result, errors.Join(updateErr, cleanupErr)
+		}
+		return result, updateErr
+	}
+
 	return result, nil
+}
+
+func deleteProcessedImageDirs(outRoot paths.AbsPath, images []image.Processed) error {
+	var cleanupErr error
+
+	for i, img := range images {
+		imgDirAbsPath, err := paths.JoinAbs(outRoot, img.DirRelPath)
+		if err != nil {
+			cleanupErr = errors.Join(cleanupErr, fmt.Errorf("building cleanup path for image %d: %w", i, err))
+			continue
+		}
+
+		if err := deleteRemnants(imgDirAbsPath); err != nil {
+			cleanupErr = errors.Join(cleanupErr, fmt.Errorf("deleting image directory %q: %w", imgDirAbsPath, err))
+		}
+	}
+
+	return cleanupErr
 }
 
 func (p *processor) processFile(metadata image.Metadata, sourceHash string, sourceAbsPath paths.AbsPath) (image.Processed, error) {
