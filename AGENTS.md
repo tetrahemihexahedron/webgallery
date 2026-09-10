@@ -20,9 +20,11 @@ The developer is fairly inexperienced with Go and wants to learn how to write ex
 
 ## Testing
 
-Generally, test exported behavior. Prefer external test packages such as `package metadata_test`; use same-package tests only when an unexported helper is complicated enough to justify direct coverage.
+Any helpful tests can be written when developing, but they maybe temporary. The following guidelines apply to persisted, version-tracked tests.
 
-Full test coverage is not a goal; remember that this will be used only by the developer.
+Generally, test only exported behavior. Prefer external test packages such as `package metadata_test`; use same-package tests only when an unexported helper is complicated enough to justify direct coverage.
+
+Full test coverage is not a goal; remember that this will be used only by the developer, and don't add tests for unlikely errors.
 
 Assume external tools, like exiftool and libvips/vipsthumbnail, are available in the testing environment. Integration-style tests for wrappers around those tools are useful, but test this project’s behavior rather than exhaustively testing the external tools.
 
@@ -36,6 +38,6 @@ Use standard library comparisons such as `slices.Equal` for comparable slices an
 
 Error messages should identify the function under test and use got/want wording. Use `t.Fatalf` when later assertions depend on the failed condition.
 
-Avoid testing exact returned error strings. Prefer checking that an error was returned, using `errors.Is`/`errors.As`, or checking that the message contains the important information. Exact string comparisons are acceptable for structured user-facing output fields when that text is part of the behavior being tested.
+Avoid testing exact returned error strings. Prefer checking that an error was returned, using `errors.Is`/`errors.As` or checking that the message contains relevant text. Exact string comparisons are acceptable for structured user-facing output fields when that text is part of the behavior being tested.
 
 Keep small test helpers near the bottom of the file.
