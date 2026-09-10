@@ -105,7 +105,7 @@ func TestReadReturnsErrorForUnreadableIndex(t *testing.T) {
 }
 
 func TestUpdateFile(t *testing.T) {
-	existingImage := index.Image{
+	existingIndexImage := index.Image{
 		Dir:         mustRel(t, "2024/05/abc123"),
 		Manifest:    mustRel(t, "2024/05/abc123/manifest.json"),
 		Title:       "Rosie posing",
@@ -113,7 +113,7 @@ func TestUpdateFile(t *testing.T) {
 		ProcessedAt: "2026-08-24T18:00:00Z",
 		SHA256:      "7f43b6f0a877e8590c4f0c7d55d99b188a671de7bf58156ac0d3ac38df842cc9",
 	}
-	newImage := image.Processed{
+	newProcessedImage := image.Processed{
 		Source: image.Source{
 			Hash: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 		},
@@ -122,38 +122,48 @@ func TestUpdateFile(t *testing.T) {
 		CapturedAt:  "2025-01-02T03:04:05",
 		ProcessedAt: "2026-08-25T12:00:00Z",
 	}
+	newIndexImage := index.Image{
+		Dir:         mustRel(t, "2025/01/def456"),
+		Manifest:    mustRel(t, "2025/01/def456/manifest.json"),
+		Title:       "Rosie running",
+		CapturedAt:  "2025-01-02T03:04:05",
+		ProcessedAt: "2026-08-25T12:00:00Z",
+		SHA256:      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+	}
 
 	tests := []struct {
 		name                     string
+		copyExistingIndex        bool
 		newImages                []image.Processed
 		want                     index.Index
 		wantGeneratedAtRefreshed bool
 	}{
 		{
-			name:      "appends image",
-			newImages: []image.Processed{newImage},
+			name:              "appends image",
+			copyExistingIndex: true,
+			newImages:         []image.Processed{newProcessedImage},
 			want: index.Index{
 				GeneratedAt: "<checked separately>",
-				Images: []index.Image{
-					existingImage,
-					{
-						Dir:         mustRel(t, "2025/01/def456"),
-						Manifest:    mustRel(t, "2025/01/def456/manifest.json"),
-						Title:       "Rosie running",
-						CapturedAt:  "2025-01-02T03:04:05",
-						ProcessedAt: "2026-08-25T12:00:00Z",
-						SHA256:      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-					},
-				},
+				Images:      []index.Image{existingIndexImage, newIndexImage},
 			},
 			wantGeneratedAtRefreshed: true,
 		},
 		{
-			name:      "with no images",
-			newImages: []image.Processed{},
+			name:      "creates index when file is missing",
+			newImages: []image.Processed{newProcessedImage},
+			want: index.Index{
+				GeneratedAt: "<checked separately>",
+				Images:      []index.Image{newIndexImage},
+			},
+			wantGeneratedAtRefreshed: true,
+		},
+		{
+			name:              "with no images",
+			copyExistingIndex: true,
+			newImages:         []image.Processed{},
 			want: index.Index{
 				GeneratedAt: "2026-08-24T18:00:00Z",
-				Images:      []index.Image{existingImage},
+				Images:      []index.Image{existingIndexImage},
 			},
 		},
 	}
@@ -161,7 +171,9 @@ func TestUpdateFile(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			outRoot := mustAbs(t, t.TempDir())
-			copyValidIndexFixture(t, outRoot)
+			if tc.copyExistingIndex {
+				copyValidIndexFixture(t, outRoot)
+			}
 
 			idx, err := index.Read(outRoot)
 			if err != nil {
