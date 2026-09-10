@@ -237,6 +237,18 @@ func deleteProcessedImageDirs(outRoot paths.AbsPath, images []image.Processed) e
 	return cleanupErr
 }
 
+func cleanupImageDirOnError(imgDir paths.AbsPath, originalErr error) error {
+	cleanupErr := deleteRemnants(imgDir)
+	if cleanupErr != nil {
+		return errors.Join(
+			originalErr,
+			fmt.Errorf("cleaning up image directory %q: %w", imgDir, cleanupErr),
+		)
+	}
+
+	return originalErr
+}
+
 func (p *processor) processFile(metadata image.Metadata, sourceHash string, sourceAbsPath paths.AbsPath) (image.Processed, error) {
 	processedAt := time.Now().UTC()
 	dirDate, err := dirDate(p.cfg.DirDate, metadata.CapturedAt, processedAt)
@@ -258,17 +270,17 @@ func (p *processor) processFile(metadata image.Metadata, sourceHash string, sour
 
 	sourceDestRelPath, err := paths.NewRelPath("orig.jpg")
 	if err != nil {
-		deleteRemnants(imgDirAbsPath)
-		return image.Processed{}, err
+		return image.Processed{}, cleanupImageDirOnError(imgDirAbsPath, err)
 	}
 	sourceDest, err := paths.JoinAbs(imgDirAbsPath, sourceDestRelPath)
 	if err != nil {
-		deleteRemnants(imgDirAbsPath)
-		return image.Processed{}, err
+		return image.Processed{}, cleanupImageDirOnError(imgDirAbsPath, err)
 	}
-	if err = copyFile(sourceAbsPath, sourceDest); err != nil {
-		deleteRemnants(imgDirAbsPath)
-		return image.Processed{}, fmt.Errorf("unable to copy source %s to %s: %w", sourceAbsPath, imgDirAbsPath, err)
+	if err := copyFile(sourceAbsPath, sourceDest); err != nil {
+		return image.Processed{}, cleanupImageDirOnError(
+			imgDirAbsPath,
+			fmt.Errorf("unable to copy source %s to %s: %w", sourceAbsPath, imgDirAbsPath, err),
+		)
 	}
 
 	sourceFile := image.Source{
@@ -288,28 +300,33 @@ func (p *processor) processFile(metadata image.Metadata, sourceHash string, sour
 
 	specs, err := variantSpecs(imgDirAbsPath, processedImg)
 	if err != nil {
-		deleteRemnants(imgDirAbsPath)
-		return image.Processed{}, err
+		return image.Processed{}, cleanupImageDirOnError(imgDirAbsPath, err)
 	}
 	result, err := p.variantGenerator.Generate(sourceAbsPath, specs)
 
 	if len(result.Generated) == 0 {
-		deleteRemnants(imgDirAbsPath)
 		if err == nil {
 			err = fmt.Errorf("%d variants were attempted, and no errors were reported", len(specs))
 		}
-		return image.Processed{}, fmt.Errorf("no variants were generated: %w", err)
+		return image.Processed{}, cleanupImageDirOnError(
+			imgDirAbsPath,
+			fmt.Errorf("no variants were generated: %w", err),
+		)
 	}
 
 	processedImg.Variants, err = identifyVariants(result.Generated)
 	if err != nil {
-		deleteRemnants(imgDirAbsPath)
-		return image.Processed{}, fmt.Errorf("unable to identify generated variants: %w", err)
+		return image.Processed{}, cleanupImageDirOnError(
+			imgDirAbsPath,
+			fmt.Errorf("unable to identify generated variants: %w", err),
+		)
 	}
 
 	if err := manifest.Write(imgDirAbsPath, processedImg); err != nil {
-		deleteRemnants(imgDirAbsPath)
-		return image.Processed{}, fmt.Errorf("unable to write manifest: %w", err)
+		return image.Processed{}, cleanupImageDirOnError(
+			imgDirAbsPath,
+			fmt.Errorf("unable to write manifest: %w", err),
+		)
 	}
 
 	return processedImg, nil
