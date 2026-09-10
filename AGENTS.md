@@ -12,10 +12,7 @@ Package layout: internal/config parses CLI flags; internal/metadata wraps exifto
 
 This script is going to be used only by the developer and should not be made more general than needed or incorporate unneeded features.
 
-The code does not need to be Windows compatible and can assume that file paths have Unix-style separators. Leave a comment in files that make use of that assumption, like
-```
-// Note: These tests assume Unix-style paths and are not Windows compatible.
-```
+The code does not need to be Windows compatible and can assume that file paths have Unix-style separators, without comment in most cases.
 
 Be reticent to add dependencies: make sure they add enough value to compensate for the extra maintenance burden.
 
