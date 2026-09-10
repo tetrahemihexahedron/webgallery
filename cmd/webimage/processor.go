@@ -76,7 +76,7 @@ func (p *processor) processDir() (result, error) {
 		len(metadataResult.FileProblems),
 	)
 
-	result := result{
+	res := result{
 		dirProcessed: p.cfg.InDir,
 	}
 
@@ -88,7 +88,7 @@ func (p *processor) processDir() (result, error) {
 			problem.Message,
 		)
 
-		result.problems = append(result.problems, fileProblem{
+		res.problems = append(res.problems, fileProblem{
 			fileName: problem.FileName,
 			message:  problem.Message,
 		})
@@ -105,7 +105,7 @@ func (p *processor) processDir() (result, error) {
 				metadata.Format,
 			)
 
-			result.problems = append(result.problems, fileProblem{
+			res.problems = append(res.problems, fileProblem{
 				fileName: metadata.FileName,
 				message: fmt.Sprintf(
 					"skipping file %q: format is %s, not JPEG",
@@ -125,7 +125,7 @@ func (p *processor) processDir() (result, error) {
 				err,
 			)
 
-			result.problems = append(result.problems, fileProblem{
+			res.problems = append(res.problems, fileProblem{
 				fileName: metadata.FileName,
 				message:  fmt.Sprintf("source path error: %v", err),
 			})
@@ -141,7 +141,7 @@ func (p *processor) processDir() (result, error) {
 				err,
 			)
 
-			result.problems = append(result.problems, fileProblem{
+			res.problems = append(res.problems, fileProblem{
 				fileName: metadata.FileName,
 				message:  fmt.Sprintf("source path error: %v", err),
 			})
@@ -157,7 +157,7 @@ func (p *processor) processDir() (result, error) {
 				err,
 			)
 
-			result.problems = append(result.problems, fileProblem{
+			res.problems = append(res.problems, fileProblem{
 				fileName: metadata.FileName,
 				message:  fmt.Sprintf("file hashing error: %v", err),
 			})
@@ -172,7 +172,7 @@ func (p *processor) processDir() (result, error) {
 				existingImgDir,
 			)
 
-			result.problems = append(result.problems, fileProblem{
+			res.problems = append(res.problems, fileProblem{
 				fileName: metadata.FileName,
 				message:  fmt.Sprintf("skipping duplicate of image in %q", existingImgDir),
 			})
@@ -189,7 +189,7 @@ func (p *processor) processDir() (result, error) {
 				err,
 			)
 
-			result.problems = append(result.problems, fileProblem{
+			res.problems = append(res.problems, fileProblem{
 				fileName: metadata.FileName,
 				message:  fmt.Sprintf("file processing error: %v", err),
 			})
@@ -204,19 +204,19 @@ func (p *processor) processDir() (result, error) {
 				imageProcessed.DirRelPath,
 			)
 
-			result.images = append(result.images, imageProcessed)
+			res.images = append(res.images, imageProcessed)
 		}
 	}
 
-	if err := imageIndex.UpdateFile(p.cfg.OutDir, result.images); err != nil {
+	if err := imageIndex.UpdateFile(p.cfg.OutDir, res.images); err != nil {
 		updateErr := fmt.Errorf("updating index: %w", err)
-		if cleanupErr := deleteProcessedImageDirs(p.cfg.OutDir, result.images); cleanupErr != nil {
-			return result, errors.Join(updateErr, cleanupErr)
+		if cleanupErr := deleteProcessedImageDirs(p.cfg.OutDir, res.images); cleanupErr != nil {
+			return result{}, errors.Join(updateErr, cleanupErr)
 		}
-		return result, updateErr
+		return result{}, updateErr
 	}
 
-	return result, nil
+	return res, nil
 }
 
 func deleteProcessedImageDirs(outRoot paths.AbsPath, images []image.Processed) error {
