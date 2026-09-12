@@ -2,6 +2,7 @@ package manifest
 
 import (
 	"encoding/json"
+	"fmt"
 	"math"
 	"os"
 
@@ -21,25 +22,44 @@ func ManifestPath(dir paths.AbsPath) (paths.AbsPath, error) {
 	return paths.JoinAbs(dir, manifestRelPath)
 }
 
-type manifest struct {
-	Title       string                 `json:"title"`
-	Description string                 `json:"description"`
-	CapturedAt  string                 `json:"capturedAt"`
-	ProcessedAt string                 `json:"processedAt"`
-	SHA256      string                 `json:"sha256"`
-	Width       int                    `json:"width"`
-	Height      int                    `json:"height"`
-	Variants    map[string][]imageFile `json:"variants"`
+// Manifest describes a processed image manifest.
+type Manifest struct {
+	Title       string
+	Description string
+	CapturedAt  string
+	ProcessedAt string
+	SHA256      string
+	Width       int
+	Height      int
+	Variants    map[image.Format][]File
 }
 
-type imageFile struct {
+// File describes one generated image file in a manifest.
+type File struct {
+	Path   paths.RelPath
+	Width  int
+	Height int
+}
+
+type manifestFile struct {
+	Title       string                   `json:"title"`
+	Description string                   `json:"description"`
+	CapturedAt  string                   `json:"capturedAt"`
+	ProcessedAt string                   `json:"processedAt"`
+	SHA256      string                   `json:"sha256"`
+	Width       int                      `json:"width"`
+	Height      int                      `json:"height"`
+	Variants    map[string][]variantFile `json:"variants"`
+}
+
+type variantFile struct {
 	Path   string `json:"src"`
 	Width  int    `json:"width"`
 	Height int    `json:"height"`
 }
 
 func Write(imgDir paths.AbsPath, img image.Processed) error {
-	mani := manifest{
+	mani := manifestFile{
 		Title:       img.Title,
 		Description: img.Description,
 		CapturedAt:  img.CapturedAt,
@@ -66,15 +86,35 @@ func Write(imgDir paths.AbsPath, img image.Processed) error {
 	return nil
 }
 
-func manifestVariants(i image.Processed) map[string][]imageFile {
-	maniVariants := make(map[string][]imageFile)
+// ReadFile reads a processed image manifest from path.
+func ReadFile(path paths.AbsPath) (Manifest, error) {
+	data, err := os.ReadFile(path.String())
+	if err != nil {
+		return Manifest{}, fmt.Errorf("reading manifest %q: %w", path, err)
+	}
+
+	var file manifestFile
+	if err := json.Unmarshal(data, &file); err != nil {
+		return Manifest{}, fmt.Errorf("parsing manifest %q: %w", path, err)
+	}
+
+	mani, err := manifestFromFile(file)
+	if err != nil {
+		return Manifest{}, fmt.Errorf("parsing manifest %q: %w", path, err)
+	}
+
+	return mani, nil
+}
+
+func manifestVariants(i image.Processed) map[string][]variantFile {
+	maniVariants := make(map[string][]variantFile)
 
 	aspectRatio := float64(i.Source.Height) / float64(i.Source.Width)
 	for _, v := range i.Variants {
 		format := v.Format.String()
 		maniVariants[format] = append(
 			maniVariants[format],
-			imageFile{
+			variantFile{
 				Path:   v.Path.String(),
 				Width:  v.Width,
 				Height: int(math.Round(float64(v.Width) * aspectRatio)),
@@ -82,4 +122,35 @@ func manifestVariants(i image.Processed) map[string][]imageFile {
 		)
 	}
 	return maniVariants
+}
+
+func manifestFromFile(file manifestFile) (Manifest, error) {
+	mani := Manifest{
+		Title:       file.Title,
+		Description: file.Description,
+		CapturedAt:  file.CapturedAt,
+		ProcessedAt: file.ProcessedAt,
+		SHA256:      file.SHA256,
+		Width:       file.Width,
+		Height:      file.Height,
+		Variants:    make(map[image.Format][]File, len(file.Variants)),
+	}
+
+	for formatName, files := range file.Variants {
+		format := image.ParseFormat(formatName)
+		for i, file := range files {
+			path, err := paths.NewRelPath(file.Path)
+			if err != nil {
+				return Manifest{}, fmt.Errorf("variant %q file %d src: %w", formatName, i, err)
+			}
+
+			mani.Variants[format] = append(mani.Variants[format], File{
+				Path:   path,
+				Width:  file.Width,
+				Height: file.Height,
+			})
+		}
+	}
+
+	return mani, nil
 }

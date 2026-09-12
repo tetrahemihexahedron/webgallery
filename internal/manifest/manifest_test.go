@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 
 	"tetrahemihexahedron/webimage/internal/image"
@@ -27,6 +28,67 @@ type imageFile struct {
 	Path   string `json:"src"`
 	Width  int    `json:"width"`
 	Height int    `json:"height"`
+}
+
+func TestReadFile(t *testing.T) {
+	got, err := manifest.ReadFile(testdataPath(t, "valid.json"))
+	if err != nil {
+		t.Fatalf("manifest.ReadFile() returned error: %v", err)
+	}
+
+	want := manifest.Manifest{
+		Title:       "2023 October Posing",
+		Description: "Rosie as a small puppy, sitting and looking directly at the camera.",
+		CapturedAt:  "2023-10-03T17:26:39",
+		ProcessedAt: "2026-08-24T18:00:00Z",
+		SHA256:      "7f43b6f0a877e8590c4f0c7d55d99b188a671de7bf58156ac0d3ac38df842cc9",
+		Width:       800,
+		Height:      1067,
+		Variants: map[image.Format][]manifest.File{
+			image.FormatJPEG: {
+				{Path: mustRel(t, "w400.jpg"), Width: 400, Height: 534},
+				{Path: mustRel(t, "w800.jpg"), Width: 800, Height: 1067},
+			},
+			image.FormatAVIF: {
+				{Path: mustRel(t, "w400.avif"), Width: 400, Height: 534},
+			},
+		},
+	}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("manifest.ReadFile() mismatch\n got: %+v\nwant: %+v", got, want)
+	}
+}
+
+func TestReadFileReturnsError(t *testing.T) {
+	tests := []struct {
+		name            string
+		fixtureFilename string
+		wantMessage     string
+	}{
+		{
+			name:            "malformed JSON",
+			fixtureFilename: "malformed.json",
+			wantMessage:     "parsing manifest",
+		},
+		{
+			name:            "invalid variant path",
+			fixtureFilename: "invalid_variant_path.json",
+			wantMessage:     `variant "JPEG" file 0 src`,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := manifest.ReadFile(testdataPath(t, tc.fixtureFilename))
+			if err == nil {
+				t.Fatalf("manifest.ReadFile() returned nil error, want error")
+			}
+			if !strings.Contains(err.Error(), tc.wantMessage) {
+				t.Errorf("manifest.ReadFile() error = %q, want containing %q", err, tc.wantMessage)
+			}
+		})
+	}
 }
 
 func TestWrite(t *testing.T) {
@@ -139,6 +201,17 @@ func readManifest(t *testing.T, dir paths.AbsPath) manifestFile {
 	}
 
 	return got
+}
+
+func testdataPath(t *testing.T, name string) paths.AbsPath {
+	t.Helper()
+
+	path, err := filepath.Abs(filepath.Join("testdata", name))
+	if err != nil {
+		t.Fatalf("filepath.Abs(%q) error = %v, want nil", name, err)
+	}
+
+	return mustAbs(t, path)
 }
 
 func mustAbs(t *testing.T, path string) paths.AbsPath {

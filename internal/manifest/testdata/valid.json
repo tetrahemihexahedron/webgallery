@@ -1,0 +1,30 @@
+{
+  "title": "2023 October Posing",
+  "description": "Rosie as a small puppy, sitting and looking directly at the camera.",
+  "capturedAt": "2023-10-03T17:26:39",
+  "processedAt": "2026-08-24T18:00:00Z",
+  "sha256": "7f43b6f0a877e8590c4f0c7d55d99b188a671de7bf58156ac0d3ac38df842cc9",
+  "width": 800,
+  "height": 1067,
+  "variants": {
+    "JPEG": [
+      {
+        "src": "w400.jpg",
+        "width": 400,
+        "height": 534
+      },
+      {
+        "src": "w800.jpg",
+        "width": 800,
+        "height": 1067
+      }
+    ],
+    "AVIF": [
+      {
+        "src": "w400.avif",
+        "width": 400,
+        "height": 534
+      }
+    ]
+  }
+}
