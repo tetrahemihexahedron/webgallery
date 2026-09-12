@@ -63,6 +63,70 @@ func TestParseCapturedAtReturnsError(t *testing.T) {
 	}
 }
 
+func TestParseProcessedAt(t *testing.T) {
+	tests := []struct {
+		name  string
+		value string
+		want  time.Time
+	}{
+		{
+			name:  "valid UTC value",
+			value: "2026-08-24T18:00:00Z",
+			want:  time.Date(2026, time.August, 24, 18, 0, 0, 0, time.UTC),
+		},
+		{
+			name:  "trims whitespace",
+			value: "  2026-08-24T18:00:00Z\t",
+			want:  time.Date(2026, time.August, 24, 18, 0, 0, 0, time.UTC),
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := image.ParseProcessedAt(tc.value)
+			if err != nil {
+				t.Fatalf("image.ParseProcessedAt(%q) returned error: %v", tc.value, err)
+			}
+			if !got.Equal(tc.want) {
+				t.Errorf("image.ParseProcessedAt(%q) = %v, want %v", tc.value, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestParseProcessedAtReturnsError(t *testing.T) {
+	tests := []struct {
+		name  string
+		value string
+	}{
+		{
+			name:  "empty value",
+			value: "  \t",
+		},
+		{
+			name:  "invalid value",
+			value: "2026-08-24T18:00:00",
+		},
+		{
+			name:  "non-UTC offset",
+			value: "2026-08-24T12:00:00-06:00",
+		},
+		{
+			name:  "fractional seconds",
+			value: "2026-08-24T18:00:00.123Z",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := image.ParseProcessedAt(tc.value)
+			if err == nil {
+				t.Fatalf("image.ParseProcessedAt(%q) returned nil error, want error", tc.value)
+			}
+		})
+	}
+}
+
 func TestFormat(t *testing.T) {
 	tests := []struct {
 		name   string

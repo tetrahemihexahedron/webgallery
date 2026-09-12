@@ -26,6 +26,22 @@ func FormatCapturedAt(t time.Time) string {
 	return t.Format(capturedAtLayout)
 }
 
+func ParseProcessedAt(s string) (time.Time, error) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return time.Time{}, errors.New("processedAt is empty")
+	}
+
+	processedAt, err := time.Parse(time.RFC3339, s)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("parsing processedAt %q: %w", s, err)
+	}
+	if FormatProcessedAt(processedAt) != s {
+		return time.Time{}, fmt.Errorf("processedAt %q must be UTC RFC3339", s)
+	}
+	return processedAt, nil
+}
+
 func FormatProcessedAt(t time.Time) string {
 	return t.UTC().Format(time.RFC3339)
 }
