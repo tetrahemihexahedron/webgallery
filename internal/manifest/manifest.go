@@ -59,6 +59,10 @@ type variantFile struct {
 }
 
 func Write(imgDir paths.AbsPath, img image.Processed) error {
+	if err := validateVariantFormats(img.Variants); err != nil {
+		return err
+	}
+
 	mani := manifestFile{
 		Title:       img.Title,
 		Description: img.Description,
@@ -124,6 +128,25 @@ func manifestVariants(i image.Processed) map[string][]variantFile {
 	return maniVariants
 }
 
+func isSupportedVariantFormat(f image.Format) bool {
+	switch f {
+	case image.FormatJPEG, image.FormatAVIF:
+		return true
+	default:
+		return false
+	}
+}
+
+func validateVariantFormats(variants []image.Variant) error {
+	for i, variant := range variants {
+		if !isSupportedVariantFormat(variant.Format) {
+			return fmt.Errorf("variant %d has unsupported format %q", i, variant.Format)
+		}
+	}
+
+	return nil
+}
+
 func manifestFromFile(file manifestFile) (Manifest, error) {
 	mani := Manifest{
 		Title:       file.Title,
@@ -138,6 +161,10 @@ func manifestFromFile(file manifestFile) (Manifest, error) {
 
 	for formatName, files := range file.Variants {
 		format := image.ParseFormat(formatName)
+		if !isSupportedVariantFormat(format) {
+			return Manifest{}, fmt.Errorf("unsupported variant format %q", formatName)
+		}
+
 		for i, file := range files {
 			path, err := paths.NewRelPath(file.Path)
 			if err != nil {
