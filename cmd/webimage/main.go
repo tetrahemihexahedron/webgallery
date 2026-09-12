@@ -5,13 +5,12 @@ import (
 	"log"
 	"os"
 
-	"tetrahemihexahedron/webimage/internal/config"
 	"tetrahemihexahedron/webimage/internal/metadata"
 	"tetrahemihexahedron/webimage/internal/variants"
 )
 
 func main() {
-	cfg, err := config.Load()
+	cfg, err := loadConfig()
 	if err != nil {
 		log.Fatal(err)
 	}

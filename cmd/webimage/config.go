@@ -1,4 +1,4 @@
-package config
+package main
 
 import (
 	"errors"
@@ -34,7 +34,7 @@ type Config struct {
 	DirDate DirDate
 }
 
-func Load() (Config, error) {
+func loadConfig() (Config, error) {
 	return parseArgs(os.Args[1:], os.Stderr)
 }
 

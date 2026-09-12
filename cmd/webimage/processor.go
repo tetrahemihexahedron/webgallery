@@ -14,7 +14,6 @@ import (
 	"strconv"
 	"time"
 
-	"tetrahemihexahedron/webimage/internal/config"
 	"tetrahemihexahedron/webimage/internal/image"
 	"tetrahemihexahedron/webimage/internal/index"
 	"tetrahemihexahedron/webimage/internal/manifest"
@@ -43,7 +42,7 @@ type fileProblem struct {
 }
 
 type processor struct {
-	cfg              config.Config
+	cfg              Config
 	metadataReader   metadataReader
 	variantGenerator variantGenerator
 	progressReporter io.Writer
@@ -347,11 +346,11 @@ func hashFile(path paths.AbsPath) (string, error) {
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
-func dirDate(dirDate config.DirDate, capturedAt string, processedAt time.Time) (time.Time, error) {
+func dirDate(dirDate DirDate, capturedAt string, processedAt time.Time) (time.Time, error) {
 	switch dirDate {
-	case config.DirDateProcessed:
+	case DirDateProcessed:
 		return processedAt, nil
-	case config.DirDateCaptured:
+	case DirDateCaptured:
 		capturedDate, err := image.ParseCapturedAt(capturedAt)
 		if err != nil {
 			return time.Time{}, fmt.Errorf("--dir-date=captured requires a valid capturedAt: %w", err)
