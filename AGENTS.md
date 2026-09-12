@@ -2,11 +2,11 @@ This directory contains the code for a command-line script written in Go used to
 
 ## Application
 
-webimage is a small Go CLI for preparing JPEG photos for Rosie the Dog’s website and for a future website, Albuquerque Dog. Entry point is cmd/webimage; flags are -incoming, -output, and -quiet.
+webimage is a small Go CLI for preparing JPEG photos for Rosie the Dog’s website and for a future website, Albuquerque Dog. Entry point is cmd/webimage; flags are -incoming, -output, -quiet, and -dir-date.
 
-The processor reads image metadata from the incoming directory using external exiftool, skips non-JPEGs, creates an output subdirectory like <output>/<year>/<month>/<random-id>/, copies the original to orig.jpg, generates .jpg and .avif variants at widths 400/800/1200/1600 capped by source width using external vipsthumbnail/libvips, then writes a per-image manifest.json.
+The processor reads image metadata from the incoming directory using external exiftool, skips non-JPEGs and duplicate source files, creates an output subdirectory like <output>/<year>/<month>/<random-id>/, copies the original to orig.jpg, generates .jpg and .avif variants at widths 400/800/1200/1600 capped by source width using external vipsthumbnail/libvips, writes a per-image manifest.json, and updates a collection-level index.json.
 
-Package layout: internal/config parses CLI flags; internal/metadata wraps exiftool; internal/variants wraps vipsthumbnail; internal/image holds domain structs/format parsing; internal/manifest writes JSON manifests; cmd/webimage/processor.go orchestrates the workflow.
+Package layout: cmd/webimage parses CLI flags and orchestrates the workflow; internal/metadata wraps exiftool; internal/variants wraps vipsthumbnail; internal/image holds domain structs and format/datetime helpers; internal/manifest reads and writes per-image JSON manifests; internal/index reads and writes the collection index; internal/paths holds small validated filesystem path types.
 
 ## Coding standards
 
