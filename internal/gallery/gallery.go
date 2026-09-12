@@ -1,10 +1,13 @@
 package gallery
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 
+	"tetrahemihexahedron/webimage/internal/image"
 	"tetrahemihexahedron/webimage/internal/index"
 	"tetrahemihexahedron/webimage/internal/manifest"
 	"tetrahemihexahedron/webimage/internal/paths"
@@ -53,9 +56,68 @@ func Render(w io.Writer, opts Options) error {
 	if err != nil {
 		return err
 	}
+	if err := sortImages(images, opts.Sort); err != nil {
+		return err
+	}
 	_ = images
 
 	return errors.New("gallery rendering is not implemented")
+}
+
+func sortImages(images []galleryImage, sortField SortField) error {
+	if err := validateSortValues(images, sortField); err != nil {
+		return err
+	}
+
+	slices.SortFunc(images, func(a, b galleryImage) int {
+		aValue := sortValue(a, sortField)
+		bValue := sortValue(b, sortField)
+		if aValue != bValue {
+			return cmp.Compare(bValue, aValue)
+		}
+		// use directory name as tie-breaker
+		return cmp.Compare(a.indexImage.Dir.String(), b.indexImage.Dir.String())
+	})
+
+	return nil
+}
+
+func validateSortValues(images []galleryImage, sortField SortField) error {
+	for _, img := range images {
+		if err := parseSortValue(img, sortField); err != nil {
+			return fmt.Errorf("image %q: %w", img.indexImage.Dir, err)
+		}
+	}
+
+	return nil
+}
+
+func parseSortValue(img galleryImage, sortField SortField) error {
+	switch sortField {
+	case SortCaptured:
+		if _, err := image.ParseCapturedAt(img.indexImage.CapturedAt); err != nil {
+			return fmt.Errorf("invalid capturedAt: %w", err)
+		}
+		return nil
+	case SortProcessed:
+		if _, err := image.ParseProcessedAt(img.indexImage.ProcessedAt); err != nil {
+			return fmt.Errorf("invalid processedAt: %w", err)
+		}
+		return nil
+	default:
+		return fmt.Errorf("invalid sort field %q", sortField)
+	}
+}
+
+func sortValue(img galleryImage, sortField SortField) string {
+	switch sortField {
+	case SortCaptured:
+		return img.indexImage.CapturedAt
+	case SortProcessed:
+		return img.indexImage.ProcessedAt
+	default:
+		return ""
+	}
 }
 
 func loadImages(opts Options) ([]galleryImage, error) {
