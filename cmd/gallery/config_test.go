@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"tetrahemihexahedron/webimage/internal/gallery"
 	"tetrahemihexahedron/webimage/internal/paths"
 )
 
@@ -21,7 +22,7 @@ func TestParseArgs(t *testing.T) {
 			want: Config{
 				ImagesRoot: mustAbs(t, "images"),
 				UseStdout:  true,
-				Sort:       SortCaptured,
+				Sort:       gallery.SortCaptured,
 			},
 		},
 		{
@@ -32,7 +33,7 @@ func TestParseArgs(t *testing.T) {
 				OutFile:    mustAbs(t, "gallery.html"),
 				UseStdout:  false,
 				URLPrefix:  "/images",
-				Sort:       SortProcessed,
+				Sort:       gallery.SortProcessed,
 			},
 		},
 		{
@@ -41,7 +42,7 @@ func TestParseArgs(t *testing.T) {
 			want: Config{
 				ImagesRoot: mustAbs(t, "images"),
 				UseStdout:  true,
-				Sort:       SortCaptured,
+				Sort:       gallery.SortCaptured,
 			},
 		},
 	}

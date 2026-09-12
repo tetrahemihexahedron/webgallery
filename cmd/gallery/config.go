@@ -8,31 +8,16 @@ import (
 	"os"
 	"path/filepath"
 
+	"tetrahemihexahedron/webimage/internal/gallery"
 	"tetrahemihexahedron/webimage/internal/paths"
 )
-
-type SortField string
-
-const (
-	SortCaptured  SortField = "captured"
-	SortProcessed SortField = "processed"
-)
-
-func (s SortField) isValid() bool {
-	switch s {
-	case SortCaptured, SortProcessed:
-		return true
-	default:
-		return false
-	}
-}
 
 type Config struct {
 	ImagesRoot paths.AbsPath
 	OutFile    paths.AbsPath
 	UseStdout  bool
 	URLPrefix  string
-	Sort       SortField
+	Sort       gallery.SortField
 }
 
 func loadConfig() (Config, error) {
@@ -51,16 +36,16 @@ func parseArgs(args []string, output io.Writer) (Config, error) {
 	flags.StringVar(&outFilePath, "output", "", "HTML output file, or stdout when omitted or '-'")
 	flags.StringVar(&cfg.URLPrefix, "url-prefix", "", "public URL prefix for image URLs")
 
-	sort := string(SortCaptured)
+	sort := string(gallery.SortCaptured)
 	flags.StringVar(&sort, "sort", sort, "sort field: captured or processed")
 
 	if err := flags.Parse(args); err != nil {
 		return Config{}, err
 	}
 
-	cfg.Sort = SortField(sort)
-	if !cfg.Sort.isValid() {
-		return Config{}, fmt.Errorf("invalid '--sort' value %q: want %q or %q", sort, SortCaptured, SortProcessed)
+	cfg.Sort = gallery.SortField(sort)
+	if !cfg.Sort.IsValid() {
+		return Config{}, fmt.Errorf("invalid '--sort' value %q: want %q or %q", sort, gallery.SortCaptured, gallery.SortProcessed)
 	}
 
 	if imagesRootPath == "" {
