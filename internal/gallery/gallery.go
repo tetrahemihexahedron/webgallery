@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"path"
 	"slices"
 
 	"tetrahemihexahedron/webimage/internal/image"
@@ -118,6 +119,10 @@ func sortValue(img galleryImage, sortField SortField) string {
 	default:
 		return ""
 	}
+}
+
+func publicURL(urlPrefix string, imgDir paths.RelPath, file paths.RelPath) string {
+	return path.Join(urlPrefix, imgDir.String(), file.String())
 }
 
 func loadImages(opts Options) ([]galleryImage, error) {
