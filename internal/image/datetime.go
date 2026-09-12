@@ -19,6 +19,9 @@ func ParseCapturedAt(s string) (time.Time, error) {
 	if err != nil {
 		return time.Time{}, fmt.Errorf("parsing capturedAt %q: %w", s, err)
 	}
+	if FormatCapturedAt(capturedAt) != s {
+		return time.Time{}, fmt.Errorf("capturedAt %q must be in webimage's normalized capturedAt format", s)
+	}
 	return capturedAt, nil
 }
 

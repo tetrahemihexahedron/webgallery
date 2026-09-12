@@ -51,6 +51,10 @@ func TestParseCapturedAtReturnsError(t *testing.T) {
 			name:  "invalid value",
 			value: "2024:05:12 14:22:00",
 		},
+		{
+			name:  "fractional seconds",
+			value: "2024-05-12T14:22:00.123",
+		},
 	}
 
 	for _, tc := range tests {
