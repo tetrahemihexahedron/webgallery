@@ -7,6 +7,7 @@ import (
 	"io"
 	"path"
 	"slices"
+	"strings"
 
 	"tetrahemihexahedron/webimage/internal/image"
 	"tetrahemihexahedron/webimage/internal/index"
@@ -39,9 +40,38 @@ type Options struct {
 	Sort       SortField
 }
 
+const (
+	imageSizes           = "(max-width: 700px) 100vw, 700px"
+	fallbackDisplayWidth = 700
+)
+
 type galleryImage struct {
 	indexImage index.Image
 	manifest   manifest.Manifest
+}
+
+type templateData struct {
+	Images []templateImage
+}
+
+type templateImage struct {
+	Sources  []templateSource
+	Fallback templateFallback
+}
+
+type templateSource struct {
+	Type   string
+	Srcset string
+	Sizes  string
+}
+
+type templateFallback struct {
+	Src    string
+	Srcset string
+	Sizes  string
+	Width  int
+	Height int
+	Alt    string
 }
 
 // Render writes gallery HTML to w.
@@ -60,7 +90,11 @@ func Render(w io.Writer, opts Options) error {
 	if err := sortImages(images, opts.Sort); err != nil {
 		return err
 	}
-	_ = images
+	data, err := newTemplateData(images, opts.URLPrefix)
+	if err != nil {
+		return err
+	}
+	_ = data
 
 	return errors.New("gallery rendering is not implemented")
 }
@@ -119,6 +153,87 @@ func sortValue(img galleryImage, sortField SortField) string {
 	default:
 		return ""
 	}
+}
+
+func newTemplateData(images []galleryImage, urlPrefix string) (templateData, error) {
+	data := templateData{
+		Images: make([]templateImage, 0, len(images)),
+	}
+
+	for _, img := range images {
+		tmplImg, err := newTemplateImage(img, urlPrefix)
+		if err != nil {
+			return templateData{}, fmt.Errorf("image %q: %w", img.indexImage.Dir, err)
+		}
+		data.Images = append(data.Images, tmplImg)
+	}
+
+	return data, nil
+}
+
+func newTemplateImage(img galleryImage, urlPrefix string) (templateImage, error) {
+	jpegVariants := sortedVariants(img.manifest.Variants[image.FormatJPEG])
+	if len(jpegVariants) == 0 {
+		return templateImage{}, errors.New("missing JPEG variants")
+	}
+
+	var sources []templateSource
+	avifVariants := sortedVariants(img.manifest.Variants[image.FormatAVIF])
+	if len(avifVariants) != 0 {
+		sources = append(sources, templateSource{
+			Type:   "image/avif",
+			Srcset: srcset(img.indexImage.Dir, avifVariants, urlPrefix),
+			Sizes:  imageSizes,
+		})
+	}
+
+	fallback := fallbackVariant(jpegVariants)
+	return templateImage{
+		Sources: sources,
+		Fallback: templateFallback{
+			Src:    publicURL(urlPrefix, img.indexImage.Dir, fallback.Path),
+			Srcset: srcset(img.indexImage.Dir, jpegVariants, urlPrefix),
+			Sizes:  imageSizes,
+			Width:  img.manifest.Width,
+			Height: img.manifest.Height,
+			Alt:    altText(img.manifest),
+		},
+	}, nil
+}
+
+func sortedVariants(variants []manifest.File) []manifest.File {
+	sorted := slices.Clone(variants)
+	slices.SortFunc(sorted, func(a, b manifest.File) int {
+		if a.Width != b.Width {
+			return cmp.Compare(a.Width, b.Width)
+		}
+		return cmp.Compare(a.Path.String(), b.Path.String())
+	})
+	return sorted
+}
+
+func srcset(imgDir paths.RelPath, variants []manifest.File, urlPrefix string) string {
+	items := make([]string, 0, len(variants))
+	for _, variant := range variants {
+		items = append(items, fmt.Sprintf("%s %dw", publicURL(urlPrefix, imgDir, variant.Path), variant.Width))
+	}
+	return strings.Join(items, ", ")
+}
+
+func fallbackVariant(variants []manifest.File) manifest.File {
+	for _, variant := range variants {
+		if variant.Width >= fallbackDisplayWidth {
+			return variant
+		}
+	}
+	return variants[len(variants)-1]
+}
+
+func altText(m manifest.Manifest) string {
+	if m.Description != "" {
+		return m.Description
+	}
+	return m.Title
 }
 
 func publicURL(urlPrefix string, imgDir paths.RelPath, file paths.RelPath) string {
