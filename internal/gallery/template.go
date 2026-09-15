@@ -4,6 +4,30 @@ import "html/template"
 
 var galleryTmplt = template.Must(template.New("gallery").Parse(galleryTmpltText))
 
+type templateData struct {
+	Images []templateImage
+}
+
+type templateImage struct {
+	Sources  []templateSource
+	Fallback templateFallback
+}
+
+type templateSource struct {
+	Type   string
+	Srcset string
+	Sizes  string
+}
+
+type templateFallback struct {
+	Src    string
+	Srcset string
+	Sizes  string
+	Width  int
+	Height int
+	Alt    string
+}
+
 const galleryTmpltText = `{{range .Images}}<picture>
 {{range .Sources}}  <source
     type="{{.Type}}"

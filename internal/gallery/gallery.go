@@ -50,30 +50,6 @@ type galleryImage struct {
 	manifest   manifest.Manifest
 }
 
-type templateData struct {
-	Images []templateImage
-}
-
-type templateImage struct {
-	Sources  []templateSource
-	Fallback templateFallback
-}
-
-type templateSource struct {
-	Type   string
-	Srcset string
-	Sizes  string
-}
-
-type templateFallback struct {
-	Src    string
-	Srcset string
-	Sizes  string
-	Width  int
-	Height int
-	Alt    string
-}
-
 // Render writes gallery HTML to w.
 func Render(w io.Writer, opts Options) error {
 	if w == nil {
