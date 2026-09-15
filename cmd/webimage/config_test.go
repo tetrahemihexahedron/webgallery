@@ -2,8 +2,11 @@ package main
 
 import (
 	"io"
+	"path/filepath"
 	"strings"
 	"testing"
+
+	"tetrahemihexahedron/webimage/internal/paths"
 )
 
 func TestParseArgs(t *testing.T) {
@@ -91,4 +94,20 @@ func TestParseArgsErrors(t *testing.T) {
 			}
 		})
 	}
+}
+
+func mustAbs(t *testing.T, path string) paths.AbsPath {
+	t.Helper()
+
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		t.Fatalf("filepath.Abs(%q) error = %v, want nil", path, err)
+	}
+
+	p, err := paths.NewAbsPath(absPath)
+	if err != nil {
+		t.Fatalf("paths.NewAbsPath(%q) error = %v, want nil", absPath, err)
+	}
+
+	return p
 }
