@@ -223,9 +223,9 @@ func (idx Index) ImageDirsBySHA256() (map[string]paths.RelPath, error) {
 	return imageDirs, nil
 }
 
-// Read reads index.json from dir. If the file does not exist, Read
+// ReadDir reads index.json from dir. If the file does not exist, ReadDir
 // returns an empty Index.
-func Read(dir paths.AbsPath) (Index, error) {
+func ReadDir(dir paths.AbsPath) (Index, error) {
 	path, err := IndexPath(dir)
 	if err != nil {
 		return Index{}, err

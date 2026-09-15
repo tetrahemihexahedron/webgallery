@@ -18,14 +18,14 @@ import (
 func TestReadReturnsEmptyIndexWhenFileIsMissing(t *testing.T) {
 	dir := mustAbs(t, t.TempDir())
 
-	got, err := index.Read(dir)
+	got, err := index.ReadDir(dir)
 	if err != nil {
-		t.Fatalf("index.Read(%q) returned error: %v", dir, err)
+		t.Fatalf("index.ReadDir(%q) returned error: %v", dir, err)
 	}
 
 	want := index.Index{Images: []index.Image{}}
 	if !reflect.DeepEqual(got, want) {
-		t.Errorf("index.Read(%q) returned %+v, want %+v", dir, got, want)
+		t.Errorf("index.ReadDir(%q) returned %+v, want %+v", dir, got, want)
 	}
 }
 
@@ -64,13 +64,13 @@ func TestRead(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := index.Read(tc.dir)
+			got, err := index.ReadDir(tc.dir)
 			if err != nil {
-				t.Fatalf("index.Read(%q) returned error: %v", tc.dir, err)
+				t.Fatalf("index.ReadDir(%q) returned error: %v", tc.dir, err)
 			}
 
 			if !reflect.DeepEqual(got, tc.want) {
-				t.Errorf("index.Read(%q) returned %+v, want %+v", tc.dir, got, tc.want)
+				t.Errorf("index.ReadDir(%q) returned %+v, want %+v", tc.dir, got, tc.want)
 			}
 		})
 	}
@@ -79,12 +79,12 @@ func TestRead(t *testing.T) {
 func TestReadReturnsErrorForMalformedJSON(t *testing.T) {
 	dir := mustAbs(t, filepath.Join("testdata", "malformed"))
 
-	_, err := index.Read(dir)
+	_, err := index.ReadDir(dir)
 	if err == nil {
-		t.Fatalf("index.Read(%q) returned nil error, want error", dir)
+		t.Fatalf("index.ReadDir(%q) returned nil error, want error", dir)
 	}
 	if !strings.Contains(err.Error(), "parsing index") {
-		t.Errorf("index.Read(%q) error = %q, want message containing %q", dir, err, "parsing index")
+		t.Errorf("index.ReadDir(%q) error = %q, want message containing %q", dir, err, "parsing index")
 	}
 }
 
@@ -95,12 +95,12 @@ func TestReadReturnsErrorForUnreadableIndex(t *testing.T) {
 	}
 	dir := mustAbs(t, dirPath)
 
-	_, err := index.Read(dir)
+	_, err := index.ReadDir(dir)
 	if err == nil {
-		t.Fatalf("index.Read(%q) returned nil error, want error", dir)
+		t.Fatalf("index.ReadDir(%q) returned nil error, want error", dir)
 	}
 	if !strings.Contains(err.Error(), "reading index") {
-		t.Errorf("index.Read(%q) error = %q, want message containing %q", dir, err, "reading index")
+		t.Errorf("index.ReadDir(%q) error = %q, want message containing %q", dir, err, "reading index")
 	}
 }
 
@@ -175,9 +175,9 @@ func TestUpdateFile(t *testing.T) {
 				copyValidIndexFixture(t, outRoot)
 			}
 
-			idx, err := index.Read(outRoot)
+			idx, err := index.ReadDir(outRoot)
 			if err != nil {
-				t.Fatalf("index.Read(%q) returned error before update: %v", outRoot, err)
+				t.Fatalf("index.ReadDir(%q) returned error before update: %v", outRoot, err)
 			}
 
 			before := time.Now().UTC().Add(-1 * time.Second)
@@ -186,9 +186,9 @@ func TestUpdateFile(t *testing.T) {
 			}
 			after := time.Now().UTC().Add(time.Second)
 
-			got, err := index.Read(outRoot)
+			got, err := index.ReadDir(outRoot)
 			if err != nil {
-				t.Fatalf("index.Read(%q) returned error after update: %v", outRoot, err)
+				t.Fatalf("index.ReadDir(%q) returned error after update: %v", outRoot, err)
 			}
 
 			if !reflect.DeepEqual(idx, got) {

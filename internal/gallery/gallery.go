@@ -247,7 +247,7 @@ func publicURL(urlPrefix string, imgDir paths.RelPath, file paths.RelPath) strin
 }
 
 func loadImages(opts Options) ([]galleryImage, error) {
-	idx, err := index.Read(opts.ImagesRoot)
+	idx, err := index.ReadDir(opts.ImagesRoot)
 	if err != nil {
 		return nil, fmt.Errorf("reading gallery index: %w", err)
 	}

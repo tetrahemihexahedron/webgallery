@@ -53,7 +53,7 @@ func (p *processor) processDir() (result, error) {
 
 	fmt.Fprintf(p.progressReporter, "Processing image files in %q\n", inDirAbsPath)
 
-	imageIndex, err := index.Read(p.cfg.OutDir)
+	imageIndex, err := index.ReadDir(p.cfg.OutDir)
 	if err != nil {
 		return result{}, err
 	}
