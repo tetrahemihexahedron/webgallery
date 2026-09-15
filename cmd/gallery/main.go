@@ -1,8 +1,8 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
-	"io"
 	"log"
 	"os"
 
@@ -20,31 +20,27 @@ func main() {
 	}
 }
 
-func renderGallery(cfg Config) (err error) {
-	writer := io.Writer(os.Stdout)
-
-	if !cfg.UseStdout {
-		file, err := os.Create(cfg.OutFile.String())
-		if err != nil {
-			return fmt.Errorf("opening output %q: %w", cfg.OutFile, err)
-		}
-		defer func() {
-			if closeErr := file.Close(); err == nil && closeErr != nil {
-				err = fmt.Errorf("closing output %q: %w", cfg.OutFile, closeErr)
-			}
-		}()
-
-		writer = file
-	}
-
+func renderGallery(cfg Config) error {
 	opts := gallery.Options{
 		ImagesRoot: cfg.ImagesRoot,
 		URLPrefix:  cfg.URLPrefix,
 		Sort:       cfg.Sort,
 	}
-	if err := gallery.Render(writer, opts); err != nil {
+
+	var html bytes.Buffer
+	if err := gallery.Render(&html, opts); err != nil {
 		return fmt.Errorf("rendering gallery: %w", err)
 	}
 
+	if cfg.UseStdout {
+		if _, err := os.Stdout.Write(html.Bytes()); err != nil {
+			return fmt.Errorf("writing gallery to stdout: %w", err)
+		}
+		return nil
+	}
+
+	if err := os.WriteFile(cfg.OutFile.String(), html.Bytes(), 0644); err != nil {
+		return fmt.Errorf("writing output %q: %w", cfg.OutFile, err)
+	}
 	return nil
 }
