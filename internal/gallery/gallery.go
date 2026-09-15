@@ -75,7 +75,7 @@ func Render(w io.Writer, opts Options) error {
 }
 
 func renderHTML(w io.Writer, data templateData) error {
-	if err := galleryTmplt.Execute(w, data); err != nil {
+	if err := galleryTemplate.Execute(w, data); err != nil {
 		return fmt.Errorf("rendering gallery template: %w", err)
 	}
 	return nil

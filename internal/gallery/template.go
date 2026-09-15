@@ -2,7 +2,7 @@ package gallery
 
 import "html/template"
 
-var galleryTmplt = template.Must(template.New("gallery").Parse(galleryTmpltText))
+var galleryTemplate = template.Must(template.New("gallery").Parse(galleryTemplateText))
 
 type templateData struct {
 	Images []templateImage
@@ -28,7 +28,7 @@ type templateFallback struct {
 	Alt    string
 }
 
-const galleryTmpltText = `{{range .Images}}<picture>
+const galleryTemplateText = `{{range .Images}}<picture>
 {{range .Sources}}  <source
     type="{{.Type}}"
     srcset="{{.Srcset}}"
