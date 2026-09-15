@@ -94,9 +94,15 @@ func Render(w io.Writer, opts Options) error {
 	if err != nil {
 		return err
 	}
-	_ = data
 
-	return errors.New("gallery rendering is not implemented")
+	return renderHTML(w, data)
+}
+
+func renderHTML(w io.Writer, data templateData) error {
+	if err := galleryTmplt.Execute(w, data); err != nil {
+		return fmt.Errorf("rendering gallery template: %w", err)
+	}
+	return nil
 }
 
 func sortImages(images []galleryImage, sortField SortField) error {
