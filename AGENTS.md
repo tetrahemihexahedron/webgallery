@@ -1,12 +1,14 @@
-This directory contains the code for a command-line script written in Go used to prepare image files for webpages. It is a work in progress, so some features may be only partially implemented.
+This directory contains Go command-line tools used to prepare image files for webpages and generate reusable HTML for a gallery of photos. All of the basic functionality has been implemented, but it has not yet been put into use.
 
 ## Application
 
-webimage is a small Go CLI for preparing JPEG photos for Rosie the Dog’s website and for a future website, Albuquerque Dog. Entry point is cmd/webimage; flags are -incoming, -output, -quiet, and -dir-date.
+webimage contains two small Go CLIs for Rosie the Dog’s website and for a future website, Albuquerque Dog.
 
-The processor reads image metadata from the incoming directory using external exiftool, skips non-JPEGs and duplicate source files, creates an output subdirectory like <output>/<year>/<month>/<random-id>/, copies the original to orig.jpg, generates .jpg and .avif variants at widths 400/800/1200/1600 capped by source width using external vipsthumbnail/libvips, writes a per-image manifest.json, and updates a collection-level index.json.
+cmd/webimage prepares JPEG photos. Its flags are -incoming, -output, -quiet, and -dir-date. The processor reads image metadata from the incoming directory using external exiftool, skips non-JPEGs and duplicate source files, creates an output subdirectory like <output>/<year>/<month>/<random-id>/, copies the original to orig.jpg, generates .jpg and .avif variants at widths 400/800/1200/1600 capped by source width using external vipsthumbnail/libvips, writes a per-image manifest.json, and updates a collection-level index.json.
 
-Package layout: cmd/webimage parses CLI flags and orchestrates the workflow; internal/metadata wraps exiftool; internal/variants wraps vipsthumbnail; internal/image holds domain structs and format/datetime helpers; internal/manifest reads and writes per-image JSON manifests; internal/index reads and writes the collection index; internal/paths holds small validated filesystem path types.
+cmd/gallery reads a webimage output directory and writes static HTML `<picture>` fragments. Its flags are -images, -output, -url-prefix, and -sort. It reads index.json and each image’s manifest.json, sorts by captured or processed datetime, emits AVIF `<source>` elements when available, and uses JPEG variants for the fallback `<img>` srcset.
+
+Package layout: cmd/webimage and cmd/gallery parse CLI flags and orchestrate their workflows; internal/gallery loads processed image metadata and renders gallery HTML; internal/metadata wraps exiftool; internal/variants wraps vipsthumbnail; internal/image holds domain structs and format/datetime helpers; internal/manifest reads and writes per-image JSON manifests; internal/index reads and writes the collection index; internal/paths holds small validated filesystem path types.
 
 ## Coding standards
 
