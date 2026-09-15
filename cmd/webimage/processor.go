@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -55,7 +56,11 @@ func (p *processor) processDir() (result, error) {
 
 	imageIndex, err := index.ReadDir(p.cfg.OutDir)
 	if err != nil {
-		return result{}, err
+		if errors.Is(err, fs.ErrNotExist) {
+			imageIndex = index.Index{Images: []index.Image{}}
+		} else {
+			return result{}, err
+		}
 	}
 
 	imageDirsByHash, err := imageIndex.ImageDirsBySHA256()

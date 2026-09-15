@@ -3,6 +3,8 @@ package index_test
 // Note: These tests assume Unix-style paths and are not Windows compatible.
 
 import (
+	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -15,21 +17,19 @@ import (
 	"tetrahemihexahedron/webimage/internal/paths"
 )
 
-func TestReadReturnsEmptyIndexWhenFileIsMissing(t *testing.T) {
+func TestReadDirReturnsErrorWhenFileIsMissing(t *testing.T) {
 	dir := mustAbs(t, t.TempDir())
 
-	got, err := index.ReadDir(dir)
-	if err != nil {
-		t.Fatalf("index.ReadDir(%q) returned error: %v", dir, err)
+	_, err := index.ReadDir(dir)
+	if err == nil {
+		t.Fatalf("index.ReadDir(%q) returned nil error, want error", dir)
 	}
-
-	want := index.Index{Images: []index.Image{}}
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("index.ReadDir(%q) returned %+v, want %+v", dir, got, want)
+	if !errors.Is(err, fs.ErrNotExist) {
+		t.Errorf("index.ReadDir(%q) error = %v, want fs.ErrNotExist", dir, err)
 	}
 }
 
-func TestRead(t *testing.T) {
+func TestReadDir(t *testing.T) {
 	tests := []struct {
 		name string
 		dir  paths.AbsPath
@@ -171,13 +171,14 @@ func TestUpdateFile(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			outRoot := mustAbs(t, t.TempDir())
+			idx := index.Index{Images: []index.Image{}}
 			if tc.copyExistingIndex {
 				copyValidIndexFixture(t, outRoot)
-			}
-
-			idx, err := index.ReadDir(outRoot)
-			if err != nil {
-				t.Fatalf("index.ReadDir(%q) returned error before update: %v", outRoot, err)
+				var err error
+				idx, err = index.ReadDir(outRoot)
+				if err != nil {
+					t.Fatalf("index.ReadDir(%q) returned error before update: %v", outRoot, err)
+				}
 			}
 
 			before := time.Now().UTC().Add(-1 * time.Second)

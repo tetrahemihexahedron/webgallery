@@ -2,9 +2,7 @@ package index
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"time"
@@ -223,8 +221,7 @@ func (idx Index) ImageDirsBySHA256() (map[string]paths.RelPath, error) {
 	return imageDirs, nil
 }
 
-// ReadDir reads index.json from dir. If the file does not exist, ReadDir
-// returns an empty Index.
+// ReadDir reads index.json from dir.
 func ReadDir(dir paths.AbsPath) (Index, error) {
 	path, err := IndexPath(dir)
 	if err != nil {
@@ -234,9 +231,6 @@ func ReadDir(dir paths.AbsPath) (Index, error) {
 
 	data, err := os.ReadFile(path.String())
 	if err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
-			return Index{Images: []Image{}}, nil
-		}
 		return Index{}, fmt.Errorf("reading index %q: %w", path, err)
 	}
 

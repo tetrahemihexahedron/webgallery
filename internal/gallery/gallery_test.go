@@ -89,6 +89,17 @@ func TestRender(t *testing.T) {
 	}
 }
 
+func TestRenderReturnsErrorForMissingIndex(t *testing.T) {
+	var got bytes.Buffer
+	err := Render(&got, Options{ImagesRoot: mustAbs(t, t.TempDir()), Sort: SortCaptured})
+	if err == nil {
+		t.Fatalf("Render() returned nil error, want error")
+	}
+	if !strings.Contains(err.Error(), "reading gallery index") {
+		t.Errorf("Render() error = %q, want containing %q", err, "reading gallery index")
+	}
+}
+
 func TestNewTemplateData(t *testing.T) {
 	tests := []struct {
 		name      string
