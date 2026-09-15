@@ -1,0 +1,30 @@
+{
+  "title": "Rosie",
+  "description": "Rosie & puppy",
+  "capturedAt": "2024-05-12T14:22:00",
+  "processedAt": "2026-08-24T18:00:00Z",
+  "sha256": "abc123",
+  "width": 800,
+  "height": 600,
+  "variants": {
+    "JPEG": [
+      {
+        "src": "w400.jpg",
+        "width": 400,
+        "height": 300
+      },
+      {
+        "src": "w800.jpg",
+        "width": 800,
+        "height": 600
+      }
+    ],
+    "AVIF": [
+      {
+        "src": "w400.avif",
+        "width": 400,
+        "height": 300
+      }
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "generatedAt": "2026-08-24T18:00:00Z",
+  "images": [
+    {
+      "dir": "2024/05/abc123",
+      "manifest": "2024/05/abc123/manifest.json",
+      "title": "Rosie",
+      "capturedAt": "2024-05-12T14:22:00",
+      "processedAt": "2026-08-24T18:00:00Z",
+      "sha256": "abc123"
+    }
+  ]
+}
