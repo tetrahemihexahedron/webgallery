@@ -22,7 +22,7 @@ The developer is fairly inexperienced with Go and wants to learn how to write ex
 
 ## Testing
 
-Any helpful tests can be written when developing, but they maybe temporary. The following guidelines apply to persisted, version-tracked tests.
+Any helpful tests can be written when developing, but they may be temporary. The following guidelines apply to persisted, version-tracked tests.
 
 Generally, test only exported behavior. Prefer external test packages such as `package metadata_test`; use same-package tests only when an unexported helper is complicated enough to justify direct coverage.
 
