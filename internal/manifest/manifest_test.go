@@ -91,6 +91,61 @@ func TestReadFileReturnsError(t *testing.T) {
 	}
 }
 
+func TestFromProcessed(t *testing.T) {
+	img := image.Processed{
+		Source: image.Source{
+			Hash:   "7f43b6f0a877e8590c4f0c7d55d99b188a671de7bf58156ac0d3ac38df842cc9",
+			Width:  800,
+			Height: 1067,
+		},
+		Title:       "2023 October Posing",
+		Description: "Rosie as a small puppy, sitting and looking directly at the camera.",
+		CapturedAt:  "2023-10-03T17:26:39",
+		ProcessedAt: "2026-08-24T18:00:00Z",
+		Variants: []image.Variant{
+			{Path: mustRel(t, "w400.jpg"), Format: image.FormatJPEG, Width: 400},
+			{Path: mustRel(t, "w800.jpg"), Format: image.FormatJPEG, Width: 800},
+		},
+	}
+	want := manifest.Manifest{
+		Title:       img.Title,
+		Description: img.Description,
+		CapturedAt:  img.CapturedAt,
+		ProcessedAt: img.ProcessedAt,
+		SHA256:      img.Source.Hash,
+		Width:       img.Source.Width,
+		Height:      img.Source.Height,
+		Variants: map[image.Format][]manifest.VariantFile{
+			image.FormatJPEG: {
+				{Path: mustRel(t, "w400.jpg"), Width: 400, Height: 534},
+				{Path: mustRel(t, "w800.jpg"), Width: 800, Height: 1067},
+			},
+		},
+	}
+
+	got, err := manifest.FromProcessed(img)
+	if err != nil {
+		t.Fatalf("manifest.FromProcessed() returned error: %v", err)
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("manifest.FromProcessed() mismatch\n got: %+v\nwant: %+v", got, want)
+	}
+}
+
+func TestFromProcessedReturnsErrorForUnsupportedFormat(t *testing.T) {
+	img := image.Processed{
+		Variants: []image.Variant{{Format: image.FormatOther}},
+	}
+
+	_, err := manifest.FromProcessed(img)
+	if err == nil {
+		t.Fatal("manifest.FromProcessed() returned nil error, want error")
+	}
+	if !strings.Contains(err.Error(), "unsupported format") {
+		t.Errorf("manifest.FromProcessed() error = %q, want message containing %q", err, "unsupported format")
+	}
+}
+
 func TestWrite(t *testing.T) {
 	tests := []struct {
 		name string

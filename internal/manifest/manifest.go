@@ -58,12 +58,13 @@ type variantJSON struct {
 	Height int    `json:"height"`
 }
 
-func Write(imgDir paths.AbsPath, img image.Processed) error {
+// FromProcessed creates a manifest from a processed image.
+func FromProcessed(img image.Processed) (Manifest, error) {
 	if err := validateVariantFormats(img.Variants); err != nil {
-		return err
+		return Manifest{}, err
 	}
 
-	mani := manifestJSON{
+	return Manifest{
 		Title:       img.Title,
 		Description: img.Description,
 		CapturedAt:  img.CapturedAt,
@@ -71,10 +72,17 @@ func Write(imgDir paths.AbsPath, img image.Processed) error {
 		SHA256:      img.Source.Hash,
 		Width:       img.Source.Width,
 		Height:      img.Source.Height,
-		Variants:    manifestVariants(img),
+		Variants:    variantsFromProcessed(img),
+	}, nil
+}
+
+func Write(imgDir paths.AbsPath, img image.Processed) error {
+	mani, err := FromProcessed(img)
+	if err != nil {
+		return err
 	}
 
-	jsonBytes, err := json.MarshalIndent(mani, "", "  ")
+	jsonBytes, err := json.MarshalIndent(manifestToJSON(mani), "", "  ")
 	if err != nil {
 		return err
 	}
@@ -110,22 +118,46 @@ func ReadFile(path paths.AbsPath) (Manifest, error) {
 	return mani, nil
 }
 
-func manifestVariants(i image.Processed) map[string][]variantJSON {
-	maniVariants := make(map[string][]variantJSON)
+func variantsFromProcessed(img image.Processed) map[image.Format][]VariantFile {
+	variants := make(map[image.Format][]VariantFile)
 
-	aspectRatio := float64(i.Source.Height) / float64(i.Source.Width)
-	for _, v := range i.Variants {
-		format := v.Format.String()
-		maniVariants[format] = append(
-			maniVariants[format],
-			variantJSON{
-				Path:   v.Path.String(),
-				Width:  v.Width,
-				Height: int(math.Round(float64(v.Width) * aspectRatio)),
+	aspectRatio := float64(img.Source.Height) / float64(img.Source.Width)
+	for _, variant := range img.Variants {
+		variants[variant.Format] = append(
+			variants[variant.Format],
+			VariantFile{
+				Path:   variant.Path,
+				Width:  variant.Width,
+				Height: int(math.Round(float64(variant.Width) * aspectRatio)),
 			},
 		)
 	}
-	return maniVariants
+	return variants
+}
+
+func manifestToJSON(mani Manifest) manifestJSON {
+	file := manifestJSON{
+		Title:       mani.Title,
+		Description: mani.Description,
+		CapturedAt:  mani.CapturedAt,
+		ProcessedAt: mani.ProcessedAt,
+		SHA256:      mani.SHA256,
+		Width:       mani.Width,
+		Height:      mani.Height,
+		Variants:    make(map[string][]variantJSON, len(mani.Variants)),
+	}
+
+	for format, variants := range mani.Variants {
+		for _, variant := range variants {
+			file.Variants[format.String()] = append(file.Variants[format.String()], variantJSON{
+				Path:   variant.Path.String(),
+				Width:  variant.Width,
+				Height: variant.Height,
+			})
+		}
+	}
+
+	return file
 }
 
 func isSupportedVariantFormat(f image.Format) bool {
