@@ -59,17 +59,10 @@ func (p *processor) processDir() (result, error) {
 		return result{}, err
 	}
 
-	metadataResult, err := p.metadataReader.Read(p.cfg.InDir)
+	metadataResult, err := p.readIncomingMetadata()
 	if err != nil {
 		return result{}, err
 	}
-
-	fmt.Fprintf(
-		p.progressReporter,
-		"Read metadata from %d file(s) with %d error(s)\n",
-		len(metadataResult.Metadata)+len(metadataResult.FileProblems),
-		len(metadataResult.FileProblems),
-	)
 
 	res := result{
 		dirProcessed: p.cfg.InDir,
@@ -212,6 +205,22 @@ func (p *processor) processDir() (result, error) {
 	}
 
 	return res, nil
+}
+
+func (p *processor) readIncomingMetadata() (metadata.Result, error) {
+	metadataResult, err := p.metadataReader.Read(p.cfg.InDir)
+	if err != nil {
+		return metadata.Result{}, err
+	}
+
+	fmt.Fprintf(
+		p.progressReporter,
+		"Read metadata from %d file(s) with %d error(s)\n",
+		len(metadataResult.Metadata)+len(metadataResult.FileProblems),
+		len(metadataResult.FileProblems),
+	)
+
+	return metadataResult, nil
 }
 
 func loadExistingIndex(outDir paths.AbsPath) (index.Index, map[string]paths.RelPath, error) {
