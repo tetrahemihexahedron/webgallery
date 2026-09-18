@@ -1,14 +1,8 @@
 package index
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
-	"time"
 
-	"tetrahemihexahedron/webimage/internal/image"
-	"tetrahemihexahedron/webimage/internal/manifest"
 	"tetrahemihexahedron/webimage/internal/paths"
 )
 
@@ -59,227 +53,16 @@ func IndexPath(outRoot paths.AbsPath) (paths.AbsPath, error) {
 	return path, nil
 }
 
-// AppendAndWriteDir appends newImages to idx and writes index.json in outRoot.
-func (idx *Index) AppendAndWriteDir(outRoot paths.AbsPath, newImages []image.Processed) error {
-	if len(newImages) == 0 {
-		return nil
-	}
-
-	return idx.appendAndWriteDirAt(outRoot, newImages, time.Now())
-}
-
-func (idx *Index) appendAndWriteDirAt(outRoot paths.AbsPath, newImages []image.Processed, generatedAt time.Time) error {
-	updated, err := updatedIndex(*idx, outRoot, newImages, generatedAt)
-	if err != nil {
-		return err
-	}
-
-	if err := writeIndexFile(outRoot, updated); err != nil {
-		return err
-	}
-
-	*idx = updated
-	return nil
-}
-
-func updatedIndex(idx Index, outRoot paths.AbsPath, newImages []image.Processed, generatedAt time.Time) (Index, error) {
-	updated := Index{
-		GeneratedAt: formatGeneratedAt(generatedAt),
-		Images:      make([]Entry, 0, len(idx.Images)+len(newImages)),
-	}
-	updated.Images = append(updated.Images, idx.Images...)
-
-	for i, img := range newImages {
-		entry, err := entryFromProcessed(outRoot, img)
-		if err != nil {
-			return Index{}, fmt.Errorf("new image %d: %w", i, err)
-		}
-
-		updated.Images = append(updated.Images, entry)
-	}
-
-	return updated, nil
-}
-
-func writeIndexFile(outRoot paths.AbsPath, idx Index) error {
-	path, err := IndexPath(outRoot)
-	if err != nil {
-		return err
-	}
-
-	jsonBytes, err := json.MarshalIndent(indexToFile(idx), "", "  ")
-	if err != nil {
-		return fmt.Errorf("marshaling index: %w", err)
-	}
-
-	tmpFile, err := os.CreateTemp(outRoot.String(), ".index-*.tmp")
-	if err != nil {
-		return fmt.Errorf("creating temporary index file in %q: %w", outRoot, err)
-	}
-	tmpPath := tmpFile.Name()
-	removeTemp := true
-	defer func() {
-		if removeTemp {
-			_ = os.Remove(tmpPath)
-		}
-	}()
-
-	if _, err := tmpFile.Write(jsonBytes); err != nil {
-		_ = tmpFile.Close()
-		return fmt.Errorf("writing temporary index %q: %w", tmpPath, err)
-	}
-	if err := tmpFile.Chmod(0644); err != nil {
-		_ = tmpFile.Close()
-		return fmt.Errorf("setting temporary index permissions %q: %w", tmpPath, err)
-	}
-	if err := tmpFile.Close(); err != nil {
-		return fmt.Errorf("closing temporary index %q: %w", tmpPath, err)
-	}
-
-	if err := os.Rename(tmpPath, path.String()); err != nil {
-		return fmt.Errorf("renaming temporary index %q to %q: %w", tmpPath, path, err)
-	}
-	removeTemp = false
-
-	return nil
-}
-
-func formatGeneratedAt(t time.Time) string {
-	return t.UTC().Format(time.RFC3339)
-}
-
-func indexToFile(idx Index) indexJSON {
-	file := indexJSON{
-		GeneratedAt: idx.GeneratedAt,
-		Images:      make([]entryJSON, 0, len(idx.Images)),
-	}
-
-	for _, img := range idx.Images {
-		file.Images = append(file.Images, entryJSON{
-			Dir:         img.Dir.String(),
-			Manifest:    img.Manifest.String(),
-			Title:       img.Title,
-			CapturedAt:  img.CapturedAt,
-			ProcessedAt: img.ProcessedAt,
-			SHA256:      img.SHA256,
-		})
-	}
-
-	return file
-}
-
-func entryFromProcessed(outRoot paths.AbsPath, img image.Processed) (Entry, error) {
-	if img.DirRelPath.String() == "" {
-		return Entry{}, fmt.Errorf("dir relative path is required")
-	}
-
-	imgDirAbsPath, err := paths.JoinAbs(outRoot, img.DirRelPath)
-	if err != nil {
-		return Entry{}, fmt.Errorf("building image directory path: %w", err)
-	}
-
-	manifestAbsPath, err := manifest.ManifestPath(imgDirAbsPath)
-	if err != nil {
-		return Entry{}, fmt.Errorf("building manifest path: %w", err)
-	}
-
-	manifestRelPath, err := relPathFromAbs(outRoot, manifestAbsPath)
-	if err != nil {
-		return Entry{}, fmt.Errorf("building manifest relative path: %w", err)
-	}
-
-	return Entry{
-		Dir:         img.DirRelPath,
-		Manifest:    manifestRelPath,
-		Title:       img.Title,
-		CapturedAt:  img.CapturedAt,
-		ProcessedAt: img.ProcessedAt,
-		SHA256:      img.Source.Hash,
-	}, nil
-}
-
-func relPathFromAbs(base paths.AbsPath, target paths.AbsPath) (paths.RelPath, error) {
-	relPath, err := filepath.Rel(base.String(), target.String())
-	if err != nil {
-		return paths.RelPath{}, err
-	}
-
-	return paths.NewRelPath(relPath)
-}
-
 // ImageDirsBySHA256 returns the index's image directories keyed by their SHA-256 hashes.
 func (idx Index) ImageDirsBySHA256() (map[string]paths.RelPath, error) {
 	imageDirs := make(map[string]paths.RelPath, len(idx.Images))
 
-	for _, img := range idx.Images {
-		if previousDir, ok := imageDirs[img.SHA256]; ok {
-			return nil, fmt.Errorf("index contains duplicate sha256 %q for dirs %q and %q", img.SHA256, previousDir, img.Dir)
+	for _, entry := range idx.Images {
+		if previousDir, ok := imageDirs[entry.SHA256]; ok {
+			return nil, fmt.Errorf("index contains duplicate sha256 %q for dirs %q and %q", entry.SHA256, previousDir, entry.Dir)
 		}
 
-		imageDirs[img.SHA256] = img.Dir
+		imageDirs[entry.SHA256] = entry.Dir
 	}
 	return imageDirs, nil
-}
-
-// ReadDir reads index.json from dir.
-func ReadDir(dir paths.AbsPath) (Index, error) {
-	path, err := IndexPath(dir)
-	if err != nil {
-		return Index{}, err
-	}
-	var file indexJSON
-
-	data, err := os.ReadFile(path.String())
-	if err != nil {
-		return Index{}, fmt.Errorf("reading index %q: %w", path, err)
-	}
-
-	if err := json.Unmarshal(data, &file); err != nil {
-		return Index{}, fmt.Errorf("parsing index %q: %w", path, err)
-	}
-
-	idx, err := parseIndex(file)
-	if err != nil {
-		return Index{}, fmt.Errorf("parsing index %q: %w", path, err)
-	}
-
-	return idx, nil
-}
-
-func parseIndex(file indexJSON) (Index, error) {
-	idx := Index{
-		GeneratedAt: file.GeneratedAt,
-		Images:      make([]Entry, 0, len(file.Images)),
-	}
-
-	for i, entryFile := range file.Images {
-		entry, err := parseEntry(entryFile)
-		if err != nil {
-			return Index{}, fmt.Errorf("image %d: %w", i, err)
-		}
-		idx.Images = append(idx.Images, entry)
-	}
-
-	return idx, nil
-}
-
-func parseEntry(file entryJSON) (Entry, error) {
-	dir, err := paths.NewRelPath(file.Dir)
-	if err != nil {
-		return Entry{}, fmt.Errorf("dir: %w", err)
-	}
-
-	manifest, err := paths.NewRelPath(file.Manifest)
-	if err != nil {
-		return Entry{}, fmt.Errorf("manifest: %w", err)
-	}
-
-	return Entry{
-		Dir:         dir,
-		Manifest:    manifest,
-		Title:       file.Title,
-		CapturedAt:  file.CapturedAt,
-		ProcessedAt: file.ProcessedAt,
-		SHA256:      file.SHA256,
-	}, nil
 }
