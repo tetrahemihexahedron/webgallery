@@ -4,4 +4,9 @@
 /webimage
 tmp
 
-.pi
+.pi/*
+
+# track custom agent prompts
+!.pi/
+!.pi/prompts/
+!.pi/prompts/**
