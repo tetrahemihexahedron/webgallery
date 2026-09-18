@@ -30,12 +30,12 @@ type Image struct {
 	SHA256      string
 }
 
-type indexFile struct {
+type indexJSON struct {
 	GeneratedAt string      `json:"generatedAt"`
-	Images      []imageFile `json:"images"`
+	Images      []entryJSON `json:"images"`
 }
 
-type imageFile struct {
+type entryJSON struct {
 	Dir         string `json:"dir"`
 	Manifest    string `json:"manifest"`
 	Title       string `json:"title"`
@@ -148,14 +148,14 @@ func formatGeneratedAt(t time.Time) string {
 	return t.UTC().Format(time.RFC3339)
 }
 
-func indexToFile(idx Index) indexFile {
-	file := indexFile{
+func indexToFile(idx Index) indexJSON {
+	file := indexJSON{
 		GeneratedAt: idx.GeneratedAt,
-		Images:      make([]imageFile, 0, len(idx.Images)),
+		Images:      make([]entryJSON, 0, len(idx.Images)),
 	}
 
 	for _, img := range idx.Images {
-		file.Images = append(file.Images, imageFile{
+		file.Images = append(file.Images, entryJSON{
 			Dir:         img.Dir.String(),
 			Manifest:    img.Manifest.String(),
 			Title:       img.Title,
@@ -227,7 +227,7 @@ func ReadDir(dir paths.AbsPath) (Index, error) {
 	if err != nil {
 		return Index{}, err
 	}
-	var file indexFile
+	var file indexJSON
 
 	data, err := os.ReadFile(path.String())
 	if err != nil {
@@ -246,7 +246,7 @@ func ReadDir(dir paths.AbsPath) (Index, error) {
 	return idx, nil
 }
 
-func parseIndex(file indexFile) (Index, error) {
+func parseIndex(file indexJSON) (Index, error) {
 	idx := Index{
 		GeneratedAt: file.GeneratedAt,
 		Images:      make([]Image, 0, len(file.Images)),
@@ -263,7 +263,7 @@ func parseIndex(file indexFile) (Index, error) {
 	return idx, nil
 }
 
-func parseImage(file imageFile) (Image, error) {
+func parseImage(file entryJSON) (Image, error) {
 	dir, err := paths.NewRelPath(file.Dir)
 	if err != nil {
 		return Image{}, fmt.Errorf("dir: %w", err)

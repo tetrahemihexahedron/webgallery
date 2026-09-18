@@ -41,7 +41,7 @@ type File struct {
 	Height int
 }
 
-type manifestFile struct {
+type manifestJSON struct {
 	Title       string                   `json:"title"`
 	Description string                   `json:"description"`
 	CapturedAt  string                   `json:"capturedAt"`
@@ -49,10 +49,10 @@ type manifestFile struct {
 	SHA256      string                   `json:"sha256"`
 	Width       int                      `json:"width"`
 	Height      int                      `json:"height"`
-	Variants    map[string][]variantFile `json:"variants"`
+	Variants    map[string][]variantJSON `json:"variants"`
 }
 
-type variantFile struct {
+type variantJSON struct {
 	Path   string `json:"src"`
 	Width  int    `json:"width"`
 	Height int    `json:"height"`
@@ -63,7 +63,7 @@ func Write(imgDir paths.AbsPath, img image.Processed) error {
 		return err
 	}
 
-	mani := manifestFile{
+	mani := manifestJSON{
 		Title:       img.Title,
 		Description: img.Description,
 		CapturedAt:  img.CapturedAt,
@@ -97,7 +97,7 @@ func ReadFile(path paths.AbsPath) (Manifest, error) {
 		return Manifest{}, fmt.Errorf("reading manifest %q: %w", path, err)
 	}
 
-	var file manifestFile
+	var file manifestJSON
 	if err := json.Unmarshal(data, &file); err != nil {
 		return Manifest{}, fmt.Errorf("parsing manifest %q: %w", path, err)
 	}
@@ -110,15 +110,15 @@ func ReadFile(path paths.AbsPath) (Manifest, error) {
 	return mani, nil
 }
 
-func manifestVariants(i image.Processed) map[string][]variantFile {
-	maniVariants := make(map[string][]variantFile)
+func manifestVariants(i image.Processed) map[string][]variantJSON {
+	maniVariants := make(map[string][]variantJSON)
 
 	aspectRatio := float64(i.Source.Height) / float64(i.Source.Width)
 	for _, v := range i.Variants {
 		format := v.Format.String()
 		maniVariants[format] = append(
 			maniVariants[format],
-			variantFile{
+			variantJSON{
 				Path:   v.Path.String(),
 				Width:  v.Width,
 				Height: int(math.Round(float64(v.Width) * aspectRatio)),
@@ -147,7 +147,7 @@ func validateVariantFormats(variants []image.Variant) error {
 	return nil
 }
 
-func manifestFromFile(file manifestFile) (Manifest, error) {
+func manifestFromFile(file manifestJSON) (Manifest, error) {
 	mani := Manifest{
 		Title:       file.Title,
 		Description: file.Description,
