@@ -17,11 +17,11 @@ const idxFilename = "index.json"
 // Index describes the processed images in a directory.
 type Index struct {
 	GeneratedAt string
-	Images      []Image
+	Images      []Entry
 }
 
-// Image is one processed image entry in an Index.
-type Image struct {
+// Entry is one processed image entry in an Index.
+type Entry struct {
 	Dir         paths.RelPath
 	Manifest    paths.RelPath
 	Title       string
@@ -85,17 +85,17 @@ func (idx *Index) updateFileAt(outRoot paths.AbsPath, newImages []image.Processe
 func updatedIndex(idx Index, outRoot paths.AbsPath, newImages []image.Processed, generatedAt time.Time) (Index, error) {
 	updated := Index{
 		GeneratedAt: formatGeneratedAt(generatedAt),
-		Images:      make([]Image, 0, len(idx.Images)+len(newImages)),
+		Images:      make([]Entry, 0, len(idx.Images)+len(newImages)),
 	}
 	updated.Images = append(updated.Images, idx.Images...)
 
 	for i, img := range newImages {
-		indexImg, err := imageFromProcessed(outRoot, img)
+		entry, err := entryFromProcessed(outRoot, img)
 		if err != nil {
 			return Index{}, fmt.Errorf("new image %d: %w", i, err)
 		}
 
-		updated.Images = append(updated.Images, indexImg)
+		updated.Images = append(updated.Images, entry)
 	}
 
 	return updated, nil
@@ -168,27 +168,27 @@ func indexToFile(idx Index) indexJSON {
 	return file
 }
 
-func imageFromProcessed(outRoot paths.AbsPath, img image.Processed) (Image, error) {
+func entryFromProcessed(outRoot paths.AbsPath, img image.Processed) (Entry, error) {
 	if img.DirRelPath.String() == "" {
-		return Image{}, fmt.Errorf("dir relative path is required")
+		return Entry{}, fmt.Errorf("dir relative path is required")
 	}
 
 	imgDirAbsPath, err := paths.JoinAbs(outRoot, img.DirRelPath)
 	if err != nil {
-		return Image{}, fmt.Errorf("building image directory path: %w", err)
+		return Entry{}, fmt.Errorf("building image directory path: %w", err)
 	}
 
 	manifestAbsPath, err := manifest.ManifestPath(imgDirAbsPath)
 	if err != nil {
-		return Image{}, fmt.Errorf("building manifest path: %w", err)
+		return Entry{}, fmt.Errorf("building manifest path: %w", err)
 	}
 
 	manifestRelPath, err := relPathFromAbs(outRoot, manifestAbsPath)
 	if err != nil {
-		return Image{}, fmt.Errorf("building manifest relative path: %w", err)
+		return Entry{}, fmt.Errorf("building manifest relative path: %w", err)
 	}
 
-	return Image{
+	return Entry{
 		Dir:         img.DirRelPath,
 		Manifest:    manifestRelPath,
 		Title:       img.Title,
@@ -249,32 +249,32 @@ func ReadDir(dir paths.AbsPath) (Index, error) {
 func parseIndex(file indexJSON) (Index, error) {
 	idx := Index{
 		GeneratedAt: file.GeneratedAt,
-		Images:      make([]Image, 0, len(file.Images)),
+		Images:      make([]Entry, 0, len(file.Images)),
 	}
 
-	for i, imgFile := range file.Images {
-		img, err := parseImage(imgFile)
+	for i, entryFile := range file.Images {
+		entry, err := parseEntry(entryFile)
 		if err != nil {
 			return Index{}, fmt.Errorf("image %d: %w", i, err)
 		}
-		idx.Images = append(idx.Images, img)
+		idx.Images = append(idx.Images, entry)
 	}
 
 	return idx, nil
 }
 
-func parseImage(file entryJSON) (Image, error) {
+func parseEntry(file entryJSON) (Entry, error) {
 	dir, err := paths.NewRelPath(file.Dir)
 	if err != nil {
-		return Image{}, fmt.Errorf("dir: %w", err)
+		return Entry{}, fmt.Errorf("dir: %w", err)
 	}
 
 	manifest, err := paths.NewRelPath(file.Manifest)
 	if err != nil {
-		return Image{}, fmt.Errorf("manifest: %w", err)
+		return Entry{}, fmt.Errorf("manifest: %w", err)
 	}
 
-	return Image{
+	return Entry{
 		Dir:         dir,
 		Manifest:    manifest,
 		Title:       file.Title,

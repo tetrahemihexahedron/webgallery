@@ -46,7 +46,7 @@ const (
 )
 
 type galleryImage struct {
-	indexImage index.Image
+	indexImage index.Entry
 	manifest   manifest.Manifest
 }
 

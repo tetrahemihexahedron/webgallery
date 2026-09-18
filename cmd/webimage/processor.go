@@ -246,7 +246,7 @@ func loadExistingIndex(outDir paths.AbsPath) (index.Index, map[string]paths.RelP
 	imageIndex, err := index.ReadDir(outDir)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			imageIndex = index.Index{Images: []index.Image{}}
+			imageIndex = index.Index{Images: []index.Entry{}}
 		} else {
 			return index.Index{}, nil, err
 		}

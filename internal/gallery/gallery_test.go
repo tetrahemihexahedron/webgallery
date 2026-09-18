@@ -245,7 +245,7 @@ func newBaseImages(t *testing.T) []galleryImage {
 
 	newImage := func(dir, title, description, capturedAt, processedAt, sha256 string) galleryImage {
 		return galleryImage{
-			indexImage: index.Image{
+			indexImage: index.Entry{
 				Dir:         mustRel(t, dir),
 				Manifest:    mustRel(t, dir+"/manifest.json"),
 				Title:       title,

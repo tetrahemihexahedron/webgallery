@@ -40,7 +40,7 @@ func TestReadDir(t *testing.T) {
 			dir:  mustAbs(t, filepath.Join("testdata", "valid")),
 			want: index.Index{
 				GeneratedAt: "2026-08-24T18:00:00Z",
-				Images: []index.Image{
+				Images: []index.Entry{
 					{
 						Dir:         mustRel(t, "2024/05/abc123"),
 						Manifest:    mustRel(t, "2024/05/abc123/manifest.json"),
@@ -57,7 +57,7 @@ func TestReadDir(t *testing.T) {
 			dir:  mustAbs(t, filepath.Join("testdata", "no_images")),
 			want: index.Index{
 				GeneratedAt: "2026-08-24T18:00:00Z",
-				Images:      []index.Image{},
+				Images:      []index.Entry{},
 			},
 		},
 	}
@@ -105,7 +105,7 @@ func TestReadReturnsErrorForUnreadableIndex(t *testing.T) {
 }
 
 func TestUpdateFile(t *testing.T) {
-	existingIndexImage := index.Image{
+	existingEntry := index.Entry{
 		Dir:         mustRel(t, "2024/05/abc123"),
 		Manifest:    mustRel(t, "2024/05/abc123/manifest.json"),
 		Title:       "Rosie posing",
@@ -122,7 +122,7 @@ func TestUpdateFile(t *testing.T) {
 		CapturedAt:  "2025-01-02T03:04:05",
 		ProcessedAt: "2026-08-25T12:00:00Z",
 	}
-	newIndexImage := index.Image{
+	newEntry := index.Entry{
 		Dir:         mustRel(t, "2025/01/def456"),
 		Manifest:    mustRel(t, "2025/01/def456/manifest.json"),
 		Title:       "Rosie running",
@@ -144,7 +144,7 @@ func TestUpdateFile(t *testing.T) {
 			newImages:         []image.Processed{newProcessedImage},
 			want: index.Index{
 				GeneratedAt: "<checked separately>",
-				Images:      []index.Image{existingIndexImage, newIndexImage},
+				Images:      []index.Entry{existingEntry, newEntry},
 			},
 			wantGeneratedAtRefreshed: true,
 		},
@@ -153,7 +153,7 @@ func TestUpdateFile(t *testing.T) {
 			newImages: []image.Processed{newProcessedImage},
 			want: index.Index{
 				GeneratedAt: "<checked separately>",
-				Images:      []index.Image{newIndexImage},
+				Images:      []index.Entry{newEntry},
 			},
 			wantGeneratedAtRefreshed: true,
 		},
@@ -163,7 +163,7 @@ func TestUpdateFile(t *testing.T) {
 			newImages:         []image.Processed{},
 			want: index.Index{
 				GeneratedAt: "2026-08-24T18:00:00Z",
-				Images:      []index.Image{existingIndexImage},
+				Images:      []index.Entry{existingEntry},
 			},
 		},
 	}
@@ -171,7 +171,7 @@ func TestUpdateFile(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			outRoot := mustAbs(t, t.TempDir())
-			idx := index.Index{Images: []index.Image{}}
+			idx := index.Index{Images: []index.Entry{}}
 			if tc.copyExistingIndex {
 				copyValidIndexFixture(t, outRoot)
 				var err error
@@ -215,11 +215,11 @@ func TestUpdateFile(t *testing.T) {
 }
 
 func TestImageDirsBySHA256(t *testing.T) {
-	imgA := index.Image{
+	entryA := index.Entry{
 		Dir:    mustRel(t, "2024/05/abc123"),
 		SHA256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 	}
-	imgB := index.Image{
+	entryB := index.Entry{
 		Dir:    mustRel(t, "2024/05/def456"),
 		SHA256: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
 	}
@@ -236,15 +236,15 @@ func TestImageDirsBySHA256(t *testing.T) {
 		},
 		{
 			name: "no images",
-			idx:  index.Index{Images: []index.Image{}},
+			idx:  index.Index{Images: []index.Entry{}},
 			want: map[string]paths.RelPath{},
 		},
 		{
 			name: "multiple images",
-			idx:  index.Index{Images: []index.Image{imgA, imgB}},
+			idx:  index.Index{Images: []index.Entry{entryA, entryB}},
 			want: map[string]paths.RelPath{
-				imgA.SHA256: imgA.Dir,
-				imgB.SHA256: imgB.Dir,
+				entryA.SHA256: entryA.Dir,
+				entryB.SHA256: entryB.Dir,
 			},
 		},
 	}
@@ -264,7 +264,7 @@ func TestImageDirsBySHA256(t *testing.T) {
 
 func TestImageDirsBySHA256ReturnsErrorForDuplicateHash(t *testing.T) {
 	idx := index.Index{
-		Images: []index.Image{
+		Images: []index.Entry{
 			{
 				Dir:    mustRel(t, "2024/05/abc123"),
 				SHA256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",

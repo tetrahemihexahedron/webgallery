@@ -219,7 +219,7 @@ func assertIndex(t *testing.T, outDir paths.AbsPath, processed image.Processed) 
 		t.Fatalf("index contains %d images, want 1: %+v", len(got.Images), got.Images)
 	}
 
-	want := index.Image{
+	want := index.Entry{
 		Dir:         processed.DirRelPath,
 		Manifest:    mustRel(t, filepath.Join(processed.DirRelPath.String(), "manifest.json")),
 		Title:       processed.Title,
