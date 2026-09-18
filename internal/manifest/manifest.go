@@ -82,20 +82,26 @@ func Write(imgDir paths.AbsPath, img image.Processed) error {
 		return err
 	}
 
+	path, err := ManifestPath(imgDir)
+	if err != nil {
+		return err
+	}
+
+	return WriteFile(path, mani)
+}
+
+// WriteFile writes mani as JSON to path.
+func WriteFile(path paths.AbsPath, mani Manifest) error {
+	if err := validateManifestVariantFormats(mani.Variants); err != nil {
+		return err
+	}
+
 	jsonBytes, err := json.MarshalIndent(manifestToJSON(mani), "", "  ")
 	if err != nil {
 		return err
 	}
 
-	outPath, err := ManifestPath(imgDir)
-	if err != nil {
-		return err
-	}
-	if err = os.WriteFile(outPath.String(), jsonBytes, 0644); err != nil {
-		return err
-	}
-
-	return nil
+	return os.WriteFile(path.String(), jsonBytes, 0644)
 }
 
 // ReadFile reads a processed image manifest from path.
@@ -173,6 +179,16 @@ func validateVariantFormats(variants []image.Variant) error {
 	for i, variant := range variants {
 		if !isSupportedVariantFormat(variant.Format) {
 			return fmt.Errorf("variant %d has unsupported format %q", i, variant.Format)
+		}
+	}
+
+	return nil
+}
+
+func validateManifestVariantFormats(variants map[image.Format][]VariantFile) error {
+	for format := range variants {
+		if !isSupportedVariantFormat(format) {
+			return fmt.Errorf("unsupported variant format %q", format)
 		}
 	}
 

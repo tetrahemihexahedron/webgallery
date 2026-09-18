@@ -363,7 +363,21 @@ func (p *processor) processFile(metadata image.Metadata, sourceHash string, sour
 		)
 	}
 
-	if err := manifest.Write(imgDirAbsPath, processedImg); err != nil {
+	mani, err := manifest.FromProcessed(processedImg)
+	if err != nil {
+		return image.Processed{}, cleanupImageDirOnError(
+			imgDirAbsPath,
+			fmt.Errorf("unable to write manifest: %w", err),
+		)
+	}
+	manifestPath, err := manifest.ManifestPath(imgDirAbsPath)
+	if err != nil {
+		return image.Processed{}, cleanupImageDirOnError(
+			imgDirAbsPath,
+			fmt.Errorf("unable to write manifest: %w", err),
+		)
+	}
+	if err := manifest.WriteFile(manifestPath, mani); err != nil {
 		return image.Processed{}, cleanupImageDirOnError(
 			imgDirAbsPath,
 			fmt.Errorf("unable to write manifest: %w", err),

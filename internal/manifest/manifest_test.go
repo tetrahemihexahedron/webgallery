@@ -146,28 +146,30 @@ func TestFromProcessedReturnsErrorForUnsupportedFormat(t *testing.T) {
 	}
 }
 
-func TestWrite(t *testing.T) {
+func TestWriteFile(t *testing.T) {
 	tests := []struct {
 		name string
-		img  image.Processed
+		mani manifest.Manifest
 		want manifestFile
 	}{
 		{
 			name: "writes complete metadata",
-			img: image.Processed{
-				Source: image.Source{
-					Hash:   "7f43b6f0a877e8590c4f0c7d55d99b188a671de7bf58156ac0d3ac38df842cc9",
-					Width:  800,
-					Height: 1067,
-				},
+			mani: manifest.Manifest{
 				Title:       "2023 October Posing",
 				Description: "Rosie as a small puppy, sitting and looking directly at the camera.",
 				CapturedAt:  "2023-10-03T17:26:39",
 				ProcessedAt: "2026-08-24T18:00:00Z",
-				Variants: []image.Variant{
-					{Path: mustRel(t, "w400.jpg"), Format: image.FormatJPEG, Width: 400},
-					{Path: mustRel(t, "w800.jpg"), Format: image.FormatJPEG, Width: 800},
-					{Path: mustRel(t, "w400.avif"), Format: image.FormatAVIF, Width: 400},
+				SHA256:      "7f43b6f0a877e8590c4f0c7d55d99b188a671de7bf58156ac0d3ac38df842cc9",
+				Width:       800,
+				Height:      1067,
+				Variants: map[image.Format][]manifest.VariantFile{
+					image.FormatJPEG: {
+						{Path: mustRel(t, "w400.jpg"), Width: 400, Height: 534},
+						{Path: mustRel(t, "w800.jpg"), Width: 800, Height: 1067},
+					},
+					image.FormatAVIF: {
+						{Path: mustRel(t, "w400.avif"), Width: 400, Height: 534},
+					},
 				},
 			},
 			want: manifestFile{
@@ -191,11 +193,10 @@ func TestWrite(t *testing.T) {
 		},
 		{
 			name: "handles no variants",
-			img: image.Processed{
-				Source: image.Source{
-					Width:  4032,
-					Height: 3024,
-				},
+			mani: manifest.Manifest{
+				Width:    4032,
+				Height:   3024,
+				Variants: map[image.Format][]manifest.VariantFile{},
 			},
 			want: manifestFile{
 				Width:    4032,
@@ -207,37 +208,46 @@ func TestWrite(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			img := tc.img
 			dir := mustAbs(t, t.TempDir())
+			path, err := manifest.ManifestPath(dir)
+			if err != nil {
+				t.Fatalf("manifest.ManifestPath(%q) returned error: %v", dir, err)
+			}
 
-			if err := manifest.Write(dir, img); err != nil {
-				t.Fatalf("manifest.Write(%q, %+v) returned error: %v", dir, img, err)
+			if err := manifest.WriteFile(path, tc.mani); err != nil {
+				t.Fatalf("manifest.WriteFile(%q, %+v) returned error: %v", path, tc.mani, err)
 			}
 
 			got := readManifest(t, dir)
 			if !reflect.DeepEqual(got, tc.want) {
-				t.Errorf("manifest.Write(%q, %+v) manifest mismatch\n got: %+v\nwant: %+v", dir, img, got, tc.want)
+				t.Errorf("manifest.WriteFile(%q, %+v) manifest mismatch\n got: %+v\nwant: %+v", path, tc.mani, got, tc.want)
 			}
 		})
 	}
 }
 
-func TestWriteReturnsErrorForMissingDir(t *testing.T) {
-	dir := mustAbs(t, filepath.Join(t.TempDir(), "missing"))
-	img := image.Processed{
-		Source: image.Source{
-			Hash:   "7f43b6f0a877e8590c4f0c7d55d99b188a671de7bf58156ac0d3ac38df842cc9",
-			Width:  800,
-			Height: 1067,
+func TestWriteFileReturnsErrorForMissingDir(t *testing.T) {
+	path := mustAbs(t, filepath.Join(t.TempDir(), "missing", "manifest.json"))
+
+	if err := manifest.WriteFile(path, manifest.Manifest{}); err == nil {
+		t.Fatalf("manifest.WriteFile(%q, manifest.Manifest{}) returned nil error, want error", path)
+	}
+}
+
+func TestWriteFileReturnsErrorForUnsupportedFormat(t *testing.T) {
+	path := mustAbs(t, filepath.Join(t.TempDir(), "manifest.json"))
+	mani := manifest.Manifest{
+		Variants: map[image.Format][]manifest.VariantFile{
+			image.FormatOther: {},
 		},
-		DirRelPath:  mustRel(t, "2024/05/abc123"),
-		Title:       "Rosie posing",
-		CapturedAt:  "2024-05-12T14:22:00",
-		ProcessedAt: "2026-08-24T18:00:00Z",
 	}
 
-	if err := manifest.Write(dir, img); err == nil {
-		t.Fatalf("manifest.Write(%q, %+v) returned nil error, want error", dir, img)
+	err := manifest.WriteFile(path, mani)
+	if err == nil {
+		t.Fatalf("manifest.WriteFile(%q, %+v) returned nil error, want error", path, mani)
+	}
+	if !strings.Contains(err.Error(), "unsupported variant format") {
+		t.Errorf("manifest.WriteFile() error = %q, want message containing %q", err, "unsupported variant format")
 	}
 }
 
