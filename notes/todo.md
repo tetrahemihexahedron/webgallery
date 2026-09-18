@@ -10,7 +10,6 @@ These items have been promoted to `notes/plan.md`. The plan is the authoritative
 
 ### Refactor
 
-- **Break up the `cmd/webimage` processor workflow (`cmd/webimage`):** `processDir` mixes index loading, metadata reporting, duplicate detection, per-file processing, and index cleanup. Split it into focused helpers, remove repeated reporting blocks, and preserve the existing cleanup behavior and tests.
 - **Improve `cmd/webimage` names and signatures (`cmd/webimage`):** Rename ambiguous workflow types, fields, helpers, and the shadowing `metadata` variable; group source-image data into a small type; and narrow `processImage` and `variantSpecs` to their actual inputs.
 - **Clarify manifest and index APIs (`internal/manifest`, `internal/index`):** Use clearer DTO and exported type names, add explicit processed-image conversion and symmetric read/write APIs, clarify or split index updates, and divide `index.go` by responsibility.
 - **Improve gallery data flow and option parsing (`cmd/gallery`, `internal/gallery`):** Centralize sort parsing, parse sort keys once, clarify mutation and rendering behavior, improve internal/template names, document `Render`, and normalize options in one place.

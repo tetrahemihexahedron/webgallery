@@ -6,43 +6,7 @@ Each item should include detailed small implementation steps sized for focused c
 
 ## Refactoring
 
-### 1. Break up the `cmd/webimage` processor workflow
-
-**Package(s):** `cmd/webimage`
-
-`processDir` currently handles nearly the whole command: progress output, index loading, duplicate detection, metadata problem reporting, source path building, hashing, per-image processing, and index update cleanup. Split it into named steps so the top-level workflow reads like a checklist.
-
-Small implementation steps:
-
-1. **Extract index loading.**
-   - Add a helper such as `loadExistingIndex(outDir paths.AbsPath) (index.Index, map[string]paths.RelPath, error)`.
-   - Move the `index.ReadDir`, missing-index handling, and `ImageDirsBySHA256` call into it.
-
-2. **Extract metadata read/report setup.**
-   - Add a helper such as `readMetadata()` or `readIncomingMetadata()` that calls `metadataReader.Read` and prints the summary line.
-   - Keep behavior unchanged.
-
-3. **Extract metadata problem recording.**
-   - Add a small helper or method that converts `metadata.Problem` values to `fileProblem` values and writes progress messages.
-   - This will remove one repeated reporting block from `processDir`.
-
-4. **Extract single-entry processing.**
-   - Add a helper such as `processMetadataEntry(meta image.Metadata, seen map[string]paths.RelPath) (image.Processed, *fileProblem, error)`.
-   - Move JPEG filtering, source path creation, hashing, duplicate detection, and the call to `processFile` into it.
-   - Keep fatal errors as `error`; keep per-file issues as `fileProblem`.
-
-5. **Extract index update with cleanup.**
-   - Add a helper such as `writeUpdatedIndex(imageIndex *index.Index, images []image.Processed) error`.
-   - Move the `UpdateFile` call and cleanup-on-index-error logic into it.
-
-6. **Make `processDir` a high-level orchestrator.**
-   - After the extractions, rewrite `processDir` so it mostly reads: load index, read metadata, record metadata problems, process entries, update index, return result.
-
-7. **Adjust tests only as needed.**
-   - Keep behavior assertions the same while refactoring.
-   - Avoid adding new behavior tests until the workflow split is complete.
-
-### 2. Improve `cmd/webimage` names and function signatures
+### 1. Improve `cmd/webimage` names and function signatures
 
 **Package(s):** `cmd/webimage`
 
@@ -53,7 +17,7 @@ Small implementation steps:
 1. **Rename workflow types.**
    - `processor` -> `imageProcessor`
    - `result` -> `processResult`
-   - `fileProblem` -> `processProblem` or `imageProblem`
+   - `fileProblem` -> `imageProblem`
    - Update tests in the same commit.
 
 2. **Rename misleading fields.**
@@ -69,8 +33,8 @@ Small implementation steps:
    - `deleteRemnants` -> `removeImageDir`
 
 4. **Rename local variables for clarity.**
-   - Change the loop variable `metadata` to `meta` or `imgMeta` so it does not shadow the imported `metadata` package.
-   - Rename `imageProcessed` to `processedImg` or `processed` consistently.
+   - Change the loop variable `metadata` to `meta` so it does not shadow the imported `metadata` package.
+   - Rename `imageProcessed` to `processedImg` consistently.
 
 5. **Introduce a source-image grouping type.**
    - Add a small struct such as:
@@ -91,7 +55,7 @@ Small implementation steps:
    - Change `variantSpecs(imgDir paths.AbsPath, img image.Processed)` to take only what it uses, such as `variantSpecs(imgDir paths.AbsPath, sourceWidth int)`.
    - Or move the planning into `internal/variants` later if that package owns more of the generation request.
 
-### 3. Make manifest and index APIs clearer and more symmetric
+### 2. Make manifest and index APIs clearer and more symmetric
 
 **Package(s):** `internal/manifest`, `internal/index`
 
@@ -136,7 +100,7 @@ Small implementation steps:
      - `write.go`: update/write and domain-to-JSON conversion
    - Do this after renaming so files start with clearer type names.
 
-### 4. Improve gallery data flow and option parsing
+### 3. Improve gallery data flow and option parsing
 
 **Package(s):** `internal/gallery`, `cmd/gallery`
 
@@ -174,7 +138,7 @@ Small implementation steps:
    - Add a small helper if needed, such as `normalizeOptions(opts Options) (Options, error)`.
    - This is a good place for future defaults like `sizes` or fallback width.
 
-### 5. Revisit the variants API shape
+### 4. Revisit the variants API shape
 
 **Package(s):** `internal/variants`, `cmd/webimage`
 
