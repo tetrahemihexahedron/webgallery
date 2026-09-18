@@ -66,20 +66,7 @@ func (p *processor) processDir() (result, error) {
 
 	res := result{
 		dirProcessed: p.cfg.InDir,
-	}
-
-	for _, problem := range metadataResult.FileProblems {
-		fmt.Fprintf(
-			p.progressReporter,
-			"\t%q: %s\n",
-			problem.FileName,
-			problem.Message,
-		)
-
-		res.problems = append(res.problems, fileProblem{
-			fileName: problem.FileName,
-			message:  problem.Message,
-		})
+		problems:     p.recordMetadataProblems(metadataResult.FileProblems),
 	}
 
 	fmt.Fprint(p.progressReporter, "\n----------------\n")
@@ -205,6 +192,26 @@ func (p *processor) processDir() (result, error) {
 	}
 
 	return res, nil
+}
+
+func (p *processor) recordMetadataProblems(problems []metadata.Problem) []fileProblem {
+	var fileProblems []fileProblem
+
+	for _, problem := range problems {
+		fmt.Fprintf(
+			p.progressReporter,
+			"\t%q: %s\n",
+			problem.FileName,
+			problem.Message,
+		)
+
+		fileProblems = append(fileProblems, fileProblem{
+			fileName: problem.FileName,
+			message:  problem.Message,
+		})
+	}
+
+	return fileProblems
 }
 
 func (p *processor) readIncomingMetadata() (metadata.Result, error) {
