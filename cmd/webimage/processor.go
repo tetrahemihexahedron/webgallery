@@ -72,115 +72,13 @@ func (p *processor) processDir() (result, error) {
 	fmt.Fprint(p.progressReporter, "\n----------------\n")
 
 	for _, metadata := range metadataResult.Metadata {
-		if image.ParseFormat(metadata.Format) != image.FormatJPEG {
-			fmt.Fprintf(
-				p.progressReporter,
-				"Skipping %q: format is %s, not JPEG\n",
-				metadata.FileName,
-				metadata.Format,
-			)
-
-			res.problems = append(res.problems, fileProblem{
-				fileName: metadata.FileName,
-				message: fmt.Sprintf(
-					"skipping file %q: format is %s, not JPEG",
-					metadata.FileName,
-					metadata.Format,
-				),
-			})
+		imageProcessed, problem := p.processMetadataEntry(metadata, imageDirsByHash)
+		if problem != nil {
+			res.problems = append(res.problems, *problem)
 			continue
 		}
 
-		sourceRelPath, err := paths.NewRelPath(metadata.FileName)
-		if err != nil {
-			fmt.Fprintf(
-				p.progressReporter,
-				"Error building path for %q: %v\n",
-				metadata.FileName,
-				err,
-			)
-
-			res.problems = append(res.problems, fileProblem{
-				fileName: metadata.FileName,
-				message:  fmt.Sprintf("source path error: %v", err),
-			})
-			continue
-		}
-
-		sourceAbsPath, err := paths.JoinAbs(p.cfg.InDir, sourceRelPath)
-		if err != nil {
-			fmt.Fprintf(
-				p.progressReporter,
-				"Error building path for %q: %v\n",
-				metadata.FileName,
-				err,
-			)
-
-			res.problems = append(res.problems, fileProblem{
-				fileName: metadata.FileName,
-				message:  fmt.Sprintf("source path error: %v", err),
-			})
-			continue
-		}
-
-		sourceHash, err := hashFile(sourceAbsPath)
-		if err != nil {
-			fmt.Fprintf(
-				p.progressReporter,
-				"Error hashing %q: %v\n",
-				metadata.FileName,
-				err,
-			)
-
-			res.problems = append(res.problems, fileProblem{
-				fileName: metadata.FileName,
-				message:  fmt.Sprintf("file hashing error: %v", err),
-			})
-			continue
-		}
-
-		if existingImgDir, ok := imageDirsByHash[sourceHash]; ok {
-			fmt.Fprintf(
-				p.progressReporter,
-				"Skipping %q: duplicate of image in %q\n",
-				metadata.FileName,
-				existingImgDir,
-			)
-
-			res.problems = append(res.problems, fileProblem{
-				fileName: metadata.FileName,
-				message:  fmt.Sprintf("skipping duplicate of image in %q", existingImgDir),
-			})
-			continue
-		}
-
-		imageProcessed, err := p.processFile(metadata, sourceHash, sourceAbsPath)
-
-		if err != nil {
-			fmt.Fprintf(
-				p.progressReporter,
-				"Error processing %q: %v\n",
-				metadata.FileName,
-				err,
-			)
-
-			res.problems = append(res.problems, fileProblem{
-				fileName: metadata.FileName,
-				message:  fmt.Sprintf("file processing error: %v", err),
-			})
-		} else {
-			imageDirsByHash[sourceHash] = imageProcessed.DirRelPath
-
-			fmt.Fprintf(
-				p.progressReporter,
-				"Processed %q:\n\t%d variants generated in %q\n",
-				metadata.FileName,
-				len(imageProcessed.Variants),
-				imageProcessed.DirRelPath,
-			)
-
-			res.images = append(res.images, imageProcessed)
-		}
+		res.images = append(res.images, imageProcessed)
 	}
 
 	if err := imageIndex.UpdateFile(p.cfg.OutDir, res.images); err != nil {
@@ -192,6 +90,112 @@ func (p *processor) processDir() (result, error) {
 	}
 
 	return res, nil
+}
+
+func (p *processor) processMetadataEntry(metadata image.Metadata, imageDirsByHash map[string]paths.RelPath) (image.Processed, *fileProblem) {
+	if image.ParseFormat(metadata.Format) != image.FormatJPEG {
+		fmt.Fprintf(
+			p.progressReporter,
+			"Skipping %q: format is %s, not JPEG\n",
+			metadata.FileName,
+			metadata.Format,
+		)
+
+		return image.Processed{}, &fileProblem{
+			fileName: metadata.FileName,
+			message: fmt.Sprintf(
+				"skipping file %q: format is %s, not JPEG",
+				metadata.FileName,
+				metadata.Format,
+			),
+		}
+	}
+
+	sourceRelPath, err := paths.NewRelPath(metadata.FileName)
+	if err != nil {
+		fmt.Fprintf(
+			p.progressReporter,
+			"Error building path for %q: %v\n",
+			metadata.FileName,
+			err,
+		)
+
+		return image.Processed{}, &fileProblem{
+			fileName: metadata.FileName,
+			message:  fmt.Sprintf("source path error: %v", err),
+		}
+	}
+
+	sourceAbsPath, err := paths.JoinAbs(p.cfg.InDir, sourceRelPath)
+	if err != nil {
+		fmt.Fprintf(
+			p.progressReporter,
+			"Error building path for %q: %v\n",
+			metadata.FileName,
+			err,
+		)
+
+		return image.Processed{}, &fileProblem{
+			fileName: metadata.FileName,
+			message:  fmt.Sprintf("source path error: %v", err),
+		}
+	}
+
+	sourceHash, err := hashFile(sourceAbsPath)
+	if err != nil {
+		fmt.Fprintf(
+			p.progressReporter,
+			"Error hashing %q: %v\n",
+			metadata.FileName,
+			err,
+		)
+
+		return image.Processed{}, &fileProblem{
+			fileName: metadata.FileName,
+			message:  fmt.Sprintf("file hashing error: %v", err),
+		}
+	}
+
+	if existingImgDir, ok := imageDirsByHash[sourceHash]; ok {
+		fmt.Fprintf(
+			p.progressReporter,
+			"Skipping %q: duplicate of image in %q\n",
+			metadata.FileName,
+			existingImgDir,
+		)
+
+		return image.Processed{}, &fileProblem{
+			fileName: metadata.FileName,
+			message:  fmt.Sprintf("skipping duplicate of image in %q", existingImgDir),
+		}
+	}
+
+	imageProcessed, err := p.processFile(metadata, sourceHash, sourceAbsPath)
+	if err != nil {
+		fmt.Fprintf(
+			p.progressReporter,
+			"Error processing %q: %v\n",
+			metadata.FileName,
+			err,
+		)
+
+		return image.Processed{}, &fileProblem{
+			fileName: metadata.FileName,
+			message:  fmt.Sprintf("file processing error: %v", err),
+		}
+	}
+
+	imageDirsByHash[sourceHash] = imageProcessed.DirRelPath
+
+	fmt.Fprintf(
+		p.progressReporter,
+		"Processed %q:\n\t%d variants generated in %q\n",
+		metadata.FileName,
+		len(imageProcessed.Variants),
+		imageProcessed.DirRelPath,
+	)
+
+	return imageProcessed, nil
 }
 
 func (p *processor) recordMetadataProblems(problems []metadata.Problem) []fileProblem {
