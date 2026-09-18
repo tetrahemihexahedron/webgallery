@@ -189,7 +189,7 @@ func assertManifest(t *testing.T, imageDir paths.AbsPath, processed image.Proces
 		SHA256:      fixtureSHA256,
 		Width:       800,
 		Height:      1067,
-		Variants: map[image.Format][]manifest.File{
+		Variants: map[image.Format][]manifest.VariantFile{
 			image.FormatJPEG: {
 				{Path: mustRel(t, "w400.jpg"), Width: 400, Height: 534},
 				{Path: mustRel(t, "w800.jpg"), Width: 800, Height: 1067},

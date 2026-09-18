@@ -183,9 +183,9 @@ func newTemplateImage(img galleryImage, urlPrefix string) (templateImage, error)
 	}, nil
 }
 
-func sortedVariants(variants []manifest.File) []manifest.File {
+func sortedVariants(variants []manifest.VariantFile) []manifest.VariantFile {
 	sorted := slices.Clone(variants)
-	slices.SortFunc(sorted, func(a, b manifest.File) int {
+	slices.SortFunc(sorted, func(a, b manifest.VariantFile) int {
 		if a.Width != b.Width {
 			return cmp.Compare(a.Width, b.Width)
 		}
@@ -194,7 +194,7 @@ func sortedVariants(variants []manifest.File) []manifest.File {
 	return sorted
 }
 
-func srcset(imgDir paths.RelPath, variants []manifest.File, urlPrefix string) string {
+func srcset(imgDir paths.RelPath, variants []manifest.VariantFile, urlPrefix string) string {
 	items := make([]string, 0, len(variants))
 	for _, variant := range variants {
 		items = append(items, fmt.Sprintf("%s %dw", publicURL(urlPrefix, imgDir, variant.Path), variant.Width))
@@ -202,7 +202,7 @@ func srcset(imgDir paths.RelPath, variants []manifest.File, urlPrefix string) st
 	return strings.Join(items, ", ")
 }
 
-func fallbackVariant(variants []manifest.File) manifest.File {
+func fallbackVariant(variants []manifest.VariantFile) manifest.VariantFile {
 	for _, variant := range variants {
 		if variant.Width >= fallbackDisplayWidth {
 			return variant

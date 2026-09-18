@@ -44,7 +44,7 @@ func TestReadFile(t *testing.T) {
 		SHA256:      "7f43b6f0a877e8590c4f0c7d55d99b188a671de7bf58156ac0d3ac38df842cc9",
 		Width:       800,
 		Height:      1067,
-		Variants: map[image.Format][]manifest.File{
+		Variants: map[image.Format][]manifest.VariantFile{
 			image.FormatJPEG: {
 				{Path: mustRel(t, "w400.jpg"), Width: 400, Height: 534},
 				{Path: mustRel(t, "w800.jpg"), Width: 800, Height: 1067},

@@ -261,7 +261,7 @@ func newBaseImages(t *testing.T) []galleryImage {
 				SHA256:      sha256,
 				Width:       1200,
 				Height:      800,
-				Variants: map[image.Format][]manifest.File{
+				Variants: map[image.Format][]manifest.VariantFile{
 					image.FormatJPEG: {
 						{Path: mustRel(t, "w1200.jpg"), Width: 1200, Height: 800},
 						{Path: mustRel(t, "w400.jpg"), Width: 400, Height: 267},

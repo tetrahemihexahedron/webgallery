@@ -31,11 +31,11 @@ type Manifest struct {
 	SHA256      string
 	Width       int
 	Height      int
-	Variants    map[image.Format][]File
+	Variants    map[image.Format][]VariantFile
 }
 
-// File describes one generated image file in a manifest.
-type File struct {
+// VariantFile describes one generated image file in a manifest.
+type VariantFile struct {
 	Path   paths.RelPath
 	Width  int
 	Height int
@@ -156,7 +156,7 @@ func manifestFromFile(file manifestJSON) (Manifest, error) {
 		SHA256:      file.SHA256,
 		Width:       file.Width,
 		Height:      file.Height,
-		Variants:    make(map[image.Format][]File, len(file.Variants)),
+		Variants:    make(map[image.Format][]VariantFile, len(file.Variants)),
 	}
 
 	for formatName, files := range file.Variants {
@@ -171,7 +171,7 @@ func manifestFromFile(file manifestJSON) (Manifest, error) {
 				return Manifest{}, fmt.Errorf("variant %q file %d src: %w", formatName, i, err)
 			}
 
-			mani.Variants[format] = append(mani.Variants[format], File{
+			mani.Variants[format] = append(mani.Variants[format], VariantFile{
 				Path:   path,
 				Width:  file.Width,
 				Height: file.Height,
