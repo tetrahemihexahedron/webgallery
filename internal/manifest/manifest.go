@@ -76,20 +76,6 @@ func FromProcessed(img image.Processed) (Manifest, error) {
 	}, nil
 }
 
-func Write(imgDir paths.AbsPath, img image.Processed) error {
-	mani, err := FromProcessed(img)
-	if err != nil {
-		return err
-	}
-
-	path, err := ManifestPath(imgDir)
-	if err != nil {
-		return err
-	}
-
-	return WriteFile(path, mani)
-}
-
 // WriteFile writes mani as JSON to path.
 func WriteFile(path paths.AbsPath, mani Manifest) error {
 	if err := validateManifestVariantFormats(mani.Variants); err != nil {
