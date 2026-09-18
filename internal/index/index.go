@@ -59,16 +59,16 @@ func IndexPath(outRoot paths.AbsPath) (paths.AbsPath, error) {
 	return path, nil
 }
 
-// UpdateFile appends newImages to idx and writes the updated index file in outRoot.
-func (idx *Index) UpdateFile(outRoot paths.AbsPath, newImages []image.Processed) error {
+// AppendAndWriteDir appends newImages to idx and writes index.json in outRoot.
+func (idx *Index) AppendAndWriteDir(outRoot paths.AbsPath, newImages []image.Processed) error {
 	if len(newImages) == 0 {
 		return nil
 	}
 
-	return idx.updateFileAt(outRoot, newImages, time.Now())
+	return idx.appendAndWriteDirAt(outRoot, newImages, time.Now())
 }
 
-func (idx *Index) updateFileAt(outRoot paths.AbsPath, newImages []image.Processed, generatedAt time.Time) error {
+func (idx *Index) appendAndWriteDirAt(outRoot paths.AbsPath, newImages []image.Processed, generatedAt time.Time) error {
 	updated, err := updatedIndex(*idx, outRoot, newImages, generatedAt)
 	if err != nil {
 		return err
