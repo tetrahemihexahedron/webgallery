@@ -81,15 +81,23 @@ func (p *processor) processDir() (result, error) {
 		res.images = append(res.images, imageProcessed)
 	}
 
-	if err := imageIndex.UpdateFile(p.cfg.OutDir, res.images); err != nil {
-		updateErr := fmt.Errorf("updating index: %w", err)
-		if cleanupErr := deleteProcessedImageDirs(p.cfg.OutDir, res.images); cleanupErr != nil {
-			return result{}, errors.Join(updateErr, cleanupErr)
-		}
-		return result{}, updateErr
+	if err := p.writeUpdatedIndex(&imageIndex, res.images); err != nil {
+		return result{}, err
 	}
 
 	return res, nil
+}
+
+func (p *processor) writeUpdatedIndex(imageIndex *index.Index, images []image.Processed) error {
+	if err := imageIndex.UpdateFile(p.cfg.OutDir, images); err != nil {
+		updateErr := fmt.Errorf("updating index: %w", err)
+		if cleanupErr := deleteProcessedImageDirs(p.cfg.OutDir, images); cleanupErr != nil {
+			return errors.Join(updateErr, cleanupErr)
+		}
+		return updateErr
+	}
+
+	return nil
 }
 
 func (p *processor) processMetadataEntry(metadata image.Metadata, imageDirsByHash map[string]paths.RelPath) (image.Processed, *fileProblem) {
