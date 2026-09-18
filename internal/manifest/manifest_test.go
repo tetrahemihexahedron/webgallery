@@ -13,18 +13,18 @@ import (
 	"tetrahemihexahedron/webimage/internal/paths"
 )
 
-type manifestFile struct {
-	Title       string                 `json:"title"`
-	Description string                 `json:"description"`
-	CapturedAt  string                 `json:"capturedAt"`
-	ProcessedAt string                 `json:"processedAt"`
-	SHA256      string                 `json:"sha256"`
-	Width       int                    `json:"width"`
-	Height      int                    `json:"height"`
-	Variants    map[string][]imageFile `json:"variants"`
+type manifestJSON struct {
+	Title       string                   `json:"title"`
+	Description string                   `json:"description"`
+	CapturedAt  string                   `json:"capturedAt"`
+	ProcessedAt string                   `json:"processedAt"`
+	SHA256      string                   `json:"sha256"`
+	Width       int                      `json:"width"`
+	Height      int                      `json:"height"`
+	Variants    map[string][]variantJSON `json:"variants"`
 }
 
-type imageFile struct {
+type variantJSON struct {
 	Path   string `json:"src"`
 	Width  int    `json:"width"`
 	Height int    `json:"height"`
@@ -150,7 +150,7 @@ func TestWriteFile(t *testing.T) {
 	tests := []struct {
 		name string
 		mani manifest.Manifest
-		want manifestFile
+		want manifestJSON
 	}{
 		{
 			name: "writes complete metadata",
@@ -172,7 +172,7 @@ func TestWriteFile(t *testing.T) {
 					},
 				},
 			},
-			want: manifestFile{
+			want: manifestJSON{
 				Title:       "2023 October Posing",
 				Description: "Rosie as a small puppy, sitting and looking directly at the camera.",
 				CapturedAt:  "2023-10-03T17:26:39",
@@ -180,7 +180,7 @@ func TestWriteFile(t *testing.T) {
 				SHA256:      "7f43b6f0a877e8590c4f0c7d55d99b188a671de7bf58156ac0d3ac38df842cc9",
 				Width:       800,
 				Height:      1067,
-				Variants: map[string][]imageFile{
+				Variants: map[string][]variantJSON{
 					"JPEG": {
 						{Path: "w400.jpg", Width: 400, Height: 534},
 						{Path: "w800.jpg", Width: 800, Height: 1067},
@@ -198,10 +198,10 @@ func TestWriteFile(t *testing.T) {
 				Height:   3024,
 				Variants: map[image.Format][]manifest.VariantFile{},
 			},
-			want: manifestFile{
+			want: manifestJSON{
 				Width:    4032,
 				Height:   3024,
-				Variants: map[string][]imageFile{},
+				Variants: map[string][]variantJSON{},
 			},
 		},
 	}
@@ -251,7 +251,7 @@ func TestWriteFileReturnsErrorForUnsupportedFormat(t *testing.T) {
 	}
 }
 
-func readManifest(t *testing.T, dir paths.AbsPath) manifestFile {
+func readManifest(t *testing.T, dir paths.AbsPath) manifestJSON {
 	t.Helper()
 
 	path := filepath.Join(dir.String(), "manifest.json")
@@ -260,7 +260,7 @@ func readManifest(t *testing.T, dir paths.AbsPath) manifestFile {
 		t.Fatalf("reading manifest %q: %v", path, err)
 	}
 
-	var got manifestFile
+	var got manifestJSON
 	if err := json.Unmarshal(data, &got); err != nil {
 		t.Fatalf("unmarshaling manifest %q: %v", path, err)
 	}

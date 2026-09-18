@@ -102,7 +102,7 @@ func ReadFile(path paths.AbsPath) (Manifest, error) {
 		return Manifest{}, fmt.Errorf("parsing manifest %q: %w", path, err)
 	}
 
-	mani, err := manifestFromFile(file)
+	mani, err := manifestFromJSON(file)
 	if err != nil {
 		return Manifest{}, fmt.Errorf("parsing manifest %q: %w", path, err)
 	}
@@ -181,7 +181,7 @@ func validateManifestVariantFormats(variants map[image.Format][]VariantFile) err
 	return nil
 }
 
-func manifestFromFile(file manifestJSON) (Manifest, error) {
+func manifestFromJSON(file manifestJSON) (Manifest, error) {
 	mani := Manifest{
 		Title:       file.Title,
 		Description: file.Description,
