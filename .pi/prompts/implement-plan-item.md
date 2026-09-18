@@ -87,8 +87,8 @@ Carry out the complete workflow below. Do not merely describe what should be don
 - Fix problems introduced by the current work rather than recording them as follow-up items.
 - Search `notes/plan.md` and `notes/todo.md` for overlapping entries before recording a finding, reading the relevant sections as needed, and do not add duplicates.
 - Add only concrete findings supported by something observed during the work. Do not add unsupported speculation or trivial cleanup.
-- Place each finding under the relevant package and existing category: `Potential problems / bugs`, `Suggested improvements / possible extensions`, or `Possible test additions / improvements`. Use `All packages` for cross-cutting findings.
-- Briefly state what was observed, why it matters, and a plausible next step.
+- Place each finding under `Unplanned items`, then under the relevant package and type: `Refactor`, `Fix`, `Feature`, `Docs`, `Test`, or `Chore`. Use `All packages` for cross-cutting findings, and add a missing package or type heading in the documented order only when needed.
+- Keep the observed problem, why it matters, and the plausible solution or next step together in one item.
 - Do not reorganize, remove, promote, or otherwise triage existing entries.
 - Do not modify `notes/todo.md` when there are no worthwhile findings.
 - Commit additions separately with the subject `Document follow-up findings`.
