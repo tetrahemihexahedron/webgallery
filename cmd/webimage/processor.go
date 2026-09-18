@@ -54,16 +54,7 @@ func (p *processor) processDir() (result, error) {
 
 	fmt.Fprintf(p.progressReporter, "Processing image files in %q\n", inDirAbsPath)
 
-	imageIndex, err := index.ReadDir(p.cfg.OutDir)
-	if err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
-			imageIndex = index.Index{Images: []index.Image{}}
-		} else {
-			return result{}, err
-		}
-	}
-
-	imageDirsByHash, err := imageIndex.ImageDirsBySHA256()
+	imageIndex, imageDirsByHash, err := loadExistingIndex(p.cfg.OutDir)
 	if err != nil {
 		return result{}, err
 	}
@@ -221,6 +212,24 @@ func (p *processor) processDir() (result, error) {
 	}
 
 	return res, nil
+}
+
+func loadExistingIndex(outDir paths.AbsPath) (index.Index, map[string]paths.RelPath, error) {
+	imageIndex, err := index.ReadDir(outDir)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			imageIndex = index.Index{Images: []index.Image{}}
+		} else {
+			return index.Index{}, nil, err
+		}
+	}
+
+	imageDirsByHash, err := imageIndex.ImageDirsBySHA256()
+	if err != nil {
+		return index.Index{}, nil, err
+	}
+
+	return imageIndex, imageDirsByHash, nil
 }
 
 func deleteProcessedImageDirs(outRoot paths.AbsPath, images []image.Processed) error {
