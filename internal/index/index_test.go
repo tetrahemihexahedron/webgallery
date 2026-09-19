@@ -104,7 +104,7 @@ func TestReadReturnsErrorForUnreadableIndex(t *testing.T) {
 	}
 }
 
-func TestAppendAndWriteDir(t *testing.T) {
+func TestUpdate(t *testing.T) {
 	existingEntry := index.Entry{
 		Dir:         mustRel(t, "2024/05/abc123"),
 		Manifest:    mustRel(t, "2024/05/abc123/manifest.json"),
@@ -182,8 +182,8 @@ func TestAppendAndWriteDir(t *testing.T) {
 			}
 
 			before := time.Now().UTC().Add(-1 * time.Second)
-			if err := idx.AppendAndWriteDir(outRoot, tc.newImages); err != nil {
-				t.Fatalf("Index.AppendAndWriteDir(%q) returned error: %v", outRoot, err)
+			if err := idx.Update(outRoot, tc.newImages); err != nil {
+				t.Fatalf("Index.Update(%q) returned error: %v", outRoot, err)
 			}
 			after := time.Now().UTC().Add(time.Second)
 

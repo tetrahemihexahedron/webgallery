@@ -12,16 +12,17 @@ import (
 	"tetrahemihexahedron/webimage/internal/paths"
 )
 
-// AppendAndWriteDir appends newImages to idx and writes index.json in outRoot.
-func (idx *Index) AppendAndWriteDir(outRoot paths.AbsPath, newImages []image.Processed) error {
+// Update appends newImages, writes the resulting index.json in outRoot,
+// and updates idx only after the write succeeds.
+func (idx *Index) Update(outRoot paths.AbsPath, newImages []image.Processed) error {
 	if len(newImages) == 0 {
 		return nil
 	}
 
-	return idx.appendAndWriteDirAt(outRoot, newImages, time.Now())
+	return idx.updateAt(outRoot, newImages, time.Now())
 }
 
-func (idx *Index) appendAndWriteDirAt(outRoot paths.AbsPath, newImages []image.Processed, generatedAt time.Time) error {
+func (idx *Index) updateAt(outRoot paths.AbsPath, newImages []image.Processed, generatedAt time.Time) error {
 	updated, err := updatedIndex(*idx, outRoot, newImages, generatedAt)
 	if err != nil {
 		return err

@@ -89,7 +89,7 @@ func (p *processor) processDir() (result, error) {
 }
 
 func (p *processor) writeUpdatedIndex(imageIndex *index.Index, images []image.Processed) error {
-	if err := imageIndex.AppendAndWriteDir(p.cfg.OutDir, images); err != nil {
+	if err := imageIndex.Update(p.cfg.OutDir, images); err != nil {
 		updateErr := fmt.Errorf("updating index: %w", err)
 		if cleanupErr := deleteProcessedImageDirs(p.cfg.OutDir, images); cleanupErr != nil {
 			return errors.Join(updateErr, cleanupErr)
