@@ -104,6 +104,11 @@ func TestParseArgsErrors(t *testing.T) {
 			args:    []string{"-incoming", "incoming", "-output", "output", "-dir-date", "modified"},
 			wantErr: "dir-date",
 		},
+		{
+			name:    "overlapping roots",
+			args:    []string{"-incoming", "photos", "-output", "photos/output"},
+			wantErr: "overlap",
+		},
 	}
 
 	for _, tc := range tests {

@@ -88,6 +88,10 @@ func parseArgs(args []string, output io.Writer) (Config, error) {
 		return Config{}, err
 	}
 
+	if err := validateRoots(cfg.InDir, cfg.OutDir); err != nil {
+		return Config{}, err
+	}
+
 	return cfg, nil
 }
 
