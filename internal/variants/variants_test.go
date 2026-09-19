@@ -18,6 +18,50 @@ type imageSize struct {
 	height int
 }
 
+func TestResultErr(t *testing.T) {
+	firstErr := errors.New("first failure")
+	secondErr := errors.New("second failure")
+
+	tests := []struct {
+		name     string
+		result   variants.Result
+		wantErrs []error
+	}{
+		{
+			name: "no failures",
+		},
+		{
+			name: "multiple failures",
+			result: variants.Result{Failed: []variants.Failure{
+				{Err: firstErr},
+				{Err: secondErr},
+			}},
+			wantErrs: []error{firstErr, secondErr},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := tc.result.Err()
+			if len(tc.wantErrs) == 0 {
+				if got != nil {
+					t.Errorf("Result.Err() = %v, want nil", got)
+				}
+				return
+			}
+
+			if got == nil {
+				t.Fatal("Result.Err() = nil, want an error")
+			}
+			for _, want := range tc.wantErrs {
+				if !errors.Is(got, want) {
+					t.Errorf("Result.Err() = %v, want error wrapping %v", got, want)
+				}
+			}
+		})
+	}
+}
+
 func TestVipsthumbnailGenerate(t *testing.T) {
 	dir := t.TempDir()
 	source := mustAbs(t, filepath.Join("testdata", "image_800x1067.jpg"))

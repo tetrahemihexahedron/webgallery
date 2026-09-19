@@ -29,7 +29,8 @@ type Failure struct {
 	Err  error
 }
 
-func (r Result) err() error {
+// Err returns the errors reported for individual variant attempts.
+func (r Result) Err() error {
 	var errs []error
 	for _, failure := range r.Failed {
 		errs = append(errs, failure.Err)
@@ -55,7 +56,7 @@ func (v *Vipsthumbnail) Generate(source paths.AbsPath, specs []Spec) (Result, er
 		}
 		result.Generated = append(result.Generated, spec)
 	}
-	return result, result.err()
+	return result, result.Err()
 }
 
 func generateVariant(source paths.AbsPath, spec Spec) error {
