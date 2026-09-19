@@ -14,7 +14,6 @@ These items have been promoted to `notes/plan.md`. The plan is the authoritative
 
 ### Fix
 
-- **Reject incomplete variant generation (`cmd/webimage`, `internal/variants`):** Treat every failed variant and every missing JPEG fallback as an image-processing failure, report useful counts, and clean up the incomplete image without disturbing other output.
 - **Default gallery sorting to processed dates (`cmd/gallery`, `internal/gallery`):** Make processed-date sorting the CLI default so collections with missing capture dates render normally, while keeping explicitly requested captured-date sorting strict and leaving missing capture metadata empty.
 - **Reject overlapping input and output roots (`cmd/webimage`):** Reject equal or nested roots before reading metadata or creating output, while allowing sibling and merely prefix-similar paths.
 - **Create image directories exclusively (`cmd/webimage`):** Create random leaf directories with exclusive `os.Mkdir`, fail directly on the unlikely collision, and never clean a directory that predated the current attempt; avoid injection and retry machinery added mainly for testing.

@@ -1,38 +1,10 @@
 # Development plan
 
-These are the next six items to implement from `notes/todo.md`, listed in recommended implementation order.
+These are the next five items to implement from `notes/todo.md`, listed in recommended implementation order.
 
 Each item includes small implementation steps sized for focused commits.
 
-## 1. Reject incomplete variant generation
-
-**Type:** Fix
-**Package(s):** `cmd/webimage`, `internal/variants`
-
-`processImage` currently treats a partially successful generation result as success and can write an incomplete manifest. Processing should be all-or-nothing for each source image.
-
-Small implementation steps:
-
-1. **Add focused processor coverage.**
-   - Use one small package-local fake generator rather than introducing a reusable test framework.
-   - Cover a partial result containing a generated JPEG and a failed variant.
-   - Cover an otherwise successful result containing only AVIF output.
-   - Assert processing fails and removes the incomplete image directory; do not add separate index-level infrastructure for these cases.
-
-2. **Fail on both error levels.**
-   - Treat a non-nil error returned by `Generate` as a request-level processing failure.
-   - Check `result.Err()` for per-variant failures and fail even when other files were generated.
-   - Include the generated and failed counts in per-variant failure context.
-
-3. **Require a usable JPEG fallback.**
-   - Preserve the existing failure when no variants were generated.
-   - Reject a result that has generated variants but no JPEG.
-
-4. **Preserve cleanup behavior.**
-   - Ensure files created for the failed image are removed through the existing cleanup path.
-   - Keep the implementation and assertions at the image-processing boundary.
-
-## 2. Replace path-based variant specifications
+## 1. Replace path-based variant specifications
 
 **Type:** Refactor
 **Package(s):** `internal/variants`, `internal/image`, `cmd/webimage`
@@ -66,7 +38,7 @@ Small implementation steps:
    - Preserve their existing assertions for generated files, result ordering, encoder behavior, and error classification.
    - Add no new test harness solely for this refactor.
 
-## 3. Default gallery sorting to processed dates
+## 2. Default gallery sorting to processed dates
 
 **Type:** Fix
 **Package(s):** `cmd/gallery`, `internal/gallery`
@@ -87,7 +59,7 @@ Small implementation steps:
 3. **Document the default.**
    - State the default and the stricter captured-date requirement in the README or command help.
 
-## 4. Reject overlapping input and output roots
+## 3. Reject overlapping input and output roots
 
 **Type:** Fix
 **Package(s):** `cmd/webimage`
@@ -108,7 +80,7 @@ Small implementation steps:
    - Apply the check in `cmd/webimage`, where both configured roots are available.
    - Leave symlink-resolved containment to the existing unplanned paths-policy item.
 
-## 5. Create image directories exclusively
+## 4. Create image directories exclusively
 
 **Type:** Fix
 **Package(s):** `cmd/webimage`
@@ -129,7 +101,7 @@ Small implementation steps:
    - Run cleanup only after the current attempt successfully created the leaf directory.
    - Rely on the existing processor integration test for normal directory creation; do not add persisted collision tests unless the implementation develops nontrivial collision handling.
 
-## 6. Reject variant overwrites
+## 5. Reject variant overwrites
 
 **Type:** Fix
 **Package(s):** `internal/variants`
