@@ -296,6 +296,17 @@ func cleanupImageDirOnError(imgDir paths.AbsPath, originalErr error) error {
 	return originalErr
 }
 
+func createImageDir(outRoot paths.AbsPath, imgDirRelPath paths.RelPath) (paths.AbsPath, error) {
+	imgDirAbsPath, err := paths.JoinAbs(outRoot, imgDirRelPath)
+	if err != nil {
+		return paths.AbsPath{}, err
+	}
+	if err := os.MkdirAll(imgDirAbsPath.String(), 0755); err != nil {
+		return paths.AbsPath{}, fmt.Errorf("unable to make image directory %s: %w", imgDirAbsPath, err)
+	}
+	return imgDirAbsPath, nil
+}
+
 func (p *imageProcessor) processImage(source sourceImage) (image.Processed, error) {
 	processedAt := time.Now().UTC()
 	dirDate, err := dirDate(p.cfg.DirDate, source.metadata.CapturedAt, processedAt)
@@ -306,13 +317,9 @@ func (p *imageProcessor) processImage(source sourceImage) (image.Processed, erro
 	if err != nil {
 		return image.Processed{}, err
 	}
-	imgDirAbsPath, err := paths.JoinAbs(p.cfg.OutDir, imgDirRelPath)
+	imgDirAbsPath, err := createImageDir(p.cfg.OutDir, imgDirRelPath)
 	if err != nil {
 		return image.Processed{}, err
-	}
-
-	if err := os.MkdirAll(imgDirAbsPath.String(), 0755); err != nil {
-		return image.Processed{}, fmt.Errorf("unable to make image directory %s: %w", imgDirAbsPath, err)
 	}
 
 	sourceDestRelPath, err := paths.NewRelPath("orig.jpg")
