@@ -23,7 +23,7 @@ func main() {
 	processor := imageProcessor{
 		cfg:              cfg,
 		metadataReader:   &metadata.Exiftool{},
-		variantGenerator: variants.GenerateRequest,
+		variantGenerator: variants.Generate,
 		progressReporter: progressReporter,
 	}
 

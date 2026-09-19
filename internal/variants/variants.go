@@ -18,21 +18,22 @@ type Request struct {
 	Formats    []image.Format
 }
 
-// RequestResult reports which requested variants succeeded or failed.
-type RequestResult struct {
+// Result reports which individual variant attempts succeeded or failed.
+// Generate reports request-level failures through its separate error return.
+type Result struct {
 	Generated []image.Variant
-	Failed    []RequestFailure
+	Failed    []Failure
 }
 
-// RequestFailure reports why one requested variant could not be generated.
-type RequestFailure struct {
+// Failure reports why one variant could not be generated.
+type Failure struct {
 	Format image.Format
 	Width  int
 	Err    error
 }
 
-// Err returns the errors reported for individual requested variants.
-func (r RequestResult) Err() error {
+// Err returns the errors reported for individual variant attempts.
+func (r Result) Err() error {
 	var errs []error
 	for _, failure := range r.Failed {
 		errs = append(errs, failure.Err)
@@ -46,17 +47,17 @@ type plannedVariant struct {
 	encoderOptions string
 }
 
-// GenerateRequest attempts every requested format and width combination unless
-// the request is invalid. It returns request-level validation errors directly
-// with an empty RequestResult. Errors from individual attempts are recorded in
-// RequestResult.Failed and available through RequestResult.Err; they do not
-// make GenerateRequest return an error.
-func GenerateRequest(req Request) (RequestResult, error) {
+// Generate attempts every requested format and width combination unless the
+// request is invalid. It returns request-level validation errors directly with
+// an empty Result. Errors from individual attempts are recorded in
+// Result.Failed and available through Result.Err; they do not make Generate
+// return an error.
+func Generate(req Request) (Result, error) {
 	if req.SourcePath.String() == "" {
-		return RequestResult{}, errors.New("source file path cannot be empty")
+		return Result{}, errors.New("source file path cannot be empty")
 	}
 
-	result := RequestResult{
+	result := Result{
 		Generated: make([]image.Variant, 0, len(req.Widths)*len(req.Formats)),
 	}
 
@@ -64,13 +65,13 @@ func GenerateRequest(req Request) (RequestResult, error) {
 		for _, width := range req.Widths {
 			planned, err := planVariant(req.OutputDir, format, width)
 			if err == nil {
-				err = generatePlannedVariant(req.SourcePath, planned)
+				err = generateVariant(req.SourcePath, planned)
 			}
 			if err != nil {
-				result.Failed = append(result.Failed, RequestFailure{
+				result.Failed = append(result.Failed, Failure{
 					Format: format,
 					Width:  width,
-					Err:    wrapRequestError(err, format, width),
+					Err:    wrapError(err, format, width),
 				})
 				continue
 			}
@@ -114,7 +115,7 @@ func planVariant(outputDir paths.AbsPath, format image.Format, width int) (plann
 	}, nil
 }
 
-func generatePlannedVariant(source paths.AbsPath, planned plannedVariant) error {
+func generateVariant(source paths.AbsPath, planned plannedVariant) error {
 	if source == planned.outputPath {
 		return errors.New("source and output file paths cannot be the same")
 	}
@@ -138,7 +139,7 @@ func generatePlannedVariant(source paths.AbsPath, planned plannedVariant) error 
 	return nil
 }
 
-func wrapRequestError(err error, format image.Format, width int) error {
+func wrapError(err error, format image.Format, width int) error {
 	return fmt.Errorf("generating %s variant with width %d: %w", format, width, err)
 }
 

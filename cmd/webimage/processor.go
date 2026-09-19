@@ -25,7 +25,7 @@ type metadataReader interface {
 	Read(path paths.AbsPath) (metadata.Result, error)
 }
 
-type variantGenerator func(variants.Request) (variants.RequestResult, error)
+type variantGenerator func(variants.Request) (variants.Result, error)
 
 type processResult struct {
 	images   []image.Processed

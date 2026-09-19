@@ -79,17 +79,17 @@ func TestProcessImageRejectsIncompleteVariants(t *testing.T) {
 	variantErr := errors.New("variant generation failed")
 	tests := []struct {
 		name        string
-		result      variants.RequestResult
+		result      variants.Result
 		wantProblem string
 		wantErr     error
 	}{
 		{
 			name: "failed variant",
-			result: variants.RequestResult{
+			result: variants.Result{
 				Generated: []image.Variant{
 					{Path: mustRel(t, "w400.jpg"), Format: image.FormatJPEG, Width: 400},
 				},
-				Failed: []variants.RequestFailure{
+				Failed: []variants.Failure{
 					{Format: image.FormatAVIF, Width: 400, Err: variantErr},
 				},
 			},
@@ -98,7 +98,7 @@ func TestProcessImageRejectsIncompleteVariants(t *testing.T) {
 		},
 		{
 			name: "no JPEG fallback",
-			result: variants.RequestResult{Generated: []image.Variant{
+			result: variants.Result{Generated: []image.Variant{
 				{Path: mustRel(t, "w400.avif"), Format: image.FormatAVIF, Width: 400},
 			}},
 			wantProblem: "no JPEG fallback was generated",
@@ -108,7 +108,7 @@ func TestProcessImageRejectsIncompleteVariants(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			var imageDir string
-			generator := variantGenerator(func(req variants.Request) (variants.RequestResult, error) {
+			generator := variantGenerator(func(req variants.Request) (variants.Result, error) {
 				imageDir = req.OutputDir.String()
 				return tc.result, nil
 			})
@@ -193,7 +193,7 @@ func newIntegrationProcessor(t *testing.T) *imageProcessor {
 			DirDate: DirDateCaptured,
 		},
 		metadataReader:   &metadata.Exiftool{},
-		variantGenerator: variants.GenerateRequest,
+		variantGenerator: variants.Generate,
 		progressReporter: io.Discard,
 	}
 }
