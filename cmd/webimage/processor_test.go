@@ -79,31 +79,28 @@ func TestProcessImageRejectsIncompleteVariants(t *testing.T) {
 	variantErr := errors.New("variant generation failed")
 	tests := []struct {
 		name        string
-		result      func([]variants.Spec) variants.Result
+		result      variants.RequestResult
 		wantProblem string
 		wantErr     error
 	}{
 		{
 			name: "failed variant",
-			result: func(specs []variants.Spec) variants.Result {
-				generatedJPEG := specs[0]
-				failedAVIF := specs[2]
-				return variants.Result{
-					Generated: []variants.Spec{generatedJPEG},
-					Failed: []variants.Failure{
-						{Spec: failedAVIF, Err: variantErr},
-					},
-				}
+			result: variants.RequestResult{
+				Generated: []image.Variant{
+					{Path: mustRel(t, "w400.jpg"), Format: image.FormatJPEG, Width: 400},
+				},
+				Failed: []variants.RequestFailure{
+					{Format: image.FormatAVIF, Width: 400, Err: variantErr},
+				},
 			},
 			wantProblem: "1 generated, 1 failed",
 			wantErr:     variantErr,
 		},
 		{
 			name: "no JPEG fallback",
-			result: func(specs []variants.Spec) variants.Result {
-				generatedAVIF := specs[2]
-				return variants.Result{Generated: []variants.Spec{generatedAVIF}}
-			},
+			result: variants.RequestResult{Generated: []image.Variant{
+				{Path: mustRel(t, "w400.avif"), Format: image.FormatAVIF, Width: 400},
+			}},
 			wantProblem: "no JPEG fallback was generated",
 		},
 	}
@@ -111,9 +108,9 @@ func TestProcessImageRejectsIncompleteVariants(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			var imageDir string
-			generator := fakeVariantGenerator(func(_ paths.AbsPath, specs []variants.Spec) (variants.Result, error) {
-				imageDir = filepath.Dir(specs[0].OutPath.String())
-				return tc.result(specs), nil
+			generator := variantGenerator(func(req variants.Request) (variants.RequestResult, error) {
+				imageDir = req.OutputDir.String()
+				return tc.result, nil
 			})
 			p := imageProcessor{
 				cfg: Config{
@@ -139,7 +136,7 @@ func TestProcessImageRejectsIncompleteVariants(t *testing.T) {
 				t.Errorf("imageProcessor.processImage() error = %v, want error wrapping %v", err, tc.wantErr)
 			}
 			if imageDir == "" {
-				t.Fatal("fakeVariantGenerator did not receive variant specifications")
+				t.Fatal("variantGenerator did not receive a request")
 			}
 			if _, statErr := os.Stat(imageDir); !errors.Is(statErr, os.ErrNotExist) {
 				t.Errorf("os.Stat(%q) error = %v, want os.ErrNotExist", imageDir, statErr)
@@ -186,12 +183,6 @@ func TestProcessIncomingDirSkipsPreviouslyProcessedImage(t *testing.T) {
 	}
 }
 
-type fakeVariantGenerator func(paths.AbsPath, []variants.Spec) (variants.Result, error)
-
-func (f fakeVariantGenerator) Generate(source paths.AbsPath, specs []variants.Spec) (variants.Result, error) {
-	return f(source, specs)
-}
-
 func newIntegrationProcessor(t *testing.T) *imageProcessor {
 	t.Helper()
 
@@ -202,7 +193,7 @@ func newIntegrationProcessor(t *testing.T) *imageProcessor {
 			DirDate: DirDateCaptured,
 		},
 		metadataReader:   &metadata.Exiftool{},
-		variantGenerator: &variants.Vipsthumbnail{},
+		variantGenerator: variants.GenerateRequest,
 		progressReporter: io.Discard,
 	}
 }

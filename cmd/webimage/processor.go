@@ -10,9 +10,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
-	"path/filepath"
 	"regexp"
-	"strconv"
 	"time"
 
 	"tetrahemihexahedron/webimage/internal/image"
@@ -27,9 +25,7 @@ type metadataReader interface {
 	Read(path paths.AbsPath) (metadata.Result, error)
 }
 
-type variantGenerator interface {
-	Generate(source paths.AbsPath, specs []variants.Spec) (variants.Result, error)
-}
+type variantGenerator func(variants.Request) (variants.RequestResult, error)
 
 type processResult struct {
 	images   []image.Processed
@@ -349,11 +345,14 @@ func (p *imageProcessor) processImage(source sourceImage) (image.Processed, erro
 		ProcessedAt: image.FormatProcessedAt(processedAt),
 	}
 
-	specs, err := variantSpecs(imgDirAbsPath, source.metadata.Width)
-	if err != nil {
-		return image.Processed{}, cleanupImageDirOnError(imgDirAbsPath, err)
+	desiredWidths := []int{400, 800, 1200, 1600}
+	request := variants.Request{
+		SourcePath: source.path,
+		OutputDir:  imgDirAbsPath,
+		Widths:     variantWidths(source.metadata.Width, desiredWidths),
+		Formats:    []image.Format{image.FormatJPEG, image.FormatAVIF},
 	}
-	result, err := p.variantGenerator.Generate(source.path, specs)
+	result, err := p.variantGenerator(request)
 	if err != nil {
 		return image.Processed{}, cleanupImageDirOnError(
 			imgDirAbsPath,
@@ -368,13 +367,7 @@ func (p *imageProcessor) processImage(source sourceImage) (image.Processed, erro
 		)
 	}
 
-	processedImg.Variants, err = identifyVariants(result.Generated)
-	if err != nil {
-		return image.Processed{}, cleanupImageDirOnError(
-			imgDirAbsPath,
-			fmt.Errorf("unable to identify generated variants: %w", err),
-		)
-	}
+	processedImg.Variants = result.Generated
 
 	hasJPEG := false
 	for _, variant := range processedImg.Variants {
@@ -464,31 +457,6 @@ func newImageDirRelPath(date time.Time) (paths.RelPath, error) {
 	return path, nil
 }
 
-func variantSpecs(imgDir paths.AbsPath, sourceWidth int) ([]variants.Spec, error) {
-	var desiredWidths = []int{400, 800, 1200, 1600}
-	var desiredExts = []string{".jpg", ".avif"}
-
-	// widths generated are <= the source's width
-	widths := variantWidths(sourceWidth, desiredWidths)
-	specs := make([]variants.Spec, 0, len(widths)*len(desiredExts))
-
-	for _, ext := range desiredExts {
-		for _, width := range widths {
-			filename := variantFilename(width, ext)
-			variantRelPath, err := paths.NewRelPath(filename)
-			if err != nil {
-				return nil, err
-			}
-			outPath, err := paths.JoinAbs(imgDir, variantRelPath)
-			if err != nil {
-				return nil, err
-			}
-			specs = append(specs, variants.Spec{OutPath: outPath, Width: width})
-		}
-	}
-	return specs, nil
-}
-
 func variantWidths(sourceWidth int, desired []int) []int {
 	widths := make([]int, 0, len(desired))
 
@@ -500,10 +468,6 @@ func variantWidths(sourceWidth int, desired []int) []int {
 		widths = append(widths, width)
 	}
 	return widths
-}
-
-func variantFilename(width int, ext string) string {
-	return "w" + strconv.Itoa(width) + ext
 }
 
 func copyFile(source paths.AbsPath, dest paths.AbsPath) error {
@@ -525,22 +489,4 @@ func copyFile(source paths.AbsPath, dest paths.AbsPath) error {
 
 func removeImageDir(dir paths.AbsPath) error {
 	return os.RemoveAll(dir.String())
-}
-
-func identifyVariants(specs []variants.Spec) ([]image.Variant, error) {
-	variants := make([]image.Variant, 0, len(specs))
-	for _, spec := range specs {
-		filename := filepath.Base(spec.OutPath.String())
-		path, err := paths.NewRelPath(filename)
-		if err != nil {
-			return nil, fmt.Errorf("determining relative path for %s: %w", spec.OutPath, err)
-		}
-
-		variants = append(variants, image.Variant{
-			Path:   path,
-			Format: image.ParseFormat(filepath.Ext(filename)),
-			Width:  spec.Width,
-		})
-	}
-	return variants, nil
 }
