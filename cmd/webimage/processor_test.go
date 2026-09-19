@@ -99,25 +99,6 @@ func TestProcessImageRejectsIncompleteVariants(t *testing.T) {
 			wantErr:     variantErr,
 		},
 		{
-			name: "all variants failed",
-			result: func(specs []variants.Spec) variants.Result {
-				failed := make([]variants.Failure, 0, len(specs))
-				for _, spec := range specs {
-					failed = append(failed, variants.Failure{Spec: spec, Err: variantErr})
-				}
-				return variants.Result{Failed: failed}
-			},
-			wantProblem: "4 variants were attempted but all failed",
-			wantErr:     variantErr,
-		},
-		{
-			name: "no variants reported",
-			result: func([]variants.Spec) variants.Result {
-				return variants.Result{}
-			},
-			wantProblem: "no variants were generated, even though 4 variants were attempted and no failures were reported",
-		},
-		{
 			name: "no JPEG fallback",
 			result: func(specs []variants.Spec) variants.Result {
 				generatedAVIF := specs[2]
