@@ -27,9 +27,6 @@ func TestProcessDir(t *testing.T) {
 	if err != nil {
 		t.Fatalf("processor.processDir() returned error: %v", err)
 	}
-	if got.dirProcessed != p.cfg.InDir {
-		t.Errorf("processor.processDir() dirProcessed = %q, want %q", got.dirProcessed, p.cfg.InDir)
-	}
 	if len(got.problems) != 0 {
 		t.Errorf("processor.processDir() returned problems: %+v", got.problems)
 	}

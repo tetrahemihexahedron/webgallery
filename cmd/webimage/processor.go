@@ -32,9 +32,8 @@ type variantGenerator interface {
 }
 
 type processResult struct {
-	dirProcessed paths.AbsPath
-	images       []image.Processed
-	problems     []imageProblem
+	images   []image.Processed
+	problems []imageProblem
 }
 
 type imageProblem struct {
@@ -65,8 +64,7 @@ func (p *imageProcessor) processDir() (processResult, error) {
 	}
 
 	res := processResult{
-		dirProcessed: p.cfg.InDir,
-		problems:     p.recordMetadataProblems(metadataResult.FileProblems),
+		problems: p.recordMetadataProblems(metadataResult.FileProblems),
 	}
 
 	fmt.Fprint(p.progressReporter, "\n----------------\n")
