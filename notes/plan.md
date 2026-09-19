@@ -1,31 +1,10 @@
 # Development plan
 
-These are the next two items to implement from `notes/todo.md`, listed in recommended implementation order.
+This is the next item to implement from `notes/todo.md`.
 
-Each item includes small implementation steps sized for focused commits.
+The item includes small implementation steps sized for focused commits.
 
-## 1. Create image directories exclusively
-
-**Type:** Fix
-**Package(s):** `cmd/webimage`
-
-A random image-directory collision is very unlikely, but it must not cause the processor to reuse or later remove a pre-existing directory. Prefer a direct error over retry machinery that exists mainly to support an implausible test case.
-
-Small implementation steps:
-
-1. **Separate directory selection from creation.**
-   - Keep date-based relative path construction separate from filesystem mutation.
-   - Create the year/month parents with `os.MkdirAll`, then create only the random leaf with `os.Mkdir`.
-
-2. **Fail directly on a collision.**
-   - Return a clear error when the random leaf already exists.
-   - Do not make random ID generation injectable or add collision retries.
-
-3. **Protect pre-existing directories.**
-   - Run cleanup only after the current attempt successfully created the leaf directory.
-   - Rely on the existing processor integration test for normal directory creation; do not add persisted collision tests unless the implementation develops nontrivial collision handling.
-
-## 2. Reject variant overwrites
+## 1. Reject variant overwrites
 
 **Type:** Fix
 **Package(s):** `internal/variants`

@@ -10,7 +10,6 @@ These items have been promoted to `notes/plan.md`. The plan is the authoritative
 
 ### Fix
 
-- **Create image directories exclusively (`cmd/webimage`):** Create random leaf directories with exclusive `os.Mkdir`, fail directly on the unlikely collision, and never clean a directory that predated the current attempt; avoid injection and retry machinery added mainly for testing.
 - **Reject variant overwrites (`internal/variants`):** Treat existing destinations as per-variant failures, do not invoke `vipsthumbnail` for them, and leave their contents unchanged.
 
 ## Unplanned items
