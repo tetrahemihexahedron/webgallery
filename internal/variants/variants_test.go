@@ -143,11 +143,15 @@ func TestVipsthumbnailGenerateReturnsPartialResult(t *testing.T) {
 	wantProblem := "unsupported output file extension"
 
 	got, err := (&variants.Vipsthumbnail{}).Generate(source, specs)
-	if err == nil {
-		t.Fatalf("Vipsthumbnail.Generate(%q, %+v) returned nil error, want error", source, specs)
+	if err != nil {
+		t.Fatalf("Vipsthumbnail.Generate(%q, %+v) returned request error: %v", source, specs, err)
 	}
-	if !strings.Contains(err.Error(), wantProblem) {
-		t.Errorf("Vipsthumbnail.Generate(%q, %+v) error = %v, want message containing %q", source, specs, err, wantProblem)
+	variantErr := got.Err()
+	if variantErr == nil {
+		t.Fatalf("Vipsthumbnail.Generate(%q, %+v) result error = nil, want error", source, specs)
+	}
+	if !strings.Contains(variantErr.Error(), wantProblem) {
+		t.Errorf("Vipsthumbnail.Generate(%q, %+v) result error = %v, want message containing %q", source, specs, variantErr, wantProblem)
 	}
 
 	if !slices.Equal(got.Generated, wantGenerated) {
@@ -206,11 +210,15 @@ func TestVipsthumbnailGenerateReportsSpecProblems(t *testing.T) {
 			specs := []variants.Spec{spec}
 			got, err := (&variants.Vipsthumbnail{}).Generate(source, specs)
 
-			if err == nil {
-				t.Fatalf("Vipsthumbnail.Generate(%q, %+v) returned nil error, want error containing %q", source, specs, tc.wantProblem)
+			if err != nil {
+				t.Fatalf("Vipsthumbnail.Generate(%q, %+v) returned request error: %v", source, specs, err)
 			}
-			if !strings.Contains(err.Error(), tc.wantProblem) {
-				t.Errorf("Vipsthumbnail.Generate(%q, %+v) error = %v, want message containing %q", source, specs, err, tc.wantProblem)
+			variantErr := got.Err()
+			if variantErr == nil {
+				t.Fatalf("Vipsthumbnail.Generate(%q, %+v) result error = nil, want error containing %q", source, specs, tc.wantProblem)
+			}
+			if !strings.Contains(variantErr.Error(), tc.wantProblem) {
+				t.Errorf("Vipsthumbnail.Generate(%q, %+v) result error = %v, want message containing %q", source, specs, variantErr, tc.wantProblem)
 			}
 
 			if len(got.Generated) != 0 {
@@ -234,38 +242,42 @@ func TestVipsthumbnailGenerateReportsSpecProblems(t *testing.T) {
 	}
 }
 
-func TestVipsthumbnailGenerateReturnsError(t *testing.T) {
-	t.Run("empty source path", func(t *testing.T) {
+func TestVipsthumbnailGenerateClassifiesErrors(t *testing.T) {
+	t.Run("empty source path is a request error", func(t *testing.T) {
 		var source paths.AbsPath
 		specs := []variants.Spec{{OutPath: mustAbs(t, filepath.Join(t.TempDir(), "w400.jpg")), Width: 400}}
 		got, err := (&variants.Vipsthumbnail{}).Generate(source, specs)
 		wantProblem := "source file path cannot be empty"
 
 		if err == nil {
-			t.Fatalf("Vipsthumbnail.Generate(%q, %+v) returned nil error, want error containing %q", source, specs, wantProblem)
+			t.Fatalf("Vipsthumbnail.Generate(%q, %+v) returned nil request error, want error containing %q", source, specs, wantProblem)
 		}
 		if !strings.Contains(err.Error(), wantProblem) {
-			t.Errorf("Vipsthumbnail.Generate(%q, %+v) error = %v, want message containing %q", source, specs, err, wantProblem)
+			t.Errorf("Vipsthumbnail.Generate(%q, %+v) request error = %v, want message containing %q", source, specs, err, wantProblem)
 		}
 		if len(got.Generated) != 0 || len(got.Failed) != 0 {
-			t.Errorf("Vipsthumbnail.Generate(%q, %+v) result = %+v, want no generated or failed variants", source, specs, got)
+			t.Errorf("Vipsthumbnail.Generate(%q, %+v) result = %+v, want empty result", source, specs, got)
 		}
 	})
 
-	t.Run("vipsthumbnail command fails for missing source", func(t *testing.T) {
+	t.Run("vipsthumbnail command failure is a variant error", func(t *testing.T) {
 		source := mustAbs(t, filepath.Join("testdata", "nonexistent.jpg"))
 		spec := variants.Spec{OutPath: mustAbs(t, filepath.Join(t.TempDir(), "w400.jpg")), Width: 400}
 		specs := []variants.Spec{spec}
 		got, err := (&variants.Vipsthumbnail{}).Generate(source, specs)
 
-		if err == nil {
-			t.Fatalf("Vipsthumbnail.Generate(%q, %+v) returned nil error, want error wrapping *exec.ExitError", source, specs)
+		if err != nil {
+			t.Fatalf("Vipsthumbnail.Generate(%q, %+v) returned request error: %v", source, specs, err)
 		}
-		if _, ok := errors.AsType[*exec.ExitError](err); !ok {
-			t.Errorf("Vipsthumbnail.Generate(%q, %+v) returned error %v (%T), want error wrapping *exec.ExitError", source, specs, err, err)
+		variantErr := got.Err()
+		if variantErr == nil {
+			t.Fatalf("Vipsthumbnail.Generate(%q, %+v) result error = nil, want error wrapping *exec.ExitError", source, specs)
 		}
-		if !strings.Contains(err.Error(), "image generation failed") {
-			t.Errorf("Vipsthumbnail.Generate(%q, %+v) error = %v, want message containing %q", source, specs, err, "image generation failed")
+		if _, ok := errors.AsType[*exec.ExitError](variantErr); !ok {
+			t.Errorf("Vipsthumbnail.Generate(%q, %+v) result error %v (%T), want error wrapping *exec.ExitError", source, specs, variantErr, variantErr)
+		}
+		if !strings.Contains(variantErr.Error(), "image generation failed") {
+			t.Errorf("Vipsthumbnail.Generate(%q, %+v) result error = %v, want message containing %q", source, specs, variantErr, "image generation failed")
 		}
 		if len(got.Generated) != 0 {
 			t.Errorf("Vipsthumbnail.Generate(%q, %+v) generated specs: %+v, want none", source, specs, got.Generated)

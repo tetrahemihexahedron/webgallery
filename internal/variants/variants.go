@@ -17,7 +17,8 @@ type Spec struct {
 	Width   int
 }
 
-// Result reports which variants were generated and which failed.
+// Result reports which individual variant attempts succeeded or failed.
+// Generate reports request-level failures through its separate error return.
 type Result struct {
 	Generated []Spec
 	Failed    []Failure
@@ -40,6 +41,10 @@ func (r Result) Err() error {
 
 type Vipsthumbnail struct{}
 
+// Generate attempts every requested variant unless the request is invalid.
+// It returns request-level validation errors directly with an empty Result.
+// Errors from individual attempts are recorded in Result.Failed and available
+// through Result.Err; they do not make Generate return an error.
 func (v *Vipsthumbnail) Generate(source paths.AbsPath, specs []Spec) (Result, error) {
 	if source.String() == "" {
 		return Result{}, errors.New("source file path cannot be empty")
@@ -56,7 +61,7 @@ func (v *Vipsthumbnail) Generate(source paths.AbsPath, specs []Spec) (Result, er
 		}
 		result.Generated = append(result.Generated, spec)
 	}
-	return result, result.Err()
+	return result, nil
 }
 
 func generateVariant(source paths.AbsPath, spec Spec) error {

@@ -357,6 +357,9 @@ func (p *imageProcessor) processImage(source sourceImage) (image.Processed, erro
 
 	if len(result.Generated) == 0 {
 		if err == nil {
+			err = result.Err()
+		}
+		if err == nil {
 			err = fmt.Errorf("%d variants were attempted, and no errors were reported", len(specs))
 		}
 		return image.Processed{}, cleanupImageDirOnError(
