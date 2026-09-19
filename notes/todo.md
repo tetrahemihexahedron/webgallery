@@ -10,8 +10,7 @@ These items have been promoted to `notes/plan.md`. The plan is the authoritative
 
 ### Refactor
 
-- **Clarify gallery sort parsing and loaded-image names (`cmd/gallery`, `internal/gallery`):** Add a sort-field parser that centralizes valid values and error wording, then rename the combined index/manifest type and its index-entry field for clarity.
-- **Revisit the variants API (`internal/variants`, `cmd/webimage`):** Export and document result-error handling, improve Vips-related naming, move from path-inferred encoders toward typed format/config and request data, clarify partial results, and return enough information to avoid reparsing generated paths.
+- **Clarify variant generator results and names (`internal/variants`, `cmd/webimage`):** Make `Result` the sole return value from generation, expose and document its aggregate error handling, clarify the partial-result contract, and improve command-local variable names without changing generation behavior.
 
 ### Fix
 
@@ -29,7 +28,7 @@ Packages are sorted by path. Within each package, items use the type order `refa
 
 #### Refactor
 
-- **Centralize enum parsing:** Enum-like values still use scattered conversion, validation, defaults, and error wording. Add parser functions where repetition warrants them, such as a future `ParseDirDate`; `ParseSortField` is already represented in the plan.
+- **Centralize enum parsing:** Enum-like values still use scattered conversion, validation, defaults, and error wording. Add parser functions where repetition warrants them, such as a future `ParseDirDate`.
 
 #### Fix
 
@@ -219,6 +218,7 @@ Packages are sorted by path. Within each package, items use the type order `refa
 
 #### Refactor
 
+- **Make variant generation format-driven:** `cmd/webimage` currently constructs every absolute output path, `internal/variants` infers the encoder from each extension, and the command then reparses generated paths for manifest data. If this boundary is redesigned, replace the `Spec` call with a request containing the source, output directory, widths, and typed format configuration; return generated descriptors with format, relative path, and requested width; and remove `variantSpecs` and `identifyVariants` rather than maintaining parallel APIs.
 - **Keep execution injectable only when tests need it:** A small command runner can make warnings and missing outputs deterministic to test without over-generalizing the wrapper.
 
 #### Fix

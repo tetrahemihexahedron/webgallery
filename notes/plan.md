@@ -6,68 +6,28 @@ Each item should include detailed small implementation steps sized for focused c
 
 ## Refactoring
 
-### 1. Clarify gallery sort parsing and loaded-image names
-
-**Package(s):** `internal/gallery`, `cmd/gallery`
-
-The gallery package should own the parsing and validation of its sort values. Its loaded-image names can also distinguish the combined index/manifest data more clearly. Keep this as a focused cleanup without changing sorting or rendering behavior.
-
-Small implementation steps:
-
-1. **Add `gallery.ParseSortField`.**
-   - Implement `func ParseSortField(s string) (SortField, error)`.
-   - Move valid-value error wording into `internal/gallery`.
-   - Update `cmd/gallery` to use it while retaining validation in `Render` for direct callers.
-
-2. **Rename internal loaded-image types.**
-   - Rename `galleryImage` to `loadedImage`.
-   - Rename its `indexImage` field to `indexEntry`.
-   - Keep this as a pure rename commit.
-
-### 2. Revisit the variants API shape
+### 1. Clarify variant generator results and names
 
 **Package(s):** `internal/variants`, `cmd/webimage`
 
-The caller currently constructs detailed output paths, the variants package infers encoding from path extensions, and `cmd/webimage` later reparses the paths to identify generated variants. A clearer API would put variant-generation knowledge in one place.
+Variant generation can succeed for some specifications and fail for others, so returning both a `Result` and an error duplicates failure state. Make `Result` the sole generation outcome, clarify its error contract, and improve the command-argument names without changing generation behavior or redesigning the request API.
 
 Small implementation steps:
 
-1. **Export `Result.Err`.**
+1. **Export `Result.Err` and return only `Result` from `Generate`.**
    - Rename `func (r Result) err() error` to `func (r Result) Err() error`.
-   - Keep `Generate`'s return signature unchanged initially.
-   - Update callers/tests to use the exported method where helpful.
+   - Change `Generate` to return only `Result`, then update the consumer interface, callers, and tests to obtain the error from `result.Err()`.
+   - Preserve source-path validation errors in the result, rather than losing errors that occur before any specification is attempted.
+   - Add focused coverage for successful results, multiple per-spec failures, and source-path validation failures.
 
 2. **Document partial-result semantics.**
-   - Add comments to `Generate` and `Result` explaining whether callers should inspect both `Generated` and `Failed`.
-   - This can be done before behavior changes.
+   - Document that, after source-path validation, `Generate` attempts every specification and records each attempt in either `Generated` or `Failed`.
+   - Explain that `Result.Err()` reports source-path validation errors and aggregates per-spec failures.
+   - Keep generation and partial-result behavior unchanged apart from the return-signature refactor.
 
-3. **Rename `Vipsthumbnail`.**
-   - Consider `VipsThumbnail` for Go readability.
-   - Update command construction in `cmd/webimage` and tests.
-
-4. **Rename command-local variables.**
-   - In `generateVariant`, rename `width` -> `sizeArg`, `path` -> `outputArg`, and `out` -> `cmdOutput`.
-   - This clarifies the difference between image dimensions, filesystem paths, and command arguments.
-
-5. **Introduce a format/config type.**
-   - Add an internal or exported type for generated formats and encoder options.
-   - Move `determineEncoderOptions(path)` toward a format-driven helper.
-
-6. **Add a higher-level request type experimentally.**
-   - Consider:
-     ```go
-     type Request struct {
-         SourcePath paths.AbsPath
-         OutputDir  paths.AbsPath
-         Widths     []int
-         Formats    []FormatConfig
-     }
-     ```
-   - Keep the existing `Spec` API until the request type proves simpler.
-
-7. **Move variant identification closer to generation.**
-   - Have the variants package return enough information for manifests, such as format, relative path, requested width, and maybe actual dimensions.
-   - Then remove or simplify `cmd/webimage.identifyVariants`.
+3. **Clarify command-local variable names.**
+   - In `generateVariant`, rename `width` to `sizeArg`, `path` to `outputArg`, and `out` to `cmdOutput`.
+   - Keep this as a pure naming change.
 
 ## Behavior improvements
 
