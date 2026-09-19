@@ -33,11 +33,11 @@ func parseArgs(args []string, output io.Writer) (Config, error) {
 	flags.SetOutput(output)
 
 	flags.StringVar(&imagesRootPath, "images", "", "webimage output root containing index.json")
-	flags.StringVar(&outFilePath, "output", "", "HTML output file, or stdout when omitted or '-'")
+	flags.StringVar(&outFilePath, "output", "", "HTML output file or stdout when omitted or '-'")
 	flags.StringVar(&cfg.URLPrefix, "url-prefix", "", "public URL prefix for image URLs")
 
 	sort := string(gallery.SortProcessed)
-	flags.StringVar(&sort, "sort", sort, "sort field: processed (default), or captured (requires capturedAt for every image)")
+	flags.StringVar(&sort, "sort", sort, "sort field: processed (default) or captured (requires capturedAt for every image)")
 
 	if err := flags.Parse(args); err != nil {
 		return Config{}, err
