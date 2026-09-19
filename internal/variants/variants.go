@@ -4,30 +4,32 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
-	"path/filepath"
 	"strconv"
-	"strings"
 
+	"tetrahemihexahedron/webimage/internal/image"
 	"tetrahemihexahedron/webimage/internal/paths"
 )
 
-// Spec describes one output image variant to generate.
-type Spec struct {
-	OutPath paths.AbsPath
-	Width   int
+// Request describes the source and output variants to generate.
+type Request struct {
+	SourcePath paths.AbsPath
+	OutputDir  paths.AbsPath
+	Widths     []int
+	Formats    []image.Format
 }
 
 // Result reports which individual variant attempts succeeded or failed.
 // Generate reports request-level failures through its separate error return.
 type Result struct {
-	Generated []Spec
+	Generated []image.Variant
 	Failed    []Failure
 }
 
 // Failure reports why one variant could not be generated.
 type Failure struct {
-	Spec Spec
-	Err  error
+	Format image.Format
+	Width  int
+	Err    error
 }
 
 // Err returns the errors reported for individual variant attempts.
@@ -39,93 +41,115 @@ func (r Result) Err() error {
 	return errors.Join(errs...)
 }
 
-type Vipsthumbnail struct{}
+type plannedVariant struct {
+	variant        image.Variant
+	outputPath     paths.AbsPath
+	encoderOptions string
+}
 
-// Generate attempts every requested variant unless the request is invalid.
-// It returns request-level validation errors directly with an empty Result.
-// Errors from individual attempts are recorded in Result.Failed and available
-// through Result.Err; they do not make Generate return an error.
-func (v *Vipsthumbnail) Generate(source paths.AbsPath, specs []Spec) (Result, error) {
-	if source.String() == "" {
+// Generate attempts every requested format and width combination unless the
+// request is invalid. It returns request-level validation errors directly with
+// an empty Result. Errors from individual attempts are recorded in
+// Result.Failed and available through Result.Err; they do not make Generate
+// return an error.
+func Generate(req Request) (Result, error) {
+	if req.SourcePath.String() == "" {
 		return Result{}, errors.New("source file path cannot be empty")
 	}
 
 	result := Result{
-		Generated: make([]Spec, 0, len(specs)),
+		Generated: make([]image.Variant, 0, len(req.Widths)*len(req.Formats)),
 	}
 
-	for _, spec := range specs {
-		if err := generateVariant(source, spec); err != nil {
-			result.Failed = append(result.Failed, Failure{Spec: spec, Err: err})
-			continue
+	for _, format := range req.Formats {
+		for _, width := range req.Widths {
+			planned, err := planVariant(req.OutputDir, format, width)
+			if err == nil {
+				err = generateVariant(req.SourcePath, planned)
+			}
+			if err != nil {
+				result.Failed = append(result.Failed, Failure{
+					Format: format,
+					Width:  width,
+					Err:    wrapError(err, format, width),
+				})
+				continue
+			}
+			result.Generated = append(result.Generated, planned.variant)
 		}
-		result.Generated = append(result.Generated, spec)
 	}
+
 	return result, nil
 }
 
-func generateVariant(source paths.AbsPath, spec Spec) error {
-	if err := validateSpec(spec); err != nil {
-		return wrapError(err, spec)
+func planVariant(outputDir paths.AbsPath, format image.Format, width int) (plannedVariant, error) {
+	if outputDir.String() == "" {
+		return plannedVariant{}, errors.New("output directory path cannot be empty")
 	}
-	if source == spec.OutPath {
-		return wrapError(errors.New("source and output file paths cannot be the same"), spec)
+	if width <= 0 {
+		return plannedVariant{}, errors.New("width must be positive")
 	}
 
-	options, err := determineEncoderOptions(spec.OutPath)
+	extension, encoderOptions, err := formatSettings(format)
 	if err != nil {
-		return wrapError(err, spec)
+		return plannedVariant{}, err
+	}
+
+	path, err := paths.NewRelPath("w" + strconv.Itoa(width) + extension)
+	if err != nil {
+		return plannedVariant{}, err
+	}
+	outputPath, err := paths.JoinAbs(outputDir, path)
+	if err != nil {
+		return plannedVariant{}, err
+	}
+
+	return plannedVariant{
+		variant: image.Variant{
+			Path:   path,
+			Format: format,
+			Width:  width,
+		},
+		outputPath:     outputPath,
+		encoderOptions: encoderOptions,
+	}, nil
+}
+
+func generateVariant(source paths.AbsPath, planned plannedVariant) error {
+	if source == planned.outputPath {
+		return errors.New("source and output file paths cannot be the same")
 	}
 
 	// appending '>' tells libvips to only shrink; if the image is already
 	// smaller than the requested size, the size won't change
-	sizeArg := strconv.Itoa(spec.Width) + "x>"
-	outputArg := spec.OutPath.String() + options
+	sizeArg := strconv.Itoa(planned.variant.Width) + "x>"
+	outputArg := planned.outputPath.String() + planned.encoderOptions
 
 	cmd := exec.Command("vipsthumbnail", source.String(), "--size", sizeArg, "--output", outputArg)
 
 	cmdOutput, err := cmd.CombinedOutput()
-
 	if err != nil {
-		return wrapError(fmt.Errorf("image generation failed: %s; %w", cmdOutput, err), spec)
+		return fmt.Errorf("image generation failed: %s; %w", cmdOutput, err)
 	}
 	// cmdOutput is expected to be empty when image generation was successful
 	if len(cmdOutput) != 0 {
-		return wrapError(fmt.Errorf("unexpected output from image generation: %s", cmdOutput), spec)
+		return fmt.Errorf("unexpected output from image generation: %s", cmdOutput)
 	}
 
 	return nil
 }
 
-func wrapError(err error, spec Spec) error {
-	return fmt.Errorf(
-		"generating %q with width %d: %w",
-		spec.OutPath,
-		spec.Width,
-		err,
-	)
+func wrapError(err error, format image.Format, width int) error {
+	return fmt.Errorf("generating %s variant with width %d: %w", format, width, err)
 }
 
-func validateSpec(spec Spec) error {
-	if spec.OutPath.String() == "" {
-		return errors.New("output file path cannot be empty")
-	}
-
-	if spec.Width <= 0 {
-		return errors.New("width must be positive")
-	}
-
-	return nil
-}
-
-func determineEncoderOptions(path paths.AbsPath) (string, error) {
-	ext := filepath.Ext(path.String())
-	switch strings.ToLower(ext) {
-	case ".jpeg", ".jpg":
-		return "[Q=75,keep=none]", nil
-	case ".avif":
-		return "[Q=75,effort=6,keep=none]", nil
+func formatSettings(format image.Format) (extension, encoderOptions string, err error) {
+	switch format {
+	case image.FormatJPEG:
+		return ".jpg", "[Q=75,keep=none]", nil
+	case image.FormatAVIF:
+		return ".avif", "[Q=75,effort=6,keep=none]", nil
 	default:
-		return "", fmt.Errorf("unsupported output file extension %q", ext)
+		return "", "", fmt.Errorf("unsupported output format %q", format)
 	}
 }
