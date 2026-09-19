@@ -55,52 +55,7 @@ Small implementation steps:
    - Change `variantSpecs(imgDir paths.AbsPath, img image.Processed)` to take only what it uses, such as `variantSpecs(imgDir paths.AbsPath, sourceWidth int)`.
    - Or move the planning into `internal/variants` later if that package owns more of the generation request.
 
-### 2. Make manifest and index APIs clearer and more symmetric
-
-**Package(s):** `internal/manifest`, `internal/index`
-
-The manifest package reads a `manifest.Manifest` but writes an `image.Processed`. The index package has names that are easy to confuse with the `internal/image` package. Clean API boundaries will make package responsibilities clearer.
-
-Small implementation steps:
-
-1. **Rename internal JSON DTO types.**
-   - In `internal/manifest`: `manifestFile` -> `manifestJSON`, `variantFile` -> `variantJSON`.
-   - In `internal/index`: `indexFile` -> `indexJSON`, `imageFile` -> `entryJSON`.
-   - This is a low-risk readability commit because these types are unexported.
-
-2. **Rename `manifest.File`.**
-   - Change exported `manifest.File` to `manifest.VariantFile`.
-   - Update `internal/gallery` and tests.
-   - This makes call sites like `manifest.VariantFile` much clearer.
-
-3. **Add `manifest.FromProcessed`.**
-   - Add `func FromProcessed(img image.Processed) (Manifest, error)` or `func FromProcessed(img image.Processed) Manifest` if validation is not added yet.
-   - Move conversion logic out of `Write` into this helper.
-
-4. **Add symmetric manifest write functions.**
-   - Add `WriteFile(path paths.AbsPath, mani Manifest) error` or `WriteDir(imgDir paths.AbsPath, mani Manifest) error`.
-   - Update `cmd/webimage` to call `manifest.FromProcessed` and then the new write function.
-   - Keep the existing `Write` wrapper temporarily if useful.
-
-5. **Remove or de-emphasize the old manifest `Write`.**
-   - After callers use the clearer API, remove `Write(imgDir, image.Processed)` or leave it as a thin convenience wrapper with a clearer comment.
-
-6. **Rename `index.Image`.**
-   - Consider `index.Entry` or `index.ImageEntry`.
-   - Update the index package, gallery package, and tests in one focused commit.
-
-7. **Consider clearer index update names.**
-   - Either rename `UpdateFile` to something like `AppendAndWriteDir`, or split it into `Append` and `WriteDir`.
-   - Prefer the split only if it makes callers simpler, not just for abstraction.
-
-8. **Split `internal/index/index.go` by responsibility.**
-   - Suggested files:
-     - `index.go`: public types, constants, `IndexPath`, lookup helpers
-     - `read.go`: JSON reading and JSON-to-domain conversion
-     - `write.go`: update/write and domain-to-JSON conversion
-   - Do this after renaming so files start with clearer type names.
-
-### 3. Improve gallery data flow and option parsing
+### 2. Improve gallery data flow and option parsing
 
 **Package(s):** `internal/gallery`, `cmd/gallery`
 
@@ -138,7 +93,7 @@ Small implementation steps:
    - Add a small helper if needed, such as `normalizeOptions(opts Options) (Options, error)`.
    - This is a good place for future defaults like `sizes` or fallback width.
 
-### 4. Revisit the variants API shape
+### 3. Revisit the variants API shape
 
 **Package(s):** `internal/variants`, `cmd/webimage`
 
