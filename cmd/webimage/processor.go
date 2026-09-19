@@ -364,14 +364,14 @@ func (p *imageProcessor) processImage(source sourceImage) (image.Processed, erro
 	variantErr := result.Err()
 	if len(result.Generated) == 0 {
 		if variantErr == nil {
-			variantErr = fmt.Errorf("%d variants were attempted, and no errors were reported", len(specs))
+			variantErr = fmt.Errorf(
+				"no variants were generated, even though %d variants were attempted and no failures were reported",
+				len(specs),
+			)
 		} else {
-			variantErr = fmt.Errorf("%d generated, %d failed: %w", len(result.Generated), len(result.Failed), variantErr)
+			variantErr = fmt.Errorf("%d variants were attempted but all failed: %w", len(specs), variantErr)
 		}
-		return image.Processed{}, cleanupImageDirOnError(
-			imgDirAbsPath,
-			fmt.Errorf("no variants were generated: %w", variantErr),
-		)
+		return image.Processed{}, cleanupImageDirOnError(imgDirAbsPath, variantErr)
 	}
 	if variantErr != nil {
 		return image.Processed{}, cleanupImageDirOnError(
