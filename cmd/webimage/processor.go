@@ -41,6 +41,12 @@ type imageProblem struct {
 	message  string
 }
 
+type sourceImage struct {
+	metadata image.Metadata
+	path     paths.AbsPath
+	sha256   string
+}
+
 type imageProcessor struct {
 	cfg              Config
 	metadataReader   metadataReader
@@ -162,7 +168,13 @@ func (p *imageProcessor) processMetadataEntry(meta image.Metadata, imageDirsByHa
 		}
 	}
 
-	if existingImgDir, ok := imageDirsByHash[sourceHash]; ok {
+	source := sourceImage{
+		metadata: meta,
+		path:     sourceAbsPath,
+		sha256:   sourceHash,
+	}
+
+	if existingImgDir, ok := imageDirsByHash[source.sha256]; ok {
 		fmt.Fprintf(
 			p.progressReporter,
 			"Skipping %q: duplicate of image in %q\n",
@@ -176,7 +188,7 @@ func (p *imageProcessor) processMetadataEntry(meta image.Metadata, imageDirsByHa
 		}
 	}
 
-	processedImg, err := p.processImage(meta, sourceHash, sourceAbsPath)
+	processedImg, err := p.processImage(source)
 	if err != nil {
 		fmt.Fprintf(
 			p.progressReporter,
@@ -191,7 +203,7 @@ func (p *imageProcessor) processMetadataEntry(meta image.Metadata, imageDirsByHa
 		}
 	}
 
-	imageDirsByHash[sourceHash] = processedImg.DirRelPath
+	imageDirsByHash[source.sha256] = processedImg.DirRelPath
 
 	fmt.Fprintf(
 		p.progressReporter,
@@ -288,9 +300,9 @@ func cleanupImageDirOnError(imgDir paths.AbsPath, originalErr error) error {
 	return originalErr
 }
 
-func (p *imageProcessor) processImage(meta image.Metadata, sourceHash string, sourceAbsPath paths.AbsPath) (image.Processed, error) {
+func (p *imageProcessor) processImage(source sourceImage) (image.Processed, error) {
 	processedAt := time.Now().UTC()
-	dirDate, err := dirDate(p.cfg.DirDate, meta.CapturedAt, processedAt)
+	dirDate, err := dirDate(p.cfg.DirDate, source.metadata.CapturedAt, processedAt)
 	if err != nil {
 		return image.Processed{}, err
 	}
@@ -315,25 +327,25 @@ func (p *imageProcessor) processImage(meta image.Metadata, sourceHash string, so
 	if err != nil {
 		return image.Processed{}, cleanupImageDirOnError(imgDirAbsPath, err)
 	}
-	if err := copyFile(sourceAbsPath, sourceDest); err != nil {
+	if err := copyFile(source.path, sourceDest); err != nil {
 		return image.Processed{}, cleanupImageDirOnError(
 			imgDirAbsPath,
-			fmt.Errorf("unable to copy source %s to %s: %w", sourceAbsPath, imgDirAbsPath, err),
+			fmt.Errorf("unable to copy source %s to %s: %w", source.path, imgDirAbsPath, err),
 		)
 	}
 
 	sourceFile := image.Source{
-		Hash:   sourceHash,
-		Width:  meta.Width,
-		Height: meta.Height,
+		Hash:   source.sha256,
+		Width:  source.metadata.Width,
+		Height: source.metadata.Height,
 	}
 
 	processedImg := image.Processed{
 		Source:      sourceFile,
 		DirRelPath:  imgDirRelPath,
-		Title:       meta.Title,
-		Description: meta.Description,
-		CapturedAt:  meta.CapturedAt,
+		Title:       source.metadata.Title,
+		Description: source.metadata.Description,
+		CapturedAt:  source.metadata.CapturedAt,
 		ProcessedAt: image.FormatProcessedAt(processedAt),
 	}
 
@@ -341,7 +353,7 @@ func (p *imageProcessor) processImage(meta image.Metadata, sourceHash string, so
 	if err != nil {
 		return image.Processed{}, cleanupImageDirOnError(imgDirAbsPath, err)
 	}
-	result, err := p.variantGenerator.Generate(sourceAbsPath, specs)
+	result, err := p.variantGenerator.Generate(source.path, specs)
 
 	if len(result.Generated) == 0 {
 		if err == nil {
