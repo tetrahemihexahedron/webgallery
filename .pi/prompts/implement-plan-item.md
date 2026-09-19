@@ -70,7 +70,8 @@ Carry out the complete workflow below. Do not merely describe what should be don
 ## 6. Make small commits
 
 - Commit each coherent implementation step separately when the repository remains valid and understandable at that boundary.
-- Prefer one commit per plan step, but combine tightly coupled steps when splitting them would produce a broken, misleading, or mechanical-only commit.
+- Prefer at least one commit per plan step. Use additive migrations to keep intermediate commits valid: introduce the new API alongside the old one, migrate callers, then remove the old API.
+- Temporary compatibility adapters are acceptable when they enable coherent commits, but should be removed before the branch is finished.
 - Keep tests with the behavior or refactoring they verify.
 - Before each commit:
   - inspect the staged diff;
