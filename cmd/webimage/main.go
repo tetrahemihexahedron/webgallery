@@ -20,7 +20,7 @@ func main() {
 		progressReporter = io.Discard
 	}
 
-	processor := processor{
+	processor := imageProcessor{
 		cfg:              cfg,
 		metadataReader:   &metadata.Exiftool{},
 		variantGenerator: &variants.Vipsthumbnail{},

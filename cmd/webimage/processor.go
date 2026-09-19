@@ -31,40 +31,40 @@ type variantGenerator interface {
 	Generate(source paths.AbsPath, specs []variants.Spec) (variants.Result, error)
 }
 
-type result struct {
+type processResult struct {
 	dirProcessed paths.AbsPath
 	images       []image.Processed
-	problems     []fileProblem
+	problems     []imageProblem
 }
 
-type fileProblem struct {
+type imageProblem struct {
 	fileName string
 	message  string
 }
 
-type processor struct {
+type imageProcessor struct {
 	cfg              Config
 	metadataReader   metadataReader
 	variantGenerator variantGenerator
 	progressReporter io.Writer
 }
 
-func (p *processor) processDir() (result, error) {
+func (p *imageProcessor) processDir() (processResult, error) {
 	inDirAbsPath := p.cfg.InDir.String()
 
 	fmt.Fprintf(p.progressReporter, "Processing image files in %q\n", inDirAbsPath)
 
 	imageIndex, imageDirsByHash, err := loadExistingIndex(p.cfg.OutDir)
 	if err != nil {
-		return result{}, err
+		return processResult{}, err
 	}
 
 	metadataResult, err := p.readIncomingMetadata()
 	if err != nil {
-		return result{}, err
+		return processResult{}, err
 	}
 
-	res := result{
+	res := processResult{
 		dirProcessed: p.cfg.InDir,
 		problems:     p.recordMetadataProblems(metadataResult.FileProblems),
 	}
@@ -82,13 +82,13 @@ func (p *processor) processDir() (result, error) {
 	}
 
 	if err := p.writeUpdatedIndex(&imageIndex, res.images); err != nil {
-		return result{}, err
+		return processResult{}, err
 	}
 
 	return res, nil
 }
 
-func (p *processor) writeUpdatedIndex(imageIndex *index.Index, images []image.Processed) error {
+func (p *imageProcessor) writeUpdatedIndex(imageIndex *index.Index, images []image.Processed) error {
 	if err := imageIndex.Update(p.cfg.OutDir, images); err != nil {
 		updateErr := fmt.Errorf("updating index: %w", err)
 		if cleanupErr := deleteProcessedImageDirs(p.cfg.OutDir, images); cleanupErr != nil {
@@ -100,7 +100,7 @@ func (p *processor) writeUpdatedIndex(imageIndex *index.Index, images []image.Pr
 	return nil
 }
 
-func (p *processor) processMetadataEntry(metadata image.Metadata, imageDirsByHash map[string]paths.RelPath) (image.Processed, *fileProblem) {
+func (p *imageProcessor) processMetadataEntry(metadata image.Metadata, imageDirsByHash map[string]paths.RelPath) (image.Processed, *imageProblem) {
 	if image.ParseFormat(metadata.Format) != image.FormatJPEG {
 		fmt.Fprintf(
 			p.progressReporter,
@@ -109,7 +109,7 @@ func (p *processor) processMetadataEntry(metadata image.Metadata, imageDirsByHas
 			metadata.Format,
 		)
 
-		return image.Processed{}, &fileProblem{
+		return image.Processed{}, &imageProblem{
 			fileName: metadata.FileName,
 			message: fmt.Sprintf(
 				"skipping file %q: format is %s, not JPEG",
@@ -128,7 +128,7 @@ func (p *processor) processMetadataEntry(metadata image.Metadata, imageDirsByHas
 			err,
 		)
 
-		return image.Processed{}, &fileProblem{
+		return image.Processed{}, &imageProblem{
 			fileName: metadata.FileName,
 			message:  fmt.Sprintf("source path error: %v", err),
 		}
@@ -143,7 +143,7 @@ func (p *processor) processMetadataEntry(metadata image.Metadata, imageDirsByHas
 			err,
 		)
 
-		return image.Processed{}, &fileProblem{
+		return image.Processed{}, &imageProblem{
 			fileName: metadata.FileName,
 			message:  fmt.Sprintf("source path error: %v", err),
 		}
@@ -158,7 +158,7 @@ func (p *processor) processMetadataEntry(metadata image.Metadata, imageDirsByHas
 			err,
 		)
 
-		return image.Processed{}, &fileProblem{
+		return image.Processed{}, &imageProblem{
 			fileName: metadata.FileName,
 			message:  fmt.Sprintf("file hashing error: %v", err),
 		}
@@ -172,7 +172,7 @@ func (p *processor) processMetadataEntry(metadata image.Metadata, imageDirsByHas
 			existingImgDir,
 		)
 
-		return image.Processed{}, &fileProblem{
+		return image.Processed{}, &imageProblem{
 			fileName: metadata.FileName,
 			message:  fmt.Sprintf("skipping duplicate of image in %q", existingImgDir),
 		}
@@ -187,7 +187,7 @@ func (p *processor) processMetadataEntry(metadata image.Metadata, imageDirsByHas
 			err,
 		)
 
-		return image.Processed{}, &fileProblem{
+		return image.Processed{}, &imageProblem{
 			fileName: metadata.FileName,
 			message:  fmt.Sprintf("file processing error: %v", err),
 		}
@@ -206,8 +206,8 @@ func (p *processor) processMetadataEntry(metadata image.Metadata, imageDirsByHas
 	return imageProcessed, nil
 }
 
-func (p *processor) recordMetadataProblems(problems []metadata.Problem) []fileProblem {
-	var fileProblems []fileProblem
+func (p *imageProcessor) recordMetadataProblems(problems []metadata.Problem) []imageProblem {
+	var imageProblems []imageProblem
 
 	for _, problem := range problems {
 		fmt.Fprintf(
@@ -217,16 +217,16 @@ func (p *processor) recordMetadataProblems(problems []metadata.Problem) []filePr
 			problem.Message,
 		)
 
-		fileProblems = append(fileProblems, fileProblem{
+		imageProblems = append(imageProblems, imageProblem{
 			fileName: problem.FileName,
 			message:  problem.Message,
 		})
 	}
 
-	return fileProblems
+	return imageProblems
 }
 
-func (p *processor) readIncomingMetadata() (metadata.Result, error) {
+func (p *imageProcessor) readIncomingMetadata() (metadata.Result, error) {
 	metadataResult, err := p.metadataReader.Read(p.cfg.InDir)
 	if err != nil {
 		return metadata.Result{}, err
@@ -290,7 +290,7 @@ func cleanupImageDirOnError(imgDir paths.AbsPath, originalErr error) error {
 	return originalErr
 }
 
-func (p *processor) processFile(metadata image.Metadata, sourceHash string, sourceAbsPath paths.AbsPath) (image.Processed, error) {
+func (p *imageProcessor) processFile(metadata image.Metadata, sourceHash string, sourceAbsPath paths.AbsPath) (image.Processed, error) {
 	processedAt := time.Now().UTC()
 	dirDate, err := dirDate(p.cfg.DirDate, metadata.CapturedAt, processedAt)
 	if err != nil {

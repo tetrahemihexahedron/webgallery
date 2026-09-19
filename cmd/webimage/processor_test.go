@@ -115,10 +115,10 @@ func TestProcessDirSkipsPreviouslyProcessedImage(t *testing.T) {
 	}
 }
 
-func newIntegrationProcessor(t *testing.T) *processor {
+func newIntegrationProcessor(t *testing.T) *imageProcessor {
 	t.Helper()
 
-	return &processor{
+	return &imageProcessor{
 		cfg: Config{
 			InDir:   mustAbs(t, filepath.Join("testdata", "incoming")),
 			OutDir:  mustAbs(t, t.TempDir()),
