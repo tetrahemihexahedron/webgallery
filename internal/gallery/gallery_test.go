@@ -50,7 +50,7 @@ func TestSortImages(t *testing.T) {
 	tests := []struct {
 		name           string
 		sortField      SortField
-		modify         func([]galleryImage)
+		modify         func([]loadedImage)
 		wantSortedDirs []string
 	}{
 		{
@@ -66,9 +66,9 @@ func TestSortImages(t *testing.T) {
 		{
 			name:      "ties sort by directory",
 			sortField: SortCaptured,
-			modify: func(images []galleryImage) {
+			modify: func(images []loadedImage) {
 				for i := range images {
-					images[i].indexImage.CapturedAt = "2024-05-12T14:22:00"
+					images[i].indexEntry.CapturedAt = "2024-05-12T14:22:00"
 				}
 			},
 			wantSortedDirs: []string{"2024/05/abc123", "2024/05/bbb222", "2024/05/ccc333"},
@@ -76,9 +76,9 @@ func TestSortImages(t *testing.T) {
 		{
 			name:      "processed sort allows empty capturedAt",
 			sortField: SortProcessed,
-			modify: func(images []galleryImage) {
+			modify: func(images []loadedImage) {
 				for i := range images {
-					images[i].indexImage.CapturedAt = ""
+					images[i].indexEntry.CapturedAt = ""
 				}
 			},
 			wantSortedDirs: []string{"2024/05/ccc333", "2024/05/bbb222", "2024/05/abc123"},
@@ -135,7 +135,7 @@ func TestNewTemplateData(t *testing.T) {
 	tests := []struct {
 		name      string
 		urlPrefix string
-		modify    func(*galleryImage)
+		modify    func(*loadedImage)
 		want      templateData
 	}{
 		{
@@ -160,7 +160,7 @@ func TestNewTemplateData(t *testing.T) {
 		{
 			name:      "omits AVIF source when AVIF variants are missing",
 			urlPrefix: "",
-			modify: func(img *galleryImage) {
+			modify: func(img *loadedImage) {
 				delete(img.manifest.Variants, image.FormatAVIF)
 			},
 			want: templateData{Images: []templateImage{{
@@ -177,7 +177,7 @@ func TestNewTemplateData(t *testing.T) {
 		{
 			name:      "uses title for alt text when description is empty",
 			urlPrefix: "/images",
-			modify: func(img *galleryImage) {
+			modify: func(img *loadedImage) {
 				img.manifest.Description = ""
 			},
 			want: templateData{Images: []templateImage{{
@@ -205,7 +205,7 @@ func TestNewTemplateData(t *testing.T) {
 				tc.modify(&gotImage)
 			}
 
-			got, err := newTemplateData([]galleryImage{gotImage}, tc.urlPrefix)
+			got, err := newTemplateData([]loadedImage{gotImage}, tc.urlPrefix)
 			if err != nil {
 				t.Fatalf("newTemplateData() returned error: %v", err)
 			}
@@ -220,7 +220,7 @@ func TestNewTemplateDataReturnsErrorForMissingJPEG(t *testing.T) {
 	img := newBaseImages(t)[0]
 	delete(img.manifest.Variants, image.FormatJPEG)
 
-	_, err := newTemplateData([]galleryImage{img}, "/images")
+	_, err := newTemplateData([]loadedImage{img}, "/images")
 	if err == nil {
 		t.Fatalf("newTemplateData() returned nil error, want error")
 	}
@@ -234,22 +234,22 @@ func TestSortImagesReturnsError(t *testing.T) {
 	tests := []struct {
 		name        string
 		sortField   SortField
-		modify      func(*galleryImage)
+		modify      func(*loadedImage)
 		wantMessage string
 	}{
 		{
 			name:      "missing capturedAt",
 			sortField: SortCaptured,
-			modify: func(img *galleryImage) {
-				img.indexImage.CapturedAt = ""
+			modify: func(img *loadedImage) {
+				img.indexEntry.CapturedAt = ""
 			},
 			wantMessage: `image "2024/05/abc123": invalid capturedAt`,
 		},
 		{
 			name:      "invalid processedAt",
 			sortField: SortProcessed,
-			modify: func(img *galleryImage) {
-				img.indexImage.ProcessedAt = "2026-08-24T18:00:00"
+			modify: func(img *loadedImage) {
+				img.indexEntry.ProcessedAt = "2026-08-24T18:00:00"
 			},
 			wantMessage: `image "2024/05/abc123": invalid processedAt`,
 		},
@@ -262,7 +262,7 @@ func TestSortImagesReturnsError(t *testing.T) {
 				tc.modify(&img)
 			}
 
-			if err := sortImages([]galleryImage{img}, tc.sortField); err == nil {
+			if err := sortImages([]loadedImage{img}, tc.sortField); err == nil {
 				t.Fatalf("sortImages() returned nil error, want error")
 			} else if !strings.Contains(err.Error(), tc.wantMessage) {
 				t.Errorf("sortImages() error = %q, want containing %q", err, tc.wantMessage)
@@ -271,12 +271,12 @@ func TestSortImagesReturnsError(t *testing.T) {
 	}
 }
 
-func newBaseImages(t *testing.T) []galleryImage {
+func newBaseImages(t *testing.T) []loadedImage {
 	t.Helper()
 
-	newImage := func(dir, title, description, capturedAt, processedAt, sha256 string) galleryImage {
-		return galleryImage{
-			indexImage: index.Entry{
+	newImage := func(dir, title, description, capturedAt, processedAt, sha256 string) loadedImage {
+		return loadedImage{
+			indexEntry: index.Entry{
 				Dir:         mustRel(t, dir),
 				Manifest:    mustRel(t, dir+"/manifest.json"),
 				Title:       title,
@@ -307,17 +307,17 @@ func newBaseImages(t *testing.T) []galleryImage {
 		}
 	}
 
-	return []galleryImage{
+	return []loadedImage{
 		newImage("2024/05/abc123", "Rosie title", "Rosie alt text", "2024-05-13T14:22:00", "2026-08-23T18:00:00Z", "abc123"),
 		newImage("2024/05/bbb222", "Riveter title", "Riveter alt text", "2024-05-12T14:22:00", "2026-08-24T18:00:00Z", "bbb222"),
 		newImage("2024/05/ccc333", "Poster title", "Poster alt text", "2024-05-11T14:22:00", "2026-08-25T18:00:00Z", "ccc333"),
 	}
 }
 
-func imageDirs(images []galleryImage) []string {
+func imageDirs(images []loadedImage) []string {
 	dirs := make([]string, 0, len(images))
 	for _, img := range images {
-		dirs = append(dirs, img.indexImage.Dir.String())
+		dirs = append(dirs, img.indexEntry.Dir.String())
 	}
 	return dirs
 }
