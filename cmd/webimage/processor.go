@@ -354,17 +354,29 @@ func (p *imageProcessor) processImage(source sourceImage) (image.Processed, erro
 		return image.Processed{}, cleanupImageDirOnError(imgDirAbsPath, err)
 	}
 	result, err := p.variantGenerator.Generate(source.path, specs)
+	if err != nil {
+		return image.Processed{}, cleanupImageDirOnError(
+			imgDirAbsPath,
+			fmt.Errorf("unable to generate variants: %w", err),
+		)
+	}
 
+	variantErr := result.Err()
 	if len(result.Generated) == 0 {
-		if err == nil {
-			err = result.Err()
-		}
-		if err == nil {
-			err = fmt.Errorf("%d variants were attempted, and no errors were reported", len(specs))
+		if variantErr == nil {
+			variantErr = fmt.Errorf("%d variants were attempted, and no errors were reported", len(specs))
+		} else {
+			variantErr = fmt.Errorf("%d generated, %d failed: %w", len(result.Generated), len(result.Failed), variantErr)
 		}
 		return image.Processed{}, cleanupImageDirOnError(
 			imgDirAbsPath,
-			fmt.Errorf("no variants were generated: %w", err),
+			fmt.Errorf("no variants were generated: %w", variantErr),
+		)
+	}
+	if variantErr != nil {
+		return image.Processed{}, cleanupImageDirOnError(
+			imgDirAbsPath,
+			fmt.Errorf("variant generation incomplete: %d generated, %d failed: %w", len(result.Generated), len(result.Failed), variantErr),
 		)
 	}
 

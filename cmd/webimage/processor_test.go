@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -74,6 +75,71 @@ func TestProcessIncomingDir(t *testing.T) {
 	assertIndex(t, p.cfg.OutDir, processed)
 }
 
+func TestProcessImageRejectsIncompleteVariants(t *testing.T) {
+	variantErr := errors.New("variant generation failed")
+	tests := []struct {
+		name        string
+		result      func([]variants.Spec) variants.Result
+		wantProblem string
+		wantErr     error
+	}{
+		{
+			name: "failed variant",
+			result: func(specs []variants.Spec) variants.Result {
+				generatedJPEG := specs[0]
+				failedAVIF := specs[2]
+				return variants.Result{
+					Generated: []variants.Spec{generatedJPEG},
+					Failed: []variants.Failure{
+						{Spec: failedAVIF, Err: variantErr},
+					},
+				}
+			},
+			wantProblem: "1 generated, 1 failed",
+			wantErr:     variantErr,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var imageDir string
+			generator := fakeVariantGenerator(func(_ paths.AbsPath, specs []variants.Spec) (variants.Result, error) {
+				imageDir = filepath.Dir(specs[0].OutPath.String())
+				return tc.result(specs), nil
+			})
+			p := imageProcessor{
+				cfg: Config{
+					OutDir:  mustAbs(t, t.TempDir()),
+					DirDate: DirDateProcessed,
+				},
+				variantGenerator: generator,
+			}
+			source := sourceImage{
+				metadata: image.Metadata{Width: 800, Height: 1067},
+				path:     mustAbs(t, filepath.Join("testdata", "incoming", "image_800x1067.jpg")),
+				sha256:   fixtureSHA256,
+			}
+
+			_, err := p.processImage(source)
+			if err == nil {
+				t.Fatal("imageProcessor.processImage() returned nil error, want error")
+			}
+			if !strings.Contains(err.Error(), tc.wantProblem) {
+				t.Errorf("imageProcessor.processImage() error = %v, want message containing %q", err, tc.wantProblem)
+			}
+			if tc.wantErr != nil && !errors.Is(err, tc.wantErr) {
+				t.Errorf("imageProcessor.processImage() error = %v, want error wrapping %v", err, tc.wantErr)
+			}
+			if imageDir == "" {
+				t.Fatal("fakeVariantGenerator did not receive variant specifications")
+			}
+			if _, statErr := os.Stat(imageDir); !errors.Is(statErr, os.ErrNotExist) {
+				t.Errorf("os.Stat(%q) error = %v, want os.ErrNotExist", imageDir, statErr)
+			}
+		})
+	}
+}
+
 func TestProcessIncomingDirSkipsPreviouslyProcessedImage(t *testing.T) {
 	p := newIntegrationProcessor(t)
 
@@ -110,6 +176,12 @@ func TestProcessIncomingDirSkipsPreviouslyProcessedImage(t *testing.T) {
 	if !reflect.DeepEqual(indexAfter, indexBefore) {
 		t.Errorf("index after duplicate processing = %+v, want unchanged index %+v", indexAfter, indexBefore)
 	}
+}
+
+type fakeVariantGenerator func(paths.AbsPath, []variants.Spec) (variants.Result, error)
+
+func (f fakeVariantGenerator) Generate(source paths.AbsPath, specs []variants.Spec) (variants.Result, error) {
+	return f(source, specs)
 }
 
 func newIntegrationProcessor(t *testing.T) *imageProcessor {
