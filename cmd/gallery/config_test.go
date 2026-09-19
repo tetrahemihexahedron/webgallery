@@ -22,7 +22,7 @@ func TestParseArgs(t *testing.T) {
 			want: Config{
 				ImagesRoot: mustAbs(t, "images"),
 				UseStdout:  true,
-				Sort:       gallery.SortCaptured,
+				Sort:       gallery.SortProcessed,
 			},
 		},
 		{
@@ -39,6 +39,15 @@ func TestParseArgs(t *testing.T) {
 		{
 			name: "explicit stdout output",
 			args: []string{"-images", "images", "-output", "-"},
+			want: Config{
+				ImagesRoot: mustAbs(t, "images"),
+				UseStdout:  true,
+				Sort:       gallery.SortProcessed,
+			},
+		},
+		{
+			name: "explicit captured sort",
+			args: []string{"-images", "images", "-sort", "captured"},
 			want: Config{
 				ImagesRoot: mustAbs(t, "images"),
 				UseStdout:  true,

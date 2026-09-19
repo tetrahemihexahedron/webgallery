@@ -36,7 +36,7 @@ func parseArgs(args []string, output io.Writer) (Config, error) {
 	flags.StringVar(&outFilePath, "output", "", "HTML output file, or stdout when omitted or '-'")
 	flags.StringVar(&cfg.URLPrefix, "url-prefix", "", "public URL prefix for image URLs")
 
-	sort := string(gallery.SortCaptured)
+	sort := string(gallery.SortProcessed)
 	flags.StringVar(&sort, "sort", sort, "sort field: captured or processed")
 
 	if err := flags.Parse(args); err != nil {
