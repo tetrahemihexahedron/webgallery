@@ -6,56 +6,7 @@ Each item should include detailed small implementation steps sized for focused c
 
 ## Refactoring
 
-### 1. Improve `cmd/webimage` names and function signatures
-
-**Package(s):** `cmd/webimage`
-
-Several names are generic or misleading. Some function signatures pass loosely related values separately. Clear names and small grouping types will make the command easier to understand.
-
-Small implementation steps:
-
-1. **Rename workflow types.**
-   - `processor` -> `imageProcessor`
-   - `result` -> `processResult`
-   - `fileProblem` -> `imageProblem`
-   - Update tests in the same commit.
-
-2. **Rename misleading fields.**
-   - Rename `result.dirProcessed` to something like `incomingDir` if it is still useful.
-   - Or remove the field if no caller needs it.
-
-3. **Rename workflow methods and helpers.**
-   - `processDir` -> `processIncomingDir`
-   - `processFile` -> `processImage`
-   - `hashFile` -> `fileSHA256`
-   - `imgDirRelPath` -> `newImageDirRelPath`
-   - `filename` -> `variantFilename`
-   - `deleteRemnants` -> `removeImageDir`
-
-4. **Rename local variables for clarity.**
-   - Change the loop variable `metadata` to `meta` so it does not shadow the imported `metadata` package.
-   - Rename `imageProcessed` to `processedImg` consistently.
-
-5. **Introduce a source-image grouping type.**
-   - Add a small struct such as:
-     ```go
-     type sourceImage struct {
-         metadata image.Metadata
-         path     paths.AbsPath
-         sha256   string
-     }
-     ```
-   - Build this once after path creation and hashing.
-
-6. **Simplify `processImage` signature.**
-   - Change from `processFile(metadata image.Metadata, sourceHash string, sourceAbsPath paths.AbsPath)` to `processImage(source sourceImage)`.
-   - Keep the old behavior unchanged.
-
-7. **Simplify variant planning signature.**
-   - Change `variantSpecs(imgDir paths.AbsPath, img image.Processed)` to take only what it uses, such as `variantSpecs(imgDir paths.AbsPath, sourceWidth int)`.
-   - Or move the planning into `internal/variants` later if that package owns more of the generation request.
-
-### 2. Improve gallery data flow and option parsing
+### 1. Improve gallery data flow and option parsing
 
 **Package(s):** `internal/gallery`, `cmd/gallery`
 
@@ -93,7 +44,7 @@ Small implementation steps:
    - Add a small helper if needed, such as `normalizeOptions(opts Options) (Options, error)`.
    - This is a good place for future defaults like `sizes` or fallback width.
 
-### 3. Revisit the variants API shape
+### 2. Revisit the variants API shape
 
 **Package(s):** `internal/variants`, `cmd/webimage`
 
