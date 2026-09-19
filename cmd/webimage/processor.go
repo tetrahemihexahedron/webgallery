@@ -10,6 +10,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"path/filepath"
 	"regexp"
 	"time"
 
@@ -301,9 +302,18 @@ func createImageDir(outRoot paths.AbsPath, imgDirRelPath paths.RelPath) (paths.A
 	if err != nil {
 		return paths.AbsPath{}, err
 	}
-	if err := os.MkdirAll(imgDirAbsPath.String(), 0755); err != nil {
-		return paths.AbsPath{}, fmt.Errorf("unable to make image directory %s: %w", imgDirAbsPath, err)
+
+	parentDir := filepath.Dir(imgDirAbsPath.String())
+	if err := os.MkdirAll(parentDir, 0755); err != nil {
+		return paths.AbsPath{}, fmt.Errorf("unable to make image directory parents %q: %w", parentDir, err)
 	}
+	if err := os.Mkdir(imgDirAbsPath.String(), 0755); err != nil {
+		if errors.Is(err, fs.ErrExist) {
+			return paths.AbsPath{}, fmt.Errorf("image directory %q already exists: %w", imgDirAbsPath, err)
+		}
+		return paths.AbsPath{}, fmt.Errorf("unable to make image directory %q: %w", imgDirAbsPath, err)
+	}
+
 	return imgDirAbsPath, nil
 }
 
