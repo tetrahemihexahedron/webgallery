@@ -32,8 +32,8 @@ Packages are sorted by path. Within each package, items use the type order `refa
 
 #### Fix
 
-- **Make external commands cancellable:** `exiftool` and `vipsthumbnail` have no context, cancellation, or timeout, so a stuck process can hang a CLI indefinitely. Thread `context.Context` into the wrappers and use `exec.CommandContext`, adding focused cancellation tests if this behavior is implemented.
-- **Record generated dimensions accurately:** Raw metadata dimensions can disagree with auto-rotated or rounded output. Have variant generation verify and return actual dimensions, write those values to manifests, and cover orientation and rounding with image fixtures.
+- **Make external commands cancellable:** `exiftool` and `vipsthumbnail` have no context, cancellation, or timeout, so a stuck process can hang a CLI indefinitely. Thread `context.Context` into the wrappers and use `exec.CommandContext`; the eventual variants API should accept the context as `Generate(ctx, req)`. Add focused cancellation tests if this behavior is implemented.
+- **Record generated dimensions accurately:** Raw metadata dimensions can disagree with auto-rotated or rounded output. Add actual width and height to the generated `image.Variant` values returned in `variants.Result`, write those values to manifests, and cover orientation and rounding with image fixtures.
 - **Use consistent atomic output writes:** Index writes use temp-file-and-rename while manifests and gallery output do not. Consider a small shared atomic-write helper, apply it where interrupted writes could corrupt output, and test that render failures do not replace an existing file.
 - **Prevent concurrent output mutation:** Two `webimage` processes can race while updating the output root and index. Add a lightweight lock only if accidental concurrent runs are plausible.
 - **Clean up command-line error output:** The `main` packages use `log.Fatal`, which adds timestamps to user-facing errors. Prefer explicit stderr output and exit status handling, then add small smoke tests for the resulting CLI messages.
@@ -218,7 +218,7 @@ Packages are sorted by path. Within each package, items use the type order `refa
 
 #### Refactor
 
-- **Make variant generation format-driven:** `cmd/webimage` currently constructs every absolute output path, `internal/variants` infers the encoder from each extension, and the command then reparses generated paths for manifest data. If this boundary is redesigned, replace the `Spec` call with a request containing the source, output directory, widths, and typed format configuration; return generated descriptors with format, relative path, and requested width; and remove `variantSpecs` and `identifyVariants` rather than maintaining parallel APIs.
+- **Finish the request-based variants API:** Replace the method and `Spec` API with `func Generate(ctx context.Context, req Request) Result`. Export `Request` with a source path, output directory, widths, and `[]image.Format`; keep filename extensions and encoder settings internal. Return generated domain data directly as `[]image.Variant` in `Result.Generated`, identify failures by format and requested width, use a command-local function type for injection, and remove `Vipsthumbnail`, `Spec`, `variantSpecs`, and `identifyVariants` rather than maintaining parallel APIs. Actual output dimensions are covered by the cross-package item above.
 - **Keep execution injectable only when tests need it:** A small command runner can make warnings and missing outputs deterministic to test without over-generalizing the wrapper.
 
 #### Fix

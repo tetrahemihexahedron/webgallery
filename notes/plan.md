@@ -16,8 +16,8 @@ Small implementation steps:
 
 1. **Export `Result.Err` and return only `Result` from `Generate`.**
    - Rename `func (r Result) err() error` to `func (r Result) Err() error`.
-   - Change `Generate` to return only `Result`, then update the consumer interface, callers, and tests to obtain the error from `result.Err()`.
-   - Preserve source-path validation errors in the result, rather than losing errors that occur before any specification is attempted.
+   - Add an unexported result-level error so `Err()` can report source-path validation failures as well as aggregate `Failure.Err` values.
+   - Change the existing `Generate(source, specs)` method to return only `Result`, then update the consumer interface, callers, and tests to obtain the error from `result.Err()`.
    - Add focused coverage for successful results, multiple per-spec failures, and source-path validation failures.
 
 2. **Document partial-result semantics.**
