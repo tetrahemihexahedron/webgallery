@@ -349,7 +349,7 @@ func (p *imageProcessor) processImage(source sourceImage) (image.Processed, erro
 		ProcessedAt: image.FormatProcessedAt(processedAt),
 	}
 
-	specs, err := variantSpecs(imgDirAbsPath, processedImg)
+	specs, err := variantSpecs(imgDirAbsPath, source.metadata.Width)
 	if err != nil {
 		return image.Processed{}, cleanupImageDirOnError(imgDirAbsPath, err)
 	}
@@ -447,12 +447,12 @@ func newImageDirRelPath(date time.Time) (paths.RelPath, error) {
 	return path, nil
 }
 
-func variantSpecs(imgDir paths.AbsPath, img image.Processed) ([]variants.Spec, error) {
+func variantSpecs(imgDir paths.AbsPath, sourceWidth int) ([]variants.Spec, error) {
 	var desiredWidths = []int{400, 800, 1200, 1600}
 	var desiredExts = []string{".jpg", ".avif"}
 
 	// widths generated are <= the source's width
-	widths := variantWidths(img.Source.Width, desiredWidths)
+	widths := variantWidths(sourceWidth, desiredWidths)
 	specs := make([]variants.Spec, 0, len(widths)*len(desiredExts))
 
 	for _, ext := range desiredExts {
