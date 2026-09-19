@@ -37,7 +37,7 @@ func parseArgs(args []string, output io.Writer) (Config, error) {
 	flags.StringVar(&cfg.URLPrefix, "url-prefix", "", "public URL prefix for image URLs")
 
 	sort := string(gallery.SortProcessed)
-	flags.StringVar(&sort, "sort", sort, "sort field: captured or processed")
+	flags.StringVar(&sort, "sort", sort, "sort field: processed (default), or captured (requires capturedAt for every image)")
 
 	if err := flags.Parse(args); err != nil {
 		return Config{}, err
