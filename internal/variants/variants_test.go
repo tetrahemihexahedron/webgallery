@@ -1,7 +1,9 @@
 package variants_test
 
 import (
+	"bytes"
 	"errors"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"slices"
@@ -137,6 +139,54 @@ func TestGenerate(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestGeneratePreservesExistingDestination(t *testing.T) {
+	outputDir := mustAbs(t, t.TempDir())
+	existingPath, err := paths.JoinAbs(outputDir, mustRel(t, "w400.jpg"))
+	if err != nil {
+		t.Fatalf("paths.JoinAbs(%q, %q) returned error: %v", outputDir, "w400.jpg", err)
+	}
+	wantContents := []byte("existing variant contents")
+	if err := os.WriteFile(existingPath.String(), wantContents, 0644); err != nil {
+		t.Fatalf("os.WriteFile(%q) returned error: %v", existingPath, err)
+	}
+
+	req := variants.Request{
+		SourcePath: mustAbs(t, filepath.Join("testdata", "image_800x1067.jpg")),
+		OutputDir:  outputDir,
+		Widths:     []int{400, 800},
+		Formats:    []image.Format{image.FormatJPEG},
+	}
+	got, err := variants.Generate(req)
+	if err != nil {
+		t.Fatalf("variants.Generate(%+v) returned request error: %v", req, err)
+	}
+
+	wantGenerated := []image.Variant{
+		{Path: mustRel(t, "w800.jpg"), Format: image.FormatJPEG, Width: 800},
+	}
+	if !slices.Equal(got.Generated, wantGenerated) {
+		t.Errorf("variants.Generate(%+v) generated variants mismatch\n got: %+v\nwant: %+v", req, got.Generated, wantGenerated)
+	}
+	if len(got.Failed) != 1 {
+		t.Fatalf("variants.Generate(%+v) failed variant count = %d, want 1: %+v", req, len(got.Failed), got.Failed)
+	}
+	failed := got.Failed[0]
+	if failed.Format != image.FormatJPEG || failed.Width != 400 {
+		t.Errorf("variants.Generate(%+v) failed variant = %+v, want JPEG with width 400", req, failed)
+	}
+	if failed.Err == nil || !strings.Contains(failed.Err.Error(), "already exists") {
+		t.Errorf("variants.Generate(%+v) failed error = %v, want message containing %q", req, failed.Err, "already exists")
+	}
+
+	gotContents, err := os.ReadFile(existingPath.String())
+	if err != nil {
+		t.Fatalf("os.ReadFile(%q) returned error: %v", existingPath, err)
+	}
+	if !bytes.Equal(gotContents, wantContents) {
+		t.Errorf("existing destination contents = %q, want %q", gotContents, wantContents)
 	}
 }
 

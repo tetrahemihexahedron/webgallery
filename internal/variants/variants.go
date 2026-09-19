@@ -3,6 +3,7 @@ package variants
 import (
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"strconv"
 
@@ -118,6 +119,11 @@ func planVariant(outputDir paths.AbsPath, format image.Format, width int) (plann
 func generateVariant(source paths.AbsPath, planned plannedVariant) error {
 	if source == planned.outputPath {
 		return errors.New("source and output file paths cannot be the same")
+	}
+	if _, err := os.Lstat(planned.outputPath.String()); err == nil {
+		return fmt.Errorf("output path %q already exists", planned.outputPath)
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("checking output path %q: %w", planned.outputPath, err)
 	}
 
 	// appending '>' tells libvips to only shrink; if the image is already
