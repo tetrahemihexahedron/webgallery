@@ -1,31 +1,10 @@
 # Development plan
 
-These are the next three items to implement from `notes/todo.md`, listed in recommended implementation order.
+These are the next two items to implement from `notes/todo.md`, listed in recommended implementation order.
 
 Each item includes small implementation steps sized for focused commits.
 
-## 1. Reject overlapping input and output roots
-
-**Type:** Fix
-**Package(s):** `cmd/webimage`
-
-Overlapping roots can cause generated output to be consumed as future input or place source files inside a tree the processor mutates. Reject unsafe layouts before reading metadata or creating output.
-
-Small implementation steps:
-
-1. **Add one table of root relationships.**
-   - Cover equal roots, output beneath input, input beneath output, siblings, and merely prefix-similar names.
-   - Keep the cases at the path-validation boundary without faking metadata or filesystem tools.
-
-2. **Validate roots before processing.**
-   - Use cleaned absolute paths and path-aware relative checks rather than string-prefix checks.
-   - Return a direct error before reading metadata, loading the index, or creating files.
-
-3. **Keep the boundary narrow.**
-   - Apply the check in `cmd/webimage`, where both configured roots are available.
-   - Leave symlink-resolved containment to the existing unplanned paths-policy item.
-
-## 2. Create image directories exclusively
+## 1. Create image directories exclusively
 
 **Type:** Fix
 **Package(s):** `cmd/webimage`
@@ -46,7 +25,7 @@ Small implementation steps:
    - Run cleanup only after the current attempt successfully created the leaf directory.
    - Rely on the existing processor integration test for normal directory creation; do not add persisted collision tests unless the implementation develops nontrivial collision handling.
 
-## 3. Reject variant overwrites
+## 2. Reject variant overwrites
 
 **Type:** Fix
 **Package(s):** `internal/variants`
