@@ -79,19 +79,19 @@ func generateVariant(source paths.AbsPath, spec Spec) error {
 
 	// appending '>' tells libvips to only shrink; if the image is already
 	// smaller than the requested size, the size won't change
-	width := strconv.Itoa(spec.Width) + "x>"
-	path := spec.OutPath.String() + options
+	sizeArg := strconv.Itoa(spec.Width) + "x>"
+	outputArg := spec.OutPath.String() + options
 
-	cmd := exec.Command("vipsthumbnail", source.String(), "--size", width, "--output", path)
+	cmd := exec.Command("vipsthumbnail", source.String(), "--size", sizeArg, "--output", outputArg)
 
-	out, err := cmd.CombinedOutput()
+	cmdOutput, err := cmd.CombinedOutput()
 
 	if err != nil {
-		return wrapError(fmt.Errorf("image generation failed: %s; %w", out, err), spec)
+		return wrapError(fmt.Errorf("image generation failed: %s; %w", cmdOutput, err), spec)
 	}
-	// out is expected to be empty when image generation was successful
-	if len(out) != 0 {
-		return wrapError(fmt.Errorf("unexpected output from image generation: %s", out), spec)
+	// cmdOutput is expected to be empty when image generation was successful
+	if len(cmdOutput) != 0 {
+		return wrapError(fmt.Errorf("unexpected output from image generation: %s", cmdOutput), spec)
 	}
 
 	return nil
