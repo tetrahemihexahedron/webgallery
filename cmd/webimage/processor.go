@@ -48,7 +48,7 @@ type imageProcessor struct {
 	progressReporter io.Writer
 }
 
-func (p *imageProcessor) processDir() (processResult, error) {
+func (p *imageProcessor) processIncomingDir() (processResult, error) {
 	inDirAbsPath := p.cfg.InDir.String()
 
 	fmt.Fprintf(p.progressReporter, "Processing image files in %q\n", inDirAbsPath)
@@ -147,7 +147,7 @@ func (p *imageProcessor) processMetadataEntry(metadata image.Metadata, imageDirs
 		}
 	}
 
-	sourceHash, err := hashFile(sourceAbsPath)
+	sourceHash, err := fileSHA256(sourceAbsPath)
 	if err != nil {
 		fmt.Fprintf(
 			p.progressReporter,
@@ -176,7 +176,7 @@ func (p *imageProcessor) processMetadataEntry(metadata image.Metadata, imageDirs
 		}
 	}
 
-	imageProcessed, err := p.processFile(metadata, sourceHash, sourceAbsPath)
+	imageProcessed, err := p.processImage(metadata, sourceHash, sourceAbsPath)
 	if err != nil {
 		fmt.Fprintf(
 			p.progressReporter,
@@ -268,7 +268,7 @@ func deleteProcessedImageDirs(outRoot paths.AbsPath, images []image.Processed) e
 			continue
 		}
 
-		if err := deleteRemnants(imgDirAbsPath); err != nil {
+		if err := removeImageDir(imgDirAbsPath); err != nil {
 			cleanupErr = errors.Join(cleanupErr, fmt.Errorf("deleting image directory %q: %w", imgDirAbsPath, err))
 		}
 	}
@@ -277,7 +277,7 @@ func deleteProcessedImageDirs(outRoot paths.AbsPath, images []image.Processed) e
 }
 
 func cleanupImageDirOnError(imgDir paths.AbsPath, originalErr error) error {
-	cleanupErr := deleteRemnants(imgDir)
+	cleanupErr := removeImageDir(imgDir)
 	if cleanupErr != nil {
 		return errors.Join(
 			originalErr,
@@ -288,13 +288,13 @@ func cleanupImageDirOnError(imgDir paths.AbsPath, originalErr error) error {
 	return originalErr
 }
 
-func (p *imageProcessor) processFile(metadata image.Metadata, sourceHash string, sourceAbsPath paths.AbsPath) (image.Processed, error) {
+func (p *imageProcessor) processImage(metadata image.Metadata, sourceHash string, sourceAbsPath paths.AbsPath) (image.Processed, error) {
 	processedAt := time.Now().UTC()
 	dirDate, err := dirDate(p.cfg.DirDate, metadata.CapturedAt, processedAt)
 	if err != nil {
 		return image.Processed{}, err
 	}
-	imgDirRelPath, err := imgDirRelPath(dirDate)
+	imgDirRelPath, err := newImageDirRelPath(dirDate)
 	if err != nil {
 		return image.Processed{}, err
 	}
@@ -385,7 +385,7 @@ func (p *imageProcessor) processFile(metadata image.Metadata, sourceHash string,
 	return processedImg, nil
 }
 
-func hashFile(path paths.AbsPath) (string, error) {
+func fileSHA256(path paths.AbsPath) (string, error) {
 	f, err := os.Open(path.String())
 	if err != nil {
 		return "", err
@@ -415,7 +415,7 @@ func dirDate(dirDate DirDate, capturedAt string, processedAt time.Time) (time.Ti
 	}
 }
 
-func imgDirRelPath(date time.Time) (paths.RelPath, error) {
+func newImageDirRelPath(date time.Time) (paths.RelPath, error) {
 	randId := ""
 	b := make([]byte, 7)
 	re := regexp.MustCompile(`^[a-zA-Z0-9]+$`)
@@ -445,7 +445,7 @@ func variantSpecs(imgDir paths.AbsPath, img image.Processed) ([]variants.Spec, e
 
 	for _, ext := range desiredExts {
 		for _, width := range widths {
-			filename := filename(width, ext)
+			filename := variantFilename(width, ext)
 			variantRelPath, err := paths.NewRelPath(filename)
 			if err != nil {
 				return nil, err
@@ -473,7 +473,7 @@ func variantWidths(sourceWidth int, desired []int) []int {
 	return widths
 }
 
-func filename(width int, ext string) string {
+func variantFilename(width int, ext string) string {
 	return "w" + strconv.Itoa(width) + ext
 }
 
@@ -494,7 +494,7 @@ func copyFile(source paths.AbsPath, dest paths.AbsPath) error {
 	return err
 }
 
-func deleteRemnants(dir paths.AbsPath) error {
+func removeImageDir(dir paths.AbsPath) error {
 	return os.RemoveAll(dir.String())
 }
 

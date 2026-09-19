@@ -20,39 +20,39 @@ import (
 
 const fixtureSHA256 = "9d105ded7ef2002873fbe783fb9727f44100c6891cfad76b832eaa55be77f3af"
 
-func TestProcessDir(t *testing.T) {
+func TestProcessIncomingDir(t *testing.T) {
 	p := newIntegrationProcessor(t)
 
-	got, err := p.processDir()
+	got, err := p.processIncomingDir()
 	if err != nil {
-		t.Fatalf("processor.processDir() returned error: %v", err)
+		t.Fatalf("imageProcessor.processIncomingDir() returned error: %v", err)
 	}
 	if len(got.problems) != 0 {
-		t.Errorf("processor.processDir() returned problems: %+v", got.problems)
+		t.Errorf("imageProcessor.processIncomingDir() returned problems: %+v", got.problems)
 	}
 	if len(got.images) != 1 {
-		t.Fatalf("processor.processDir() returned %d images, want 1: %+v", len(got.images), got.images)
+		t.Fatalf("imageProcessor.processIncomingDir() returned %d images, want 1: %+v", len(got.images), got.images)
 	}
 
 	processed := got.images[0]
 	wantSource := image.Source{Hash: fixtureSHA256, Width: 800, Height: 1067}
 	if processed.Source != wantSource {
-		t.Errorf("processor.processDir() source = %+v, want %+v", processed.Source, wantSource)
+		t.Errorf("imageProcessor.processIncomingDir() source = %+v, want %+v", processed.Source, wantSource)
 	}
 	if processed.Title != "2023 October Posing" {
-		t.Errorf("processor.processDir() title = %q, want %q", processed.Title, "2023 October Posing")
+		t.Errorf("imageProcessor.processIncomingDir() title = %q, want %q", processed.Title, "2023 October Posing")
 	}
 	if processed.Description != "Rosie as a small puppy, sitting and looking directly at the camera." {
-		t.Errorf("processor.processDir() description = %q, want fixture description", processed.Description)
+		t.Errorf("imageProcessor.processIncomingDir() description = %q, want fixture description", processed.Description)
 	}
 	if processed.CapturedAt != "2023-10-03T17:26:39" {
-		t.Errorf("processor.processDir() capturedAt = %q, want %q", processed.CapturedAt, "2023-10-03T17:26:39")
+		t.Errorf("imageProcessor.processIncomingDir() capturedAt = %q, want %q", processed.CapturedAt, "2023-10-03T17:26:39")
 	}
 	if _, err := image.ParseProcessedAt(processed.ProcessedAt); err != nil {
-		t.Errorf("processor.processDir() processedAt = %q, want valid processed datetime: %v", processed.ProcessedAt, err)
+		t.Errorf("imageProcessor.processIncomingDir() processedAt = %q, want valid processed datetime: %v", processed.ProcessedAt, err)
 	}
 	if got := filepath.Dir(processed.DirRelPath.String()); got != "2023/10" {
-		t.Errorf("processor.processDir() image directory parent = %q, want %q", got, "2023/10")
+		t.Errorf("imageProcessor.processIncomingDir() image directory parent = %q, want %q", got, "2023/10")
 	}
 
 	wantVariants := []image.Variant{
@@ -62,7 +62,7 @@ func TestProcessDir(t *testing.T) {
 		{Path: mustRel(t, "w800.avif"), Format: image.FormatAVIF, Width: 800},
 	}
 	if !slices.Equal(processed.Variants, wantVariants) {
-		t.Errorf("processor.processDir() variants mismatch\n got: %+v\nwant: %+v", processed.Variants, wantVariants)
+		t.Errorf("imageProcessor.processIncomingDir() variants mismatch\n got: %+v\nwant: %+v", processed.Variants, wantVariants)
 	}
 
 	imageDir, err := paths.JoinAbs(p.cfg.OutDir, processed.DirRelPath)
@@ -74,26 +74,26 @@ func TestProcessDir(t *testing.T) {
 	assertIndex(t, p.cfg.OutDir, processed)
 }
 
-func TestProcessDirSkipsPreviouslyProcessedImage(t *testing.T) {
+func TestProcessIncomingDirSkipsPreviouslyProcessedImage(t *testing.T) {
 	p := newIntegrationProcessor(t)
 
-	if _, err := p.processDir(); err != nil {
-		t.Fatalf("first processor.processDir() returned error: %v", err)
+	if _, err := p.processIncomingDir(); err != nil {
+		t.Fatalf("first imageProcessor.processIncomingDir() returned error: %v", err)
 	}
 	indexBefore, err := index.ReadDir(p.cfg.OutDir)
 	if err != nil {
-		t.Fatalf("index.ReadDir(%q) after first processDir returned error: %v", p.cfg.OutDir, err)
+		t.Fatalf("index.ReadDir(%q) after first processIncomingDir returned error: %v", p.cfg.OutDir, err)
 	}
 
-	got, err := p.processDir()
+	got, err := p.processIncomingDir()
 	if err != nil {
-		t.Fatalf("second processor.processDir() returned error: %v", err)
+		t.Fatalf("second imageProcessor.processIncomingDir() returned error: %v", err)
 	}
 	if len(got.images) != 0 {
-		t.Errorf("second processor.processDir() returned images: %+v, want none", got.images)
+		t.Errorf("second imageProcessor.processIncomingDir() returned images: %+v, want none", got.images)
 	}
 	if len(got.problems) != 1 {
-		t.Fatalf("second processor.processDir() returned %d problems, want 1: %+v", len(got.problems), got.problems)
+		t.Fatalf("second imageProcessor.processIncomingDir() returned %d problems, want 1: %+v", len(got.problems), got.problems)
 	}
 	problem := got.problems[0]
 	if problem.fileName != "image_800x1067.jpg" {
@@ -105,7 +105,7 @@ func TestProcessDirSkipsPreviouslyProcessedImage(t *testing.T) {
 
 	indexAfter, err := index.ReadDir(p.cfg.OutDir)
 	if err != nil {
-		t.Fatalf("index.ReadDir(%q) after second processDir returned error: %v", p.cfg.OutDir, err)
+		t.Fatalf("index.ReadDir(%q) after second processIncomingDir returned error: %v", p.cfg.OutDir, err)
 	}
 	if !reflect.DeepEqual(indexAfter, indexBefore) {
 		t.Errorf("index after duplicate processing = %+v, want unchanged index %+v", indexAfter, indexBefore)

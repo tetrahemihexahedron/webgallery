@@ -27,7 +27,7 @@ func main() {
 		progressReporter: progressReporter,
 	}
 
-	_, err = processor.processDir()
+	_, err = processor.processIncomingDir()
 	if err != nil {
 		log.Fatal(err)
 	}
