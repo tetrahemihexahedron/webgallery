@@ -43,10 +43,11 @@ func parseArgs(args []string, output io.Writer) (Config, error) {
 		return Config{}, err
 	}
 
-	cfg.Sort = gallery.SortField(sort)
-	if !cfg.Sort.IsValid() {
-		return Config{}, fmt.Errorf("invalid '--sort' value %q: want %q or %q", sort, gallery.SortCaptured, gallery.SortProcessed)
+	sortField, err := gallery.ParseSortField(sort)
+	if err != nil {
+		return Config{}, fmt.Errorf("parsing '--sort': %w", err)
 	}
+	cfg.Sort = sortField
 
 	if imagesRootPath == "" {
 		return Config{}, errors.New("missing required '--images' flag")

@@ -15,6 +15,37 @@ import (
 	"tetrahemihexahedron/webimage/internal/paths"
 )
 
+func TestParseSortField(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		want    SortField
+		wantErr bool
+	}{
+		{name: "captured", input: "captured", want: SortCaptured},
+		{name: "processed", input: "processed", want: SortProcessed},
+		{name: "unsupported", input: "filename", wantErr: true},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := ParseSortField(tc.input)
+			if tc.wantErr {
+				if err == nil {
+					t.Fatalf("ParseSortField(%q) error = nil, want error", tc.input)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("ParseSortField(%q) error = %v, want nil", tc.input, err)
+			}
+			if got != tc.want {
+				t.Errorf("ParseSortField(%q) = %q, want %q", tc.input, got, tc.want)
+			}
+		})
+	}
+}
+
 func TestSortImages(t *testing.T) {
 	tests := []struct {
 		name           string

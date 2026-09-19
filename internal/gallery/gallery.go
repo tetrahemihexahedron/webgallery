@@ -23,6 +23,15 @@ const (
 	SortProcessed SortField = "processed"
 )
 
+// ParseSortField parses a supported gallery sort field.
+func ParseSortField(s string) (SortField, error) {
+	field := SortField(s)
+	if !field.IsValid() {
+		return "", fmt.Errorf("invalid sort field %q: want %q or %q", s, SortCaptured, SortProcessed)
+	}
+	return field, nil
+}
+
 // IsValid reports whether s is a supported gallery sort field.
 func (s SortField) IsValid() bool {
 	switch s {
