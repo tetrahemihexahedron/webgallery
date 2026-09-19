@@ -10,7 +10,6 @@ These items have been promoted to `notes/plan.md`. The plan is the authoritative
 
 ### Refactor
 
-- **Clarify variant generator errors and names (`internal/variants`, `cmd/webimage`):** Keep `(Result, error)` while reserving the returned error for request-level failures, expose `Result.Err()` for per-variant failures, document both channels, and clarify command-local names without otherwise changing behavior.
 - **Replace path-based variant specifications (`internal/variants`, `internal/image`, `cmd/webimage`):** Add behavior-preserving `Generate(req) (Result, error)`, accept paths, widths, and typed formats in `Request`, return `image.Variant` data, keep output planning internal, and remove the path-based `Spec` API and command-side path reparsing.
 
 ### Fix

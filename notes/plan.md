@@ -1,35 +1,10 @@
 # Development plan
 
-These are the next seven items to implement from `notes/todo.md`, listed in recommended implementation order.
+These are the next six items to implement from `notes/todo.md`, listed in recommended implementation order.
 
 Each item includes small implementation steps sized for focused commits.
 
-## 1. Clarify variant generator errors and names
-
-**Type:** Refactor
-**Package(s):** `internal/variants`, `cmd/webimage`
-
-Variant generation has two distinct failure levels: a request can be invalid before any work begins, or individual variant attempts can fail while others succeed. Keep the conventional `(Result, error)` return shape, but give each channel one clear meaning before changing the processor's partial-failure policy.
-
-Small implementation steps:
-
-1. **Export `Result.Err` for per-variant failures.**
-   - Rename `func (r Result) err() error` to `func (r Result) Err() error`.
-   - Define `Err()` to aggregate only the errors in `Result.Failed`.
-   - Add a small table test for no failures and multiple failures; no new test abstraction is needed.
-
-2. **Reserve the returned error for request-level failures.**
-   - Keep `Generate(source, specs) (Result, error)`.
-   - Return source-path validation errors directly with an empty result.
-   - Record errors from individual variant attempts in `Result.Failed` and return a nil request-level error after all specifications have been attempted.
-   - Update the existing no-generated-variants path to use `result.Err()`, but leave the partial-success policy unchanged until task 2.
-   - Document both error channels and update tests without otherwise changing processor behavior.
-
-3. **Clarify command-local variable names.**
-   - In `generateVariant`, rename `width` to `sizeArg`, `path` to `outputArg`, and `out` to `cmdOutput`.
-   - Keep this as a pure naming change.
-
-## 2. Reject incomplete variant generation
+## 1. Reject incomplete variant generation
 
 **Type:** Fix
 **Package(s):** `cmd/webimage`, `internal/variants`
@@ -57,7 +32,7 @@ Small implementation steps:
    - Ensure files created for the failed image are removed through the existing cleanup path.
    - Keep the implementation and assertions at the image-processing boundary.
 
-## 3. Replace path-based variant specifications
+## 2. Replace path-based variant specifications
 
 **Type:** Refactor
 **Package(s):** `internal/variants`, `internal/image`, `cmd/webimage`
@@ -70,7 +45,7 @@ Small implementation steps:
    - Export a `Request` containing `SourcePath`, `OutputDir`, `Widths`, and `Formats []image.Format`.
    - Change `Result.Generated` to `[]image.Variant` with paths relative to `OutputDir`.
    - Change `Failure` to identify the requested format and width without exposing a complete output path.
-   - Keep the request-level versus per-variant error contract from task 1.
+   - Keep the existing request-level versus per-variant error contract.
 
 2. **Move output planning into `internal/variants`.**
    - Replace extension-inferred `Spec` values with typed format and width combinations from `Request`.
@@ -91,7 +66,7 @@ Small implementation steps:
    - Preserve their existing assertions for generated files, result ordering, encoder behavior, and error classification.
    - Add no new test harness solely for this refactor.
 
-## 4. Default gallery sorting to processed dates
+## 3. Default gallery sorting to processed dates
 
 **Type:** Fix
 **Package(s):** `cmd/gallery`, `internal/gallery`
@@ -112,7 +87,7 @@ Small implementation steps:
 3. **Document the default.**
    - State the default and the stricter captured-date requirement in the README or command help.
 
-## 5. Reject overlapping input and output roots
+## 4. Reject overlapping input and output roots
 
 **Type:** Fix
 **Package(s):** `cmd/webimage`
@@ -133,7 +108,7 @@ Small implementation steps:
    - Apply the check in `cmd/webimage`, where both configured roots are available.
    - Leave symlink-resolved containment to the existing unplanned paths-policy item.
 
-## 6. Create image directories exclusively
+## 5. Create image directories exclusively
 
 **Type:** Fix
 **Package(s):** `cmd/webimage`
@@ -154,7 +129,7 @@ Small implementation steps:
    - Run cleanup only after the current attempt successfully created the leaf directory.
    - Rely on the existing processor integration test for normal directory creation; do not add persisted collision tests unless the implementation develops nontrivial collision handling.
 
-## 7. Reject variant overwrites
+## 6. Reject variant overwrites
 
 **Type:** Fix
 **Package(s):** `internal/variants`
