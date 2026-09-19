@@ -8,10 +8,6 @@ At the time of the original review, `go test ./...`, `go vet ./...`, and `static
 
 These items have been promoted to `notes/plan.md`. The plan is the authoritative source for their scope and implementation steps.
 
-### Fix
-
-- **Reject variant overwrites (`internal/variants`):** Treat existing destinations as per-variant failures, do not invoke `vipsthumbnail` for them, and leave their contents unchanged.
-
 ## Unplanned items
 
 Packages are sorted by path. Within each package, items use the type order `refactor`, `fix`, `feature`, `docs`, `test`, then `chore`; empty type sections are omitted.
