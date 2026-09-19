@@ -388,6 +388,20 @@ func (p *imageProcessor) processImage(source sourceImage) (image.Processed, erro
 		)
 	}
 
+	hasJPEG := false
+	for _, variant := range processedImg.Variants {
+		if variant.Format == image.FormatJPEG {
+			hasJPEG = true
+			break
+		}
+	}
+	if !hasJPEG {
+		return image.Processed{}, cleanupImageDirOnError(
+			imgDirAbsPath,
+			errors.New("no JPEG fallback was generated"),
+		)
+	}
+
 	mani, err := manifest.FromProcessed(processedImg)
 	if err != nil {
 		return image.Processed{}, cleanupImageDirOnError(

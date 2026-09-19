@@ -98,6 +98,14 @@ func TestProcessImageRejectsIncompleteVariants(t *testing.T) {
 			wantProblem: "1 generated, 1 failed",
 			wantErr:     variantErr,
 		},
+		{
+			name: "no JPEG fallback",
+			result: func(specs []variants.Spec) variants.Result {
+				generatedAVIF := specs[2]
+				return variants.Result{Generated: []variants.Spec{generatedAVIF}}
+			},
+			wantProblem: "no JPEG fallback was generated",
+		},
 	}
 
 	for _, tc := range tests {
