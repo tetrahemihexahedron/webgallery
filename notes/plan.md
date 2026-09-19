@@ -1,31 +1,10 @@
 # Development plan
 
-These are the next four items to implement from `notes/todo.md`, listed in recommended implementation order.
+These are the next three items to implement from `notes/todo.md`, listed in recommended implementation order.
 
 Each item includes small implementation steps sized for focused commits.
 
-## 1. Default gallery sorting to processed dates
-
-**Type:** Fix
-**Package(s):** `cmd/gallery`, `internal/gallery`
-
-Every processed image has a `processedAt` value, while `capturedAt` is optional. Make processed-date sorting the CLI default so the default workflow can render every valid collection, while keeping captured-date sorting strict when explicitly requested.
-
-Small implementation steps:
-
-1. **Update focused policy coverage.**
-   - Update the existing argument-parsing expectation so omitting `-sort` selects `processed`.
-   - Retain the existing sort tests showing that processed sorting permits an empty `capturedAt` and captured sorting rejects one.
-   - Add a new rendering fixture only if those existing tests do not cover the implementation change.
-
-2. **Change the CLI default.**
-   - Default `cmd/gallery -sort` to `processed`.
-   - Keep explicit `-sort captured` and `-sort processed` behavior unchanged.
-
-3. **Document the default.**
-   - State the default and the stricter captured-date requirement in the README or command help.
-
-## 2. Reject overlapping input and output roots
+## 1. Reject overlapping input and output roots
 
 **Type:** Fix
 **Package(s):** `cmd/webimage`
@@ -46,7 +25,7 @@ Small implementation steps:
    - Apply the check in `cmd/webimage`, where both configured roots are available.
    - Leave symlink-resolved containment to the existing unplanned paths-policy item.
 
-## 3. Create image directories exclusively
+## 2. Create image directories exclusively
 
 **Type:** Fix
 **Package(s):** `cmd/webimage`
@@ -67,7 +46,7 @@ Small implementation steps:
    - Run cleanup only after the current attempt successfully created the leaf directory.
    - Rely on the existing processor integration test for normal directory creation; do not add persisted collision tests unless the implementation develops nontrivial collision handling.
 
-## 4. Reject variant overwrites
+## 3. Reject variant overwrites
 
 **Type:** Fix
 **Package(s):** `internal/variants`
