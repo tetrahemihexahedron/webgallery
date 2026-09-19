@@ -10,7 +10,7 @@ These items have been promoted to `notes/plan.md`. The plan is the authoritative
 
 ### Refactor
 
-- **Improve gallery data flow and option parsing (`cmd/gallery`, `internal/gallery`):** Centralize sort parsing, parse sort keys once, clarify mutation and rendering behavior, improve internal/template names, document `Render`, and normalize options in one place.
+- **Clarify gallery sort parsing and loaded-image names (`cmd/gallery`, `internal/gallery`):** Add a sort-field parser that centralizes valid values and error wording, then rename the combined index/manifest type and its index-entry field for clarity.
 - **Revisit the variants API (`internal/variants`, `cmd/webimage`):** Export and document result-error handling, improve Vips-related naming, move from path-inferred encoders toward typed format/config and request data, clarify partial results, and return enough information to avoid reparsing generated paths.
 
 ### Fix
@@ -102,6 +102,8 @@ Packages are sorted by path. Within each package, items use the type order `refa
 
 #### Refactor
 
+- **Parse sort keys once:** Sorting currently validates datetime strings and then compares their original string values. Parse the selected field into `time.Time` keys and sort by those values instead.
+- **Make sorting mutation explicit:** `sortImages` sorts its input slice in place. Either rename it to make that mutation clear or return a sorted copy, choosing whichever keeps the call site simpler.
 - **Reduce duplicated index and manifest data:** Fields such as title, dates, and SHA-256 can diverge between the index and manifest. Consider keeping only stable lookup data in the index and loading display metadata from manifests.
 
 #### Fix

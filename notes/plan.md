@@ -6,43 +6,23 @@ Each item should include detailed small implementation steps sized for focused c
 
 ## Refactoring
 
-### 1. Improve gallery data flow and option parsing
+### 1. Clarify gallery sort parsing and loaded-image names
 
 **Package(s):** `internal/gallery`, `cmd/gallery`
 
-Gallery rendering has a reasonable shape already, but a few changes would make it clearer where parsing, loading, sorting, and template conversion happen.
+The gallery package should own the parsing and validation of its sort values. Its loaded-image names can also distinguish the combined index/manifest data more clearly. Keep this as a focused cleanup without changing sorting or rendering behavior.
 
 Small implementation steps:
 
 1. **Add `gallery.ParseSortField`.**
    - Implement `func ParseSortField(s string) (SortField, error)`.
    - Move valid-value error wording into `internal/gallery`.
-   - Update `cmd/gallery` to use it.
+   - Update `cmd/gallery` to use it while retaining validation in `Render` for direct callers.
 
 2. **Rename internal loaded-image types.**
-   - `galleryImage` -> `loadedImage` or `galleryItem`.
-   - `indexImage` field -> `entry` or `indexEntry`.
+   - Rename `galleryImage` to `loadedImage`.
+   - Rename its `indexImage` field to `indexEntry`.
    - Keep this as a pure rename commit.
-
-3. **Improve `Render` documentation.**
-   - Expand the comment to explain that `Render` reads `index.json`, loads manifests, sorts images, and writes HTML fragments.
-   - Mention that `Options.ImagesRoot` must point at a webimage output root.
-
-4. **Make sort handling more explicit.**
-   - Add a helper that returns a parsed sort key, such as `sortKey(img loadedImage, field SortField) (time.Time, error)`.
-   - Sort by `time.Time` rather than validating timestamps and then comparing strings.
-
-5. **Consider avoiding in-place sorting.**
-   - Either rename `sortImages` to make mutation obvious, or change it to return a sorted copy.
-   - Choose the simpler call site.
-
-6. **Rename template DTOs if they still feel unclear.**
-   - Possible names: `templateData` -> `galleryHTMLData`, `templateImage` -> `pictureData`, `templateSource` -> `sourceData`, `templateFallback` -> `imgData`.
-   - Do this only if the new names improve readability at call sites.
-
-7. **Normalize options in one place.**
-   - Add a small helper if needed, such as `normalizeOptions(opts Options) (Options, error)`.
-   - This is a good place for future defaults like `sizes` or fallback width.
 
 ### 2. Revisit the variants API shape
 
