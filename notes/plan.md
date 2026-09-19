@@ -1,44 +1,10 @@
 # Development plan
 
-These are the next five items to implement from `notes/todo.md`, listed in recommended implementation order.
+These are the next four items to implement from `notes/todo.md`, listed in recommended implementation order.
 
 Each item includes small implementation steps sized for focused commits.
 
-## 1. Replace path-based variant specifications
-
-**Type:** Refactor
-**Package(s):** `internal/variants`, `internal/image`, `cmd/webimage`
-
-Move output-path construction and format handling behind a package-level request API. Keep this task behavior-preserving: request validation policy, cancellation, output verification, and actual-dimension reporting remain separate work.
-
-Small implementation steps:
-
-1. **Introduce the request and result types.**
-   - Export a `Request` containing `SourcePath`, `OutputDir`, `Widths`, and `Formats []image.Format`.
-   - Change `Result.Generated` to `[]image.Variant` with paths relative to `OutputDir`.
-   - Change `Failure` to identify the requested format and width without exposing a complete output path.
-   - Keep the existing request-level versus per-variant error contract.
-
-2. **Move output planning into `internal/variants`.**
-   - Replace extension-inferred `Spec` values with typed format and width combinations from `Request`.
-   - Construct output filenames and absolute command arguments inside the package.
-   - Keep the current filenames, iteration order, encoder settings, and validation behavior.
-
-3. **Expose the package-level function.**
-   - Implement `func Generate(req Request) (Result, error)` using the existing `exec.Command` behavior.
-   - Do not add `context.Context`, cancellation handling, or new request validation in this task.
-
-4. **Simplify the command integration.**
-   - Use a command-local function type for dependency injection.
-   - Build one `Request` from the source path, image directory, selected widths, and JPEG/AVIF formats.
-   - Remove `Vipsthumbnail`, `Spec`, `variantSpecs`, `variantFilename`, and `identifyVariants` rather than maintaining both APIs.
-
-5. **Adapt existing regression tests.**
-   - Update the current package and processor tests for the request/result API.
-   - Preserve their existing assertions for generated files, result ordering, encoder behavior, and error classification.
-   - Add no new test harness solely for this refactor.
-
-## 2. Default gallery sorting to processed dates
+## 1. Default gallery sorting to processed dates
 
 **Type:** Fix
 **Package(s):** `cmd/gallery`, `internal/gallery`
@@ -59,7 +25,7 @@ Small implementation steps:
 3. **Document the default.**
    - State the default and the stricter captured-date requirement in the README or command help.
 
-## 3. Reject overlapping input and output roots
+## 2. Reject overlapping input and output roots
 
 **Type:** Fix
 **Package(s):** `cmd/webimage`
@@ -80,7 +46,7 @@ Small implementation steps:
    - Apply the check in `cmd/webimage`, where both configured roots are available.
    - Leave symlink-resolved containment to the existing unplanned paths-policy item.
 
-## 4. Create image directories exclusively
+## 3. Create image directories exclusively
 
 **Type:** Fix
 **Package(s):** `cmd/webimage`
@@ -101,7 +67,7 @@ Small implementation steps:
    - Run cleanup only after the current attempt successfully created the leaf directory.
    - Rely on the existing processor integration test for normal directory creation; do not add persisted collision tests unless the implementation develops nontrivial collision handling.
 
-## 5. Reject variant overwrites
+## 4. Reject variant overwrites
 
 **Type:** Fix
 **Package(s):** `internal/variants`

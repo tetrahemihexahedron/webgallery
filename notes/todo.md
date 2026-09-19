@@ -8,10 +8,6 @@ At the time of the original review, `go test ./...`, `go vet ./...`, and `static
 
 These items have been promoted to `notes/plan.md`. The plan is the authoritative source for their scope and implementation steps.
 
-### Refactor
-
-- **Replace path-based variant specifications (`internal/variants`, `internal/image`, `cmd/webimage`):** Add behavior-preserving `Generate(req) (Result, error)`, accept paths, widths, and typed formats in `Request`, return `image.Variant` data, keep output planning internal, and remove the path-based `Spec` API and command-side path reparsing.
-
 ### Fix
 
 - **Default gallery sorting to processed dates (`cmd/gallery`, `internal/gallery`):** Make processed-date sorting the CLI default so collections with missing capture dates render normally, while keeping explicitly requested captured-date sorting strict and leaving missing capture metadata empty.
