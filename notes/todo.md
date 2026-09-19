@@ -10,15 +10,16 @@ These items have been promoted to `notes/plan.md`. The plan is the authoritative
 
 ### Refactor
 
-- **Clarify variant generator results and names (`internal/variants`, `cmd/webimage`):** Make `Result` the sole return value from generation, expose and document its aggregate error handling, clarify the partial-result contract, and improve command-local variable names without changing generation behavior.
+- **Clarify variant generator errors and names (`internal/variants`, `cmd/webimage`):** Keep `(Result, error)` while reserving the returned error for request-level failures, expose `Result.Err()` for per-variant failures, document both channels, and clarify command-local names without otherwise changing behavior.
+- **Replace path-based variant specifications (`internal/variants`, `internal/image`, `cmd/webimage`):** Add behavior-preserving `Generate(req) (Result, error)`, accept paths, widths, and typed formats in `Request`, return `image.Variant` data, keep output planning internal, and remove the path-based `Spec` API and command-side path reparsing.
 
 ### Fix
 
-- **Choose a missing-`capturedAt` policy (`cmd/webimage`, `internal/gallery`, `internal/image`):** Processing can currently produce images that the default gallery sort rejects. Choose and document one policy, cover processing and rendering with missing-date tests, and make the smallest consistent behavior change.
-- **Handle partial variant generation (`cmd/webimage`, `internal/variants`, `internal/manifest`):** Partial failures can be treated as success and leave no JPEG fallback. Test this path, require a JPEG, choose an all-or-nothing or warning policy, preserve cleanup, and improve progress messages.
-- **Make output creation safer (`cmd/webimage`, `internal/variants`):** Random directory collisions and existing variant files can lead to accidental writes. Create random leaf directories exclusively with bounded retries, make ID generation testable, and reject variant overwrites.
-- **Clean up CLI parsing and validation (`cmd/webimage`, `cmd/gallery`):** Use `flag.ContinueOnError`, reject positional arguments, validate input directories, decide whether output roots are created or required, and clarify gallery output targets, with focused parser tests.
-- **Fix user-facing output generation (`internal/gallery`, `internal/variants`):** Preserve full URL prefixes when joining paths and sanitize raw external-command output by trimming, limiting, and replacing non-printable content, with regression tests.
+- **Reject incomplete variant generation (`cmd/webimage`, `internal/variants`):** Treat every failed variant and every missing JPEG fallback as an image-processing failure, report useful counts, and clean up the incomplete image without disturbing other output.
+- **Default gallery sorting to processed dates (`cmd/gallery`, `internal/gallery`):** Make processed-date sorting the CLI default so collections with missing capture dates render normally, while keeping explicitly requested captured-date sorting strict and leaving missing capture metadata empty.
+- **Reject overlapping input and output roots (`cmd/webimage`):** Reject equal or nested roots before reading metadata or creating output, while allowing sibling and merely prefix-similar paths.
+- **Create image directories exclusively (`cmd/webimage`):** Create random leaf directories with exclusive `os.Mkdir`, fail directly on the unlikely collision, and never clean a directory that predated the current attempt; avoid injection and retry machinery added mainly for testing.
+- **Reject variant overwrites (`internal/variants`):** Treat existing destinations as per-variant failures, do not invoke `vipsthumbnail` for them, and leave their contents unchanged.
 
 ## Unplanned items
 
@@ -32,8 +33,9 @@ Packages are sorted by path. Within each package, items use the type order `refa
 
 #### Fix
 
-- **Make external commands cancellable:** `exiftool` and `vipsthumbnail` have no context, cancellation, or timeout, so a stuck process can hang a CLI indefinitely. Thread `context.Context` into the wrappers and use `exec.CommandContext`; the eventual variants API should accept the context as `Generate(ctx, req)`. Add focused cancellation tests if this behavior is implemented.
+- **Make external commands cancellable:** Thread `context.Context` through the command workflows and both the metadata and variants APIs, use `exec.CommandContext` for `exiftool` and `vipsthumbnail`, treat cancellation as a request-level error, and add focused cancellation coverage for both tools.
 - **Record generated dimensions accurately:** Raw metadata dimensions can disagree with auto-rotated or rounded output. Add actual width and height to the generated `image.Variant` values returned in `variants.Result`, write those values to manifests, and cover orientation and rounding with image fixtures.
+- **Clean up CLI parsing and validation:** Both commands use `flag.ExitOnError` and accept positional arguments, and several path errors surface only after work begins. Use `flag.ContinueOnError`, reject positional arguments, validate required input directories, define whether the `webimage` output root is created, and simplify gallery output-target representation where that improves the call site.
 - **Use consistent atomic output writes:** Index writes use temp-file-and-rename while manifests and gallery output do not. Consider a small shared atomic-write helper, apply it where interrupted writes could corrupt output, and test that render failures do not replace an existing file.
 - **Prevent concurrent output mutation:** Two `webimage` processes can race while updating the output root and index. Add a lightweight lock only if accidental concurrent runs are plausible.
 - **Clean up command-line error output:** The `main` packages use `log.Fatal`, which adds timestamps to user-facing errors. Prefer explicit stderr output and exit status handling, then add small smoke tests for the resulting CLI messages.
@@ -77,14 +79,13 @@ Packages are sorted by path. Within each package, items use the type order `refa
 
 #### Refactor
 
-- **Keep consumer interfaces local:** Keep small interfaces such as `metadataReader` and `variantGenerator` near the command code that consumes them; share them only if multiple consumers genuinely require the same contract.
+- **Keep consumer interfaces local:** Keep small interfaces such as `metadataReader` near the command code that consumes them; share them only if multiple consumers genuinely require the same contract.
 - **Simplify error cleanup:** After the partial-result policy in the plan is settled, consider a deferred cleanup guard in `processImage` to reduce repeated cleanup branches without hiding which partial files are retained.
 
 #### Fix
 
 - **Harden source copying:** `copyFile` can miss delayed close errors and does not guard against source and destination being the same file. Check close errors, reject same-file copies, and decide deliberately whether permissions and modification time should be preserved.
 - **Define empty-run index behavior:** Empty or all-skipped first runs may leave no `index.json`. Decide whether these runs create or refresh an empty index, then test empty directories, skipped-only directories, and the resulting index contents.
-- **Reject overlapping input and output roots:** Overlapping paths can cause generated output to be consumed as input or otherwise put source data at risk. Validate the roots before processing.
 
 #### Feature
 
@@ -108,6 +109,7 @@ Packages are sorted by path. Within each package, items use the type order `refa
 #### Fix
 
 - **Validate loaded gallery data:** `loadImages` does not reconcile index and manifest fields, and rendering trusts dimensions. Validate consistency and positive dimensions at the loading boundary, with mismatch and invalid-dimension tests.
+- **Preserve full URL prefixes:** `publicURL` uses `path.Join`, which corrupts prefixes such as `https://example.com/images`. Use URL-aware joining or deliberate slash trimming, with cases for empty, root-relative, trailing-slash, and full-URL prefixes.
 - **Escape all generated URLs:** `srcset` assembly assumes generated filenames need no escaping. Centralize public URL construction and escaping before accepting arbitrary paths or prefixes, and test unusual valid path characters.
 - **Choose an alt-text policy:** Empty title and description produce empty alt text, which may incorrectly mark gallery photos as decorative. Choose whether to allow, warn, fail, or supply a fallback, and test that policy.
 
@@ -218,16 +220,15 @@ Packages are sorted by path. Within each package, items use the type order `refa
 
 #### Refactor
 
-- **Finish the request-based variants API:** Replace the method and `Spec` API with `func Generate(ctx context.Context, req Request) Result`. Export `Request` with a source path, output directory, widths, and `[]image.Format`; keep filename extensions and encoder settings internal. Return generated domain data directly as `[]image.Variant` in `Result.Generated`, identify failures by format and requested width, use a command-local function type for injection, and remove `Vipsthumbnail`, `Spec`, `variantSpecs`, and `identifyVariants` rather than maintaining parallel APIs. Actual output dimensions are covered by the cross-package item above.
 - **Keep execution injectable only when tests need it:** A small command runner can make warnings and missing outputs deterministic to test without over-generalizing the wrapper.
 
 #### Fix
 
+- **Define variant request validation:** After the request API is in place, decide which conditions reject the whole request and which become per-variant failures. Cover missing paths, a missing or non-directory output location, non-positive or duplicate widths, empty or duplicate format lists, unsupported formats, and source-format responsibility with focused tests.
 - **Handle successful command output deliberately:** Any `vipsthumbnail` output currently causes an error even with a zero exit status. Decide whether warnings are acceptable and test warning-on-success behavior.
+- **Sanitize command output in errors:** Raw `vipsthumbnail` output can be binary or very large. Trim whitespace, replace non-printable bytes, cap retained output, and use the sanitized text in generation errors, with direct helper tests.
 - **Verify generated files:** A zero exit status does not prove that output exists, is non-empty, or has the requested format. Validate generated files and test missing or malformed outputs; actual dimensions are covered by the cross-package item above.
-- **Define output-directory responsibility:** `Generate` requires parent directories to exist without documenting that contract. Either create them or return a direct error, with a test for missing parents.
 - **Strengthen same-file protection if needed:** Lexical path comparison misses hard links and symlinks. Compare file identities when the added safety justifies the complexity, and add corresponding tests.
-- **Define source-format validation:** Decide whether the wrapper validates supported inputs or deliberately delegates that responsibility to callers and libvips.
 - **Cover cleaned parent-path output roots:** Add a regression check for roots containing `..` so `vipsthumbnail` receives cleaned absolute paths and diagnostics remain readable.
 
 #### Feature

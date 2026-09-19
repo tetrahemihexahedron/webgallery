@@ -1,166 +1,177 @@
 # Development plan
 
-These are the next items planned to be done from the todo list notes/todo.md.
+These are the next seven items to implement from `notes/todo.md`, listed in recommended implementation order.
 
-Each item should include detailed small implementation steps sized for focused commits.
+Each item includes small implementation steps sized for focused commits.
 
-## Refactoring
+## 1. Clarify variant generator errors and names
 
-### 1. Clarify variant generator results and names
-
+**Type:** Refactor
 **Package(s):** `internal/variants`, `cmd/webimage`
 
-Variant generation can succeed for some specifications and fail for others, so returning both a `Result` and an error duplicates failure state. Make `Result` the sole generation outcome, clarify its error contract, and improve the command-argument names without changing generation behavior or redesigning the request API.
+Variant generation has two distinct failure levels: a request can be invalid before any work begins, or individual variant attempts can fail while others succeed. Keep the conventional `(Result, error)` return shape, but give each channel one clear meaning before changing the processor's partial-failure policy.
 
 Small implementation steps:
 
-1. **Export `Result.Err` and return only `Result` from `Generate`.**
+1. **Export `Result.Err` for per-variant failures.**
    - Rename `func (r Result) err() error` to `func (r Result) Err() error`.
-   - Add an unexported result-level error so `Err()` can report source-path validation failures as well as aggregate `Failure.Err` values.
-   - Change the existing `Generate(source, specs)` method to return only `Result`, then update the consumer interface, callers, and tests to obtain the error from `result.Err()`.
-   - Add focused coverage for successful results, multiple per-spec failures, and source-path validation failures.
+   - Define `Err()` to aggregate only the errors in `Result.Failed`.
+   - Add a small table test for no failures and multiple failures; no new test abstraction is needed.
 
-2. **Document partial-result semantics.**
-   - Document that, after source-path validation, `Generate` attempts every specification and records each attempt in either `Generated` or `Failed`.
-   - Explain that `Result.Err()` reports source-path validation errors and aggregates per-spec failures.
-   - Keep generation and partial-result behavior unchanged apart from the return-signature refactor.
+2. **Reserve the returned error for request-level failures.**
+   - Keep `Generate(source, specs) (Result, error)`.
+   - Return source-path validation errors directly with an empty result.
+   - Record errors from individual variant attempts in `Result.Failed` and return a nil request-level error after all specifications have been attempted.
+   - Update the existing no-generated-variants path to use `result.Err()`, but leave the partial-success policy unchanged until task 2.
+   - Document both error channels and update tests without otherwise changing processor behavior.
 
 3. **Clarify command-local variable names.**
    - In `generateVariant`, rename `width` to `sizeArg`, `path` to `outputArg`, and `out` to `cmdOutput`.
    - Keep this as a pure naming change.
 
-## Behavior improvements
+## 2. Reject incomplete variant generation
 
-### 1. Choose and implement a consistent missing `capturedAt` policy
-
-**Package(s):** `cmd/webimage`, `internal/gallery`, `internal/image`
-
-Current behavior lets `webimage` produce images that `gallery` cannot render with its default `-sort captured`.
-
-Small implementation steps:
-
-1. **Choose the policy and document it.**
-   - Options:
-     - require captured dates during processing,
-     - default gallery sorting to processed date,
-     - or sort missing captured dates last.
-
-2. **Add tests for the chosen policy.**
-   - Include an image with missing `DateTimeOriginal` or empty `CapturedAt`.
-   - Test both processing and gallery rendering behavior.
-
-3. **Implement the smallest behavior change.**
-   - If requiring captured dates, reject/skip files earlier.
-   - If changing gallery sorting, update defaults and sorting behavior.
-
-4. **Update README/help text.**
-   - Make the behavior visible to the developer using the tools.
-
-### 2. Handle partial variant generation correctly
-
-**Package(s):** `cmd/webimage`, `internal/variants`, `internal/manifest`
-
-Current behavior may write a manifest after some variant generation failures, as long as at least one file was generated.
-
-Small implementation steps:
-
-1. **Add a failing test in `cmd/webimage`.**
-   - Use a fake variant generator that returns some generated specs and some failed specs.
-   - Assert the image is not written as successfully processed, or assert the chosen warning behavior.
-
-2. **Require JPEG fallback variants.**
-   - Before writing a manifest, confirm generated variants include at least one JPEG.
-   - Treat no JPEG fallback as a processing failure.
-
-3. **Decide all-or-nothing versus warnings.**
-   - The simplest safe policy is all-or-nothing: any failed variant means the image processing fails and cleanup runs.
-
-4. **Implement the chosen policy.**
-   - If all-or-nothing, check `result.Err()` or `len(result.Failed)` after generation and return an error.
-   - Keep cleanup behavior consistent.
-
-5. **Improve progress messages.**
-   - If partial failures are reported, include how many variants succeeded and failed.
-
-### 3. Make image directory creation and output writes safer
-
+**Type:** Fix
 **Package(s):** `cmd/webimage`, `internal/variants`
 
-Random ID collisions are unlikely, but the current code could write into an existing image directory. Variant output overwrites are also currently allowed by default.
+`processImage` currently treats a partially successful generation result as success and can write an incomplete manifest. Processing should be all-or-nothing for each source image.
 
 Small implementation steps:
 
-1. **Split directory path generation from directory creation.**
-   - Keep `newImageDirRelPath` responsible for the relative path only.
-   - Add a helper such as `createImageDir(outRoot, date)` that creates the directory.
+1. **Add focused processor coverage.**
+   - Use one small package-local fake generator rather than introducing a reusable test framework.
+   - Cover a partial result containing a generated JPEG and a failed variant.
+   - Cover an otherwise successful result containing only AVIF output.
+   - Assert processing fails and removes the incomplete image directory; do not add separate index-level infrastructure for these cases.
 
-2. **Use exclusive directory creation.**
-   - Use `os.Mkdir` for the final random directory rather than `os.MkdirAll` for the full image directory.
-   - Create year/month parents first, then create the random leaf exclusively.
+2. **Fail on both error levels.**
+   - Treat a non-nil error returned by `Generate` as a request-level processing failure.
+   - Check `result.Err()` for per-variant failures and fail even when other files were generated.
+   - Include the generated and failed counts in per-variant failure context.
 
-3. **Retry on collision.**
-   - If `os.Mkdir` returns `fs.ErrExist`, generate another ID and retry a bounded number of times.
+3. **Require a usable JPEG fallback.**
+   - Preserve the existing failure when no variants were generated.
+   - Reject a result that has generated variants but no JPEG.
 
-4. **Add deterministic collision tests.**
-   - Make ID generation injectable or pass in a test generator that returns a duplicate once and then a unique ID.
+4. **Preserve cleanup behavior.**
+   - Ensure files created for the failed image are removed through the existing cleanup path.
+   - Keep the implementation and assertions at the image-processing boundary.
 
-5. **Add no-overwrite behavior for variants.**
-   - Check for an existing output file before running `vipsthumbnail`.
-   - Return a clear error unless a future force mode is explicitly added.
+## 3. Replace path-based variant specifications
 
-### 4. Clean up CLI parsing and input validation
+**Type:** Refactor
+**Package(s):** `internal/variants`, `internal/image`, `cmd/webimage`
 
-**Package(s):** `cmd/webimage`, `cmd/gallery`
-
-Better parsing and validation will make the tools easier to test and less surprising to use.
-
-Small implementation steps:
-
-1. **Switch to `flag.ContinueOnError`.**
-   - Do this separately for each command.
-   - Keep tests focused on unknown flags and invalid values.
-
-2. **Reject positional arguments.**
-   - After `flags.Parse(args)`, check `flags.NArg()`.
-   - Return a clear error if extra args are present.
-
-3. **Validate `webimage -incoming`.**
-   - Check that it exists and is a directory.
-   - Return a direct error before calling exiftool.
-
-4. **Validate or create `webimage -output`.**
-   - Decide whether the command creates the output root or requires it.
-   - Implement and document one behavior.
-
-5. **Validate `gallery -images`.**
-   - Check that it is a directory containing `index.json`, or rely on `index.ReadDir` but improve the error.
-
-6. **Clarify gallery output destination.**
-   - Replace `UseStdout` plus zero `OutFile` with a small output target representation if it improves readability.
-
-### 5. Fix user-facing output generation issues
-
-**Package(s):** `internal/gallery`, `internal/variants`
-
-Two user-visible issues stand out: full URL prefixes are broken, and raw command output can make error messages unreadable.
+Move output-path construction and format handling behind a package-level request API. Keep this task behavior-preserving: request validation policy, cancellation, output verification, and actual-dimension reporting remain separate work.
 
 Small implementation steps:
 
-1. **Add URL prefix tests.**
-   - Cover empty prefix, `/images`, `/images/`, and `https://example.com/images`.
+1. **Introduce the request and result types.**
+   - Export a `Request` containing `SourcePath`, `OutputDir`, `Widths`, and `Formats []image.Format`.
+   - Change `Result.Generated` to `[]image.Variant` with paths relative to `OutputDir`.
+   - Change `Failure` to identify the requested format and width without exposing a complete output path.
+   - Keep the request-level versus per-variant error contract from task 1.
 
-2. **Replace `path.Join` URL building.**
-   - Use a URL-aware helper or simple slash trimming that preserves `https://`.
-   - Keep generated relative paths unchanged.
+2. **Move output planning into `internal/variants`.**
+   - Replace extension-inferred `Spec` values with typed format and width combinations from `Request`.
+   - Construct output filenames and absolute command arguments inside the package.
+   - Keep the current filenames, iteration order, encoder settings, and validation behavior.
 
-3. **Add command-output sanitizing helper.**
-   - Add a helper in `internal/variants`, such as `formatCommandOutput([]byte) string`.
-   - It should trim whitespace, cap length, and replace non-printable bytes.
+3. **Expose the package-level function.**
+   - Implement `func Generate(req Request) (Result, error)` using the existing `exec.Command` behavior.
+   - Do not add `context.Context`, cancellation handling, or new request validation in this task.
 
-4. **Use sanitized output in variant errors.**
-   - Update `generateVariant` errors to include sanitized command output.
-   - Avoid dumping binary or huge output blobs.
+4. **Simplify the command integration.**
+   - Use a command-local function type for dependency injection.
+   - Build one `Request` from the source path, image directory, selected widths, and JPEG/AVIF formats.
+   - Remove `Vipsthumbnail`, `Spec`, `variantSpecs`, `variantFilename`, and `identifyVariants` rather than maintaining both APIs.
 
-5. **Add focused tests for sanitized errors.**
-   - Unit test the sanitizer directly.
-   - If command execution is later injectable, test `generateVariant` error wrapping too.
+5. **Adapt existing regression tests.**
+   - Update the current package and processor tests for the request/result API.
+   - Preserve their existing assertions for generated files, result ordering, encoder behavior, and error classification.
+   - Add no new test harness solely for this refactor.
+
+## 4. Default gallery sorting to processed dates
+
+**Type:** Fix
+**Package(s):** `cmd/gallery`, `internal/gallery`
+
+Every processed image has a `processedAt` value, while `capturedAt` is optional. Make processed-date sorting the CLI default so the default workflow can render every valid collection, while keeping captured-date sorting strict when explicitly requested.
+
+Small implementation steps:
+
+1. **Update focused policy coverage.**
+   - Update the existing argument-parsing expectation so omitting `-sort` selects `processed`.
+   - Retain the existing sort tests showing that processed sorting permits an empty `capturedAt` and captured sorting rejects one.
+   - Add a new rendering fixture only if those existing tests do not cover the implementation change.
+
+2. **Change the CLI default.**
+   - Default `cmd/gallery -sort` to `processed`.
+   - Keep explicit `-sort captured` and `-sort processed` behavior unchanged.
+
+3. **Document the default.**
+   - State the default and the stricter captured-date requirement in the README or command help.
+
+## 5. Reject overlapping input and output roots
+
+**Type:** Fix
+**Package(s):** `cmd/webimage`
+
+Overlapping roots can cause generated output to be consumed as future input or place source files inside a tree the processor mutates. Reject unsafe layouts before reading metadata or creating output.
+
+Small implementation steps:
+
+1. **Add one table of root relationships.**
+   - Cover equal roots, output beneath input, input beneath output, siblings, and merely prefix-similar names.
+   - Keep the cases at the path-validation boundary without faking metadata or filesystem tools.
+
+2. **Validate roots before processing.**
+   - Use cleaned absolute paths and path-aware relative checks rather than string-prefix checks.
+   - Return a direct error before reading metadata, loading the index, or creating files.
+
+3. **Keep the boundary narrow.**
+   - Apply the check in `cmd/webimage`, where both configured roots are available.
+   - Leave symlink-resolved containment to the existing unplanned paths-policy item.
+
+## 6. Create image directories exclusively
+
+**Type:** Fix
+**Package(s):** `cmd/webimage`
+
+A random image-directory collision is very unlikely, but it must not cause the processor to reuse or later remove a pre-existing directory. Prefer a direct error over retry machinery that exists mainly to support an implausible test case.
+
+Small implementation steps:
+
+1. **Separate directory selection from creation.**
+   - Keep date-based relative path construction separate from filesystem mutation.
+   - Create the year/month parents with `os.MkdirAll`, then create only the random leaf with `os.Mkdir`.
+
+2. **Fail directly on a collision.**
+   - Return a clear error when the random leaf already exists.
+   - Do not make random ID generation injectable or add collision retries.
+
+3. **Protect pre-existing directories.**
+   - Run cleanup only after the current attempt successfully created the leaf directory.
+   - Rely on the existing processor integration test for normal directory creation; do not add persisted collision tests unless the implementation develops nontrivial collision handling.
+
+## 7. Reject variant overwrites
+
+**Type:** Fix
+**Package(s):** `internal/variants`
+
+Variant generation should never replace an existing output file implicitly, even when the package is called outside the normal fresh-directory workflow.
+
+Small implementation steps:
+
+1. **Detect existing destinations.**
+   - Check each output path before invoking `vipsthumbnail`.
+   - Treat an existing file as a per-variant failure with a direct error.
+
+2. **Preserve existing files.**
+   - Skip generation for an existing destination and leave its contents unchanged.
+   - Continue attempting other requested variants.
+
+3. **Add one focused integration case.**
+   - Pre-create one destination and request it alongside one variant that can be generated normally.
+   - Assert the existing contents are unchanged and the result records one failed and one generated variant.
+   - Do not introduce a command-runner abstraction solely for this assertion.
