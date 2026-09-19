@@ -90,3 +90,19 @@ func parseArgs(args []string, output io.Writer) (Config, error) {
 
 	return cfg, nil
 }
+
+func validateRoots(inDir, outDir paths.AbsPath) error {
+	outputRel, err := filepath.Rel(inDir.String(), outDir.String())
+	if err != nil {
+		return fmt.Errorf("comparing incoming and output directories: %w", err)
+	}
+	inputRel, err := filepath.Rel(outDir.String(), inDir.String())
+	if err != nil {
+		return fmt.Errorf("comparing incoming and output directories: %w", err)
+	}
+
+	if filepath.IsLocal(outputRel) || filepath.IsLocal(inputRel) {
+		return fmt.Errorf("incoming and output directories must not overlap: incoming %q, output %q", inDir, outDir)
+	}
+	return nil
+}

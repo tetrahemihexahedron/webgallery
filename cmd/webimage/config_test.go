@@ -56,6 +56,33 @@ func TestParseArgs(t *testing.T) {
 	}
 }
 
+func TestValidateRoots(t *testing.T) {
+	tests := []struct {
+		name     string
+		incoming string
+		output   string
+		wantErr  bool
+	}{
+		{name: "equal roots", incoming: "/srv/photos", output: "/srv/photos", wantErr: true},
+		{name: "output beneath input", incoming: "/srv/photos", output: "/srv/photos/output", wantErr: true},
+		{name: "input beneath output", incoming: "/srv/photos/incoming", output: "/srv/photos", wantErr: true},
+		{name: "siblings", incoming: "/srv/photos/incoming", output: "/srv/photos/output"},
+		{name: "prefix-similar names", incoming: "/srv/photos", output: "/srv/photos-output"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			err := validateRoots(mustAbs(t, tc.incoming), mustAbs(t, tc.output))
+			if tc.wantErr && err == nil {
+				t.Fatal("validateRoots() error = nil, want error")
+			}
+			if !tc.wantErr && err != nil {
+				t.Fatalf("validateRoots() error = %v, want nil", err)
+			}
+		})
+	}
+}
+
 func TestParseArgsErrors(t *testing.T) {
 	tests := []struct {
 		name    string
