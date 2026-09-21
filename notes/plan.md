@@ -1,40 +1,10 @@
 # Development plan
 
-These are the next five items to implement from `notes/todo.md`, listed in recommended implementation order.
+These are the next four items to implement from `notes/todo.md`, listed in recommended implementation order.
 
 Each item includes small implementation steps sized for focused commits.
 
-## 1. Validate JPEG processing requirements in the processor
-
-**Type:** Fix
-**Package(s):** `internal/image`, `cmd/webimage`
-
-`internal/metadata` currently prevents incomplete JPEG records from reaching the processor, so `cmd/webimage` does not enforce all of the invariants needed before hashing and generating files. In addition, `image.ParseCapturedAt` trims surrounding whitespace, which forces consumers to add their own exact-format checks when they require the documented internal representation. Define a strict empty-or-canonical capture-date contract, then establish the JPEG checks at the processing boundary before relaxing metadata extraction in the following item.
-
-Small implementation steps:
-
-1. **Make internal capture-date parsing strict.**
-   - Document `image.Metadata.CapturedAt` and `image.Processed.CapturedAt` as either empty or exactly the value produced by `image.FormatCapturedAt`; normalization of external representations belongs to their adapters.
-   - Stop trimming whitespace in `image.ParseCapturedAt` so it accepts only the canonical internal layout, including exact separators and no surrounding whitespace. Keep the parse-and-format comparison in that function as the single canonical-format check.
-   - Update the exported `internal/image` tests so canonical values still round-trip and surrounding whitespace is rejected. Do not introduce a capture-time wrapper while one documented string contract and parser remain sufficient.
-
-2. **Validate after format dispatch.**
-   - Keep the existing format check first so unsupported records are skipped without requiring image dimensions or capture metadata.
-   - For JPEG records, require positive width and height before building the source path, hashing the file, or creating output.
-   - Allow an empty `capturedAt` with processed-date directories, require it when `--dir-date=captured` is selected, and pass every non-empty value to the strict `image.ParseCapturedAt` parser.
-   - Validate rather than normalize in the processor: remove any processor-side parse/format round-trip once strictness is centralized in `internal/image`, and do not teach the processor exiftool's external date layout.
-
-3. **Report processing problems consistently.**
-   - Return validation failures through the existing per-file `imageProblem` path and progress reporting rather than as request-level errors.
-   - Keep title and description optional and do not add source-format policy to lower-level image or path types.
-   - Treat `internal/metadata` as the normalization boundary and `cmd/webimage` as a validating consumer, so extraction bugs are rejected instead of silently repaired.
-
-4. **Add focused processor coverage.**
-   - Add a table to the existing same-package processor tests; package-local coverage is appropriate because the command workflow has no exported API and the validation must be observed before filesystem work begins.
-   - Start each invalid case from otherwise-valid JPEG metadata and change only width, height, or capture data; include malformed and whitespace-padded capture dates, plus an unsupported format with missing dimensions to prove format skipping still happens first.
-   - Check whether a problem was returned and match only relevant message substrings, then retain the existing processor integration test as coverage for a valid JPEG flowing through the complete workflow.
-
-## 2. Limit metadata validation to extraction concerns
+## 1. Limit metadata validation to extraction concerns
 
 **Type:** Fix
 **Package(s):** `internal/metadata`
@@ -58,7 +28,7 @@ Small implementation steps:
    - Add a small reusable non-JPEG fixture without dimensions and locate records by filename rather than assuming order, because deterministic ordering is a later plan item.
    - Retain the malformed-date case using relevant error context rather than an exact parser message, and compare structured `image.Metadata` values instead of raw exiftool JSON.
 
-## 3. Treat no-record directories as empty
+## 2. Treat no-record directories as empty
 
 **Type:** Fix
 **Package(s):** `internal/metadata`
@@ -81,7 +51,7 @@ Small implementation steps:
    - Create layouts with `t.TempDir` and assert both cases return empty metadata and problem slices without placing files inside the nested directories.
    - Keep command-failure assertions type- or substring-based; do not add exact comparisons of exiftool diagnostics.
 
-## 4. Make metadata result order deterministic
+## 3. Make metadata result order deterministic
 
 **Type:** Fix
 **Package(s):** `internal/metadata`
@@ -104,7 +74,7 @@ Small implementation steps:
    - Update the exported `Result` documentation to state that both slices are ordered by filename.
    - Keep sorting inside `internal/metadata` rather than relying on callers to normalize external-tool output.
 
-## 5. Record generated dimensions accurately
+## 4. Record generated dimensions accurately
 
 **Type:** Fix
 **Package(s):** `internal/image`, `internal/variants`, `internal/manifest`, `cmd/webimage`

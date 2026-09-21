@@ -10,7 +10,6 @@ These items have been promoted to `notes/plan.md`. The plan is the authoritative
 
 ### Fix
 
-- **Validate JPEG processing requirements in the processor (`internal/image`, `cmd/webimage`):** Define `capturedAt` as empty or strictly canonical in the domain parser, then after format dispatch require processable JPEG dimensions and enforce the configured capture-date requirement before hashing or creating output.
 - **Limit metadata validation to extraction concerns (`internal/metadata`):** Pass through missing dimensions for processor policy while retaining exiftool errors and record identity requirements; normalize present exiftool dates into the canonical `image.Metadata` representation only at this extraction boundary.
 - **Treat no-record directories as empty (`internal/metadata`):** Treat successful empty exiftool output as an empty result for directories, including directories containing only ignored subdirectories.
 - **Make metadata result order deterministic (`internal/metadata`):** Sort usable metadata and per-file problems independently by filename before returning them.
