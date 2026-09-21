@@ -23,6 +23,7 @@ type Variant struct {
 	Path   paths.RelPath
 	Format Format
 	Width  int
+	Height int
 }
 
 type Processed struct {

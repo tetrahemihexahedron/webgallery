@@ -44,6 +44,7 @@ func (r Result) Err() error {
 
 type plannedVariant struct {
 	variant        image.Variant
+	requestedWidth int
 	outputPath     paths.AbsPath
 	encoderOptions string
 }
@@ -111,6 +112,7 @@ func planVariant(outputDir paths.AbsPath, format image.Format, width int) (plann
 			Format: format,
 			Width:  width,
 		},
+		requestedWidth: width,
 		outputPath:     outputPath,
 		encoderOptions: encoderOptions,
 	}, nil
@@ -128,7 +130,7 @@ func generateVariant(source paths.AbsPath, planned plannedVariant) error {
 
 	// appending '>' tells libvips to only shrink; if the image is already
 	// smaller than the requested size, the size won't change
-	sizeArg := strconv.Itoa(planned.variant.Width) + "x>"
+	sizeArg := strconv.Itoa(planned.requestedWidth) + "x>"
 	outputArg := planned.outputPath.String() + planned.encoderOptions
 
 	cmd := exec.Command("vipsthumbnail", source.String(), "--size", sizeArg, "--output", outputArg)
