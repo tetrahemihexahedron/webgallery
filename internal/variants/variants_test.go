@@ -66,16 +66,18 @@ func TestResultErr(t *testing.T) {
 }
 
 func TestGenerate(t *testing.T) {
-	source := mustAbs(t, filepath.Join("testdata", "image_800x1067.jpg"))
+	standardSource := mustAbs(t, filepath.Join("testdata", "image_800x1067.jpg"))
 
 	tests := []struct {
 		name          string
+		source        paths.AbsPath
 		widths        []int
 		formats       []image.Format
 		wantGenerated []image.Variant
 	}{
 		{
 			name:    "generates supported formats in request order",
+			source:  standardSource,
 			widths:  []int{400, 800},
 			formats: []image.Format{image.FormatJPEG, image.FormatAVIF},
 			wantGenerated: []image.Variant{
@@ -87,10 +89,21 @@ func TestGenerate(t *testing.T) {
 		},
 		{
 			name:    "does not enlarge images",
+			source:  standardSource,
 			widths:  []int{1600},
 			formats: []image.Format{image.FormatJPEG},
 			wantGenerated: []image.Variant{
 				{Path: mustRel(t, "w1600.jpg"), Format: image.FormatJPEG, Width: 800, Height: 1067},
+			},
+		},
+		{
+			name:    "records auto-rotated dimensions",
+			source:  mustAbs(t, filepath.Join("testdata", "image_120x80_orientation_6.jpg")),
+			widths:  []int{40},
+			formats: []image.Format{image.FormatJPEG, image.FormatAVIF},
+			wantGenerated: []image.Variant{
+				{Path: mustRel(t, "w40.jpg"), Format: image.FormatJPEG, Width: 40, Height: 60},
+				{Path: mustRel(t, "w40.avif"), Format: image.FormatAVIF, Width: 40, Height: 60},
 			},
 		},
 	}
@@ -98,7 +111,7 @@ func TestGenerate(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			req := variants.Request{
-				SourcePath: source,
+				SourcePath: tc.source,
 				OutputDir:  mustAbs(t, t.TempDir()),
 				Widths:     tc.widths,
 				Formats:    tc.formats,
