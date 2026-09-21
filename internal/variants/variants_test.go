@@ -91,9 +91,10 @@ func TestGenerate(t *testing.T) {
 			name:    "does not enlarge images",
 			source:  standardSource,
 			widths:  []int{1600},
-			formats: []image.Format{image.FormatJPEG},
+			formats: []image.Format{image.FormatJPEG, image.FormatAVIF},
 			wantGenerated: []image.Variant{
 				{Path: mustRel(t, "w1600.jpg"), Format: image.FormatJPEG, Width: 800, Height: 1067},
+				{Path: mustRel(t, "w1600.avif"), Format: image.FormatAVIF, Width: 800, Height: 1067},
 			},
 		},
 		{
