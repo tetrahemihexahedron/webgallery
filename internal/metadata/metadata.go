@@ -14,6 +14,9 @@ import (
 	"tetrahemihexahedron/webimage/internal/paths"
 )
 
+// Result contains metadata records and per-file problems from a read.
+// Metadata and FileProblems are sorted independently by filename in ascending
+// lexical order; entries with equal filenames retain their original order.
 type Result struct {
 	Metadata     []image.Metadata
 	FileProblems []Problem
