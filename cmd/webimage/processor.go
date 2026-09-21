@@ -488,19 +488,31 @@ func variantWidths(sourceWidth int, desired []int) []int {
 }
 
 func copyFile(source paths.AbsPath, dest paths.AbsPath) error {
-	sourcefile, err := os.Open(source.String())
+	sourceFile, err := os.Open(source.String())
 	if err != nil {
 		return err
 	}
-	defer sourcefile.Close()
+	defer sourceFile.Close()
 
-	destination, err := os.Create(dest.String())
+	sourceInfo, err := sourceFile.Stat()
+	if err != nil {
+		return err
+	}
+	destInfo, err := os.Stat(dest.String())
+	if err == nil && os.SameFile(sourceInfo, destInfo) {
+		return fmt.Errorf("source %q and destination %q are the same file", source, dest)
+	}
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return err
+	}
+
+	destination, err := os.OpenFile(dest.String(), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
 	if err != nil {
 		return err
 	}
 	defer destination.Close()
 
-	_, err = io.Copy(destination, sourcefile)
+	_, err = io.Copy(destination, sourceFile)
 	return err
 }
 
