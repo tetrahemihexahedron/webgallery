@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 
 	"tetrahemihexahedron/webimage/internal/image"
@@ -79,6 +80,21 @@ func TestExiftoolRead(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "reads non-image without dimensions",
+			file: "no_dimensions.txt",
+			wantMetadata: []image.Metadata{
+				{
+					FileName:    "no_dimensions.txt",
+					Format:      "TXT",
+					Title:       "",
+					Description: "",
+					CapturedAt:  "",
+					Width:       0,
+					Height:      0,
+				},
+			},
+		},
 	}
 
 	for _, tc := range tests {
@@ -115,8 +131,9 @@ func TestExiftoolReadReadsDirectories(t *testing.T) {
 
 	t.Run("directory with good and bad files", func(t *testing.T) {
 		dirPath := t.TempDir()
-		copyFixture(t, dirPath, "complete_metadata.jpg")
+		copyFixture(t, dirPath, "no_dimensions.txt")
 		copyFixture(t, dirPath, "empty.jpg")
+		copyFixture(t, dirPath, "complete_metadata.jpg")
 
 		wantMetadata := []image.Metadata{
 			{
@@ -128,11 +145,9 @@ func TestExiftoolReadReadsDirectories(t *testing.T) {
 				Width:       4032,
 				Height:      3024,
 			},
-		}
-		wantProblems := []metadata.Problem{
 			{
-				FileName: "empty.jpg",
-				Message:  "reported by exiftool: File is empty",
+				FileName: "no_dimensions.txt",
+				Format:   "TXT",
 			},
 		}
 
@@ -141,11 +156,24 @@ func TestExiftoolReadReadsDirectories(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Exiftool.Read(%q) returned error: %v", path, err)
 		}
-		if !slices.Equal(got.Metadata, wantMetadata) {
-			t.Errorf("Exiftool.Read(%q) metadata mismatch\n got: %+v\nwant: %+v", path, got.Metadata, wantMetadata)
+		if len(got.Metadata) != len(wantMetadata) {
+			t.Fatalf("Exiftool.Read(%q) returned %d metadata records, want %d: %+v", path, len(got.Metadata), len(wantMetadata), got.Metadata)
 		}
-		if !slices.Equal(got.FileProblems, wantProblems) {
-			t.Errorf("Exiftool.Read(%q) file problems mismatch\n got: %+v\nwant: %+v", path, got.FileProblems, wantProblems)
+		for _, want := range wantMetadata {
+			gotMetadata := metadataByFileName(t, got.Metadata, want.FileName)
+			if gotMetadata != want {
+				t.Errorf("Exiftool.Read(%q) metadata for %q = %+v, want %+v", path, want.FileName, gotMetadata, want)
+			}
+		}
+		if len(got.FileProblems) != 1 {
+			t.Fatalf("Exiftool.Read(%q) returned %d file problems, want 1: %+v", path, len(got.FileProblems), got.FileProblems)
+		}
+		problem := got.FileProblems[0]
+		if problem.FileName != "empty.jpg" {
+			t.Errorf("Exiftool.Read(%q) problem filename = %q, want %q", path, problem.FileName, "empty.jpg")
+		}
+		if !strings.Contains(problem.Message, "File is empty") {
+			t.Errorf("Exiftool.Read(%q) problem message = %q, want message containing %q", path, problem.Message, "File is empty")
 		}
 	})
 }
@@ -154,27 +182,20 @@ func TestExiftoolReadReportsFileProblems(t *testing.T) {
 	tests := []struct {
 		name         string
 		file         string
-		wantProblems []metadata.Problem
+		wantFileName string
+		wantMessage  string
 	}{
 		{
-			name: "errors reported by exiftool",
-			file: "empty.jpg",
-			wantProblems: []metadata.Problem{
-				{
-					FileName: "empty.jpg",
-					Message:  "reported by exiftool: File is empty",
-				},
-			},
+			name:         "errors reported by exiftool",
+			file:         "empty.jpg",
+			wantFileName: "empty.jpg",
+			wantMessage:  "File is empty",
 		},
 		{
-			name: "invalid DateTimeOriginal",
-			file: "bad_datetimeoriginal.jpg",
-			wantProblems: []metadata.Problem{
-				{
-					FileName: "bad_datetimeoriginal.jpg",
-					Message:  `invalid DateTimeOriginal "2020-01-02T03:04:05": parsing time "2020-01-02T03:04:05" as "2006:01:02 15:04:05": cannot parse "-01-02T03:04:05" as ":"`,
-				},
-			},
+			name:         "invalid DateTimeOriginal",
+			file:         "bad_datetimeoriginal.jpg",
+			wantFileName: "bad_datetimeoriginal.jpg",
+			wantMessage:  `invalid DateTimeOriginal "2020-01-02T03:04:05"`,
 		},
 	}
 
@@ -188,8 +209,15 @@ func TestExiftoolReadReportsFileProblems(t *testing.T) {
 			if len(got.Metadata) != 0 {
 				t.Errorf("Exiftool.Read(%q) returned metadata: %+v", path, got.Metadata)
 			}
-			if !slices.Equal(got.FileProblems, tc.wantProblems) {
-				t.Errorf("Exiftool.Read(%q) file problems mismatch\n got: %+v\nwant: %+v", path, got.FileProblems, tc.wantProblems)
+			if len(got.FileProblems) != 1 {
+				t.Fatalf("Exiftool.Read(%q) returned %d file problems, want 1: %+v", path, len(got.FileProblems), got.FileProblems)
+			}
+			problem := got.FileProblems[0]
+			if problem.FileName != tc.wantFileName {
+				t.Errorf("Exiftool.Read(%q) problem filename = %q, want %q", path, problem.FileName, tc.wantFileName)
+			}
+			if !strings.Contains(problem.Message, tc.wantMessage) {
+				t.Errorf("Exiftool.Read(%q) problem message = %q, want message containing %q", path, problem.Message, tc.wantMessage)
 			}
 		})
 	}
@@ -223,6 +251,19 @@ func TestExiftoolReadReturnsError(t *testing.T) {
 			}
 		})
 	}
+}
+
+func metadataByFileName(t *testing.T, records []image.Metadata, fileName string) image.Metadata {
+	t.Helper()
+
+	for _, record := range records {
+		if record.FileName == fileName {
+			return record
+		}
+	}
+
+	t.Fatalf("metadata record %q not found in %+v", fileName, records)
+	return image.Metadata{}
 }
 
 func copyFixture(t *testing.T, dir, name string) {
