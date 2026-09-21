@@ -99,12 +99,12 @@ func TestGenerate(t *testing.T) {
 		},
 		{
 			name:    "records auto-rotated dimensions",
-			source:  mustAbs(t, filepath.Join("testdata", "image_120x80_orientation_6.jpg")),
-			widths:  []int{40},
+			source:  mustAbs(t, filepath.Join("testdata", "image_800x600_orientation_8.jpg")),
+			widths:  []int{400},
 			formats: []image.Format{image.FormatJPEG, image.FormatAVIF},
 			wantGenerated: []image.Variant{
-				{Path: mustRel(t, "w40.jpg"), Format: image.FormatJPEG, Width: 40, Height: 60},
-				{Path: mustRel(t, "w40.avif"), Format: image.FormatAVIF, Width: 40, Height: 60},
+				{Path: mustRel(t, "w400.jpg"), Format: image.FormatJPEG, Width: 400, Height: 533},
+				{Path: mustRel(t, "w400.avif"), Format: image.FormatAVIF, Width: 400, Height: 533},
 			},
 		},
 	}
