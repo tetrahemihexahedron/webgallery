@@ -2,8 +2,6 @@
 
 These notes collect possible maintainability/readability improvements, potential bugs, and feature ideas discovered during package-by-package review. Items are grouped using the branch types from `.pi/prompts/implement-plan-item.md`: `refactor`, `fix`, `feature`, `docs`, `test`, and `chore`.
 
-At the time of the original review, `go test ./...`, `go vet ./...`, and `staticcheck ./...` passed.
-
 ## Represented in `plan.md`
 
 These items have been promoted to `notes/plan.md`. The plan is the authoritative source for their scope and implementation steps.
