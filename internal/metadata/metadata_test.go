@@ -129,11 +129,12 @@ func TestExiftoolReadReadsDirectories(t *testing.T) {
 		}
 	})
 
-	t.Run("directory with good and bad files", func(t *testing.T) {
+	t.Run("directory with mixed results", func(t *testing.T) {
 		dirPath := t.TempDir()
 		copyFixture(t, dirPath, "no_dimensions.txt")
 		copyFixture(t, dirPath, "empty.jpg")
 		copyFixture(t, dirPath, "complete_metadata.jpg")
+		copyFixture(t, dirPath, "bad_datetimeoriginal.jpg")
 
 		wantMetadata := []image.Metadata{
 			{
@@ -150,30 +151,33 @@ func TestExiftoolReadReadsDirectories(t *testing.T) {
 				Format:   "TXT",
 			},
 		}
+		wantProblems := []struct {
+			fileName string
+			message  string
+		}{
+			{fileName: "bad_datetimeoriginal.jpg", message: "invalid DateTimeOriginal"},
+			{fileName: "empty.jpg", message: "File is empty"},
+		}
 
 		path := mustAbs(t, dirPath)
 		got, err := (&metadata.Exiftool{}).Read(path)
 		if err != nil {
 			t.Fatalf("Exiftool.Read(%q) returned error: %v", path, err)
 		}
-		if len(got.Metadata) != len(wantMetadata) {
-			t.Fatalf("Exiftool.Read(%q) returned %d metadata records, want %d: %+v", path, len(got.Metadata), len(wantMetadata), got.Metadata)
+		if !slices.Equal(got.Metadata, wantMetadata) {
+			t.Errorf("Exiftool.Read(%q) metadata mismatch\n got: %+v\nwant: %+v", path, got.Metadata, wantMetadata)
 		}
-		for _, want := range wantMetadata {
-			gotMetadata := metadataByFileName(t, got.Metadata, want.FileName)
-			if gotMetadata != want {
-				t.Errorf("Exiftool.Read(%q) metadata for %q = %+v, want %+v", path, want.FileName, gotMetadata, want)
+		if len(got.FileProblems) != len(wantProblems) {
+			t.Fatalf("Exiftool.Read(%q) returned %d file problems, want %d: %+v", path, len(got.FileProblems), len(wantProblems), got.FileProblems)
+		}
+		for i, want := range wantProblems {
+			problem := got.FileProblems[i]
+			if problem.FileName != want.fileName {
+				t.Errorf("Exiftool.Read(%q) problem %d filename = %q, want %q", path, i, problem.FileName, want.fileName)
 			}
-		}
-		if len(got.FileProblems) != 1 {
-			t.Fatalf("Exiftool.Read(%q) returned %d file problems, want 1: %+v", path, len(got.FileProblems), got.FileProblems)
-		}
-		problem := got.FileProblems[0]
-		if problem.FileName != "empty.jpg" {
-			t.Errorf("Exiftool.Read(%q) problem filename = %q, want %q", path, problem.FileName, "empty.jpg")
-		}
-		if !strings.Contains(problem.Message, "File is empty") {
-			t.Errorf("Exiftool.Read(%q) problem message = %q, want message containing %q", path, problem.Message, "File is empty")
+			if !strings.Contains(problem.Message, want.message) {
+				t.Errorf("Exiftool.Read(%q) problem %d message = %q, want message containing %q", path, i, problem.Message, want.message)
+			}
 		}
 	})
 }
@@ -251,19 +255,6 @@ func TestExiftoolReadReturnsError(t *testing.T) {
 			}
 		})
 	}
-}
-
-func metadataByFileName(t *testing.T, records []image.Metadata, fileName string) image.Metadata {
-	t.Helper()
-
-	for _, record := range records {
-		if record.FileName == fileName {
-			return record
-		}
-	}
-
-	t.Fatalf("metadata record %q not found in %+v", fileName, records)
-	return image.Metadata{}
 }
 
 func copyFixture(t *testing.T, dir, name string) {

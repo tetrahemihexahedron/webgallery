@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"slices"
 	"strings"
 	"time"
 
@@ -155,6 +156,14 @@ func processOutput(output []exiftoolOutput) Result {
 			Height:      out.Height,
 		})
 	}
+
+	slices.SortStableFunc(metadata, func(a, b image.Metadata) int {
+		return strings.Compare(a.FileName, b.FileName)
+	})
+	slices.SortStableFunc(problems, func(a, b Problem) int {
+		return strings.Compare(a.FileName, b.FileName)
+	})
+
 	return Result{
 		Metadata:     metadata,
 		FileProblems: problems,
