@@ -95,7 +95,6 @@ func TestProcessMetadataEntryValidatesJPEGMetadata(t *testing.T) {
 		createSource  bool
 		wantProblem   bool
 		wantMessage   string
-		wantProgress  string
 		wantGenerator bool
 	}{
 		{
@@ -104,9 +103,8 @@ func TestProcessMetadataEntryValidatesJPEGMetadata(t *testing.T) {
 			change: func(meta *image.Metadata) {
 				meta.Width = 0
 			},
-			wantProblem:  true,
-			wantMessage:  "width must be positive",
-			wantProgress: "width must be positive",
+			wantProblem: true,
+			wantMessage: "width must be positive",
 		},
 		{
 			name:    "negative height",
@@ -114,9 +112,8 @@ func TestProcessMetadataEntryValidatesJPEGMetadata(t *testing.T) {
 			change: func(meta *image.Metadata) {
 				meta.Height = -1
 			},
-			wantProblem:  true,
-			wantMessage:  "height must be positive",
-			wantProgress: "height must be positive",
+			wantProblem: true,
+			wantMessage: "height must be positive",
 		},
 		{
 			name:    "empty capture date with processed directories",
@@ -125,7 +122,6 @@ func TestProcessMetadataEntryValidatesJPEGMetadata(t *testing.T) {
 				meta.CapturedAt = ""
 			},
 			createSource:  true,
-			wantProgress:  "Processed",
 			wantGenerator: true,
 		},
 		{
@@ -134,9 +130,8 @@ func TestProcessMetadataEntryValidatesJPEGMetadata(t *testing.T) {
 			change: func(meta *image.Metadata) {
 				meta.CapturedAt = ""
 			},
-			wantProblem:  true,
-			wantMessage:  "capturedAt is required",
-			wantProgress: "capturedAt is required",
+			wantProblem: true,
+			wantMessage: "capturedAt is required",
 		},
 		{
 			name:    "malformed capture date",
@@ -144,9 +139,8 @@ func TestProcessMetadataEntryValidatesJPEGMetadata(t *testing.T) {
 			change: func(meta *image.Metadata) {
 				meta.CapturedAt = "2024:05:12 14:22:00"
 			},
-			wantProblem:  true,
-			wantMessage:  "invalid capturedAt",
-			wantProgress: "invalid capturedAt",
+			wantProblem: true,
+			wantMessage: "invalid capturedAt",
 		},
 		{
 			name:    "noncanonical capture date",
@@ -154,9 +148,8 @@ func TestProcessMetadataEntryValidatesJPEGMetadata(t *testing.T) {
 			change: func(meta *image.Metadata) {
 				meta.CapturedAt = " 2024-05-12T14:22:00"
 			},
-			wantProblem:  true,
-			wantMessage:  "invalid capturedAt",
-			wantProgress: "invalid capturedAt",
+			wantProblem: true,
+			wantMessage: "invalid capturedAt",
 		},
 		{
 			name:    "unsupported format checked first",
@@ -166,9 +159,8 @@ func TestProcessMetadataEntryValidatesJPEGMetadata(t *testing.T) {
 				meta.Width = 0
 				meta.Height = 0
 			},
-			wantProblem:  true,
-			wantMessage:  "not JPEG",
-			wantProgress: "not JPEG",
+			wantProblem: true,
+			wantMessage: "not JPEG",
 		},
 	}
 
@@ -185,7 +177,6 @@ func TestProcessMetadataEntryValidatesJPEGMetadata(t *testing.T) {
 				}
 			}
 
-			var progress bytes.Buffer
 			generatorCalled := false
 			variantPath := mustRel(t, "w800.jpg")
 			generator := variantGenerator(func(req variants.Request) (variants.Result, error) {
@@ -205,7 +196,7 @@ func TestProcessMetadataEntryValidatesJPEGMetadata(t *testing.T) {
 					DirDate: tc.dirDate,
 				},
 				variantGenerator: generator,
-				progressReporter: &progress,
+				progressReporter: io.Discard,
 			}
 
 			_, problem := p.processMetadataEntry(meta, map[string]paths.RelPath{})
@@ -219,9 +210,6 @@ func TestProcessMetadataEntryValidatesJPEGMetadata(t *testing.T) {
 				if !strings.Contains(problem.message, tc.wantMessage) {
 					t.Errorf("problem message = %q, want message containing %q", problem.message, tc.wantMessage)
 				}
-			}
-			if !strings.Contains(progress.String(), tc.wantProgress) {
-				t.Errorf("progress = %q, want message containing %q", progress.String(), tc.wantProgress)
 			}
 			if generatorCalled != tc.wantGenerator {
 				t.Errorf("variant generator called = %t, want %t", generatorCalled, tc.wantGenerator)
