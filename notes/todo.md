@@ -10,8 +10,8 @@ These items have been promoted to `notes/plan.md`. The plan is the authoritative
 
 ### Fix
 
-- **Validate JPEG processing requirements in the processor (`cmd/webimage`):** After format dispatch, require processable JPEG dimensions and enforce the configured capture-date requirement before hashing or creating output.
-- **Limit metadata validation to extraction concerns (`internal/metadata`):** Pass through missing dimensions for processor policy while retaining exiftool errors, record identity requirements, and normalization of present capture dates.
+- **Validate JPEG processing requirements in the processor (`internal/image`, `cmd/webimage`):** Define `capturedAt` as empty or strictly canonical in the domain parser, then after format dispatch require processable JPEG dimensions and enforce the configured capture-date requirement before hashing or creating output.
+- **Limit metadata validation to extraction concerns (`internal/metadata`):** Pass through missing dimensions for processor policy while retaining exiftool errors and record identity requirements; normalize present exiftool dates into the canonical `image.Metadata` representation only at this extraction boundary.
 - **Treat no-record directories as empty (`internal/metadata`):** Treat successful empty exiftool output as an empty result for directories, including directories containing only ignored subdirectories.
 - **Make metadata result order deterministic (`internal/metadata`):** Sort usable metadata and per-file problems independently by filename before returning them.
 - **Record generated dimensions accurately (`internal/image`, `internal/variants`, `internal/manifest`, `cmd/webimage`):** Measure successful outputs and carry their actual width and height through processed-image data and manifests instead of estimating from source metadata.
@@ -119,7 +119,7 @@ Packages are sorted by path. Within each package, items use the type order `refa
 
 #### Refactor
 
-- **Introduce validation only where it removes repetition:** Domain structs use plain strings, so invalid dates, hashes, and empty required fields are easy to construct. Add small typed wrappers or `Validate` methods only when multiple callers need the same rules, with focused tests.
+- **Introduce validated domain types only where they remove repetition:** Keep capture dates as strings while the documented empty-or-canonical contract and strict parser remain sufficient. If repeated parsing or validation continues to spread across packages, introduce a small type with an unexported representation and explicit optional-value handling; apply the same standard to hashes and other required strings, with focused tests.
 - **Centralize format knowledge:** Add format-to-extension and format-to-MIME helpers, and consider richer parse results when callers need to distinguish missing, unknown, and unsupported formats.
 - **Use a path type for metadata filenames:** Change `Metadata.FileName` to `paths.RelPath` once the metadata package can guarantee safe relative paths.
 - **Shorten redundant path field names:** Consider `Processed.Dir` or `ImageDir` instead of `DirRelPath` because the type already communicates relativity.
@@ -147,7 +147,7 @@ Packages are sorted by path. Within each package, items use the type order `refa
 #### Fix
 
 - **Validate index-level metadata:** Add an `Index.Validate` path used after reading and before writing, require a valid `generatedAt`, and define the valid empty-index representation with focused read and update cases.
-- **Validate index entries and uniqueness:** Validate entry dates and SHA-256 values, require each manifest to equal `<dir>/manifest.json`, and reject duplicate directories, manifest paths, and hashes with malformed and duplicate fixtures.
+- **Validate index entries and uniqueness:** Use the strict internal parsers to require canonical entry dates rather than normalizing persisted data, validate SHA-256 values, require each manifest to equal `<dir>/manifest.json`, and reject duplicate directories, manifest paths, and hashes with malformed and duplicate fixtures.
 - **Report non-directory inputs clearly:** `ReadDir` currently returns a lower-level path error when given a file. Detect this case and add a focused test.
 - **Define missing-output-root behavior:** `Index.Update` assumes the root exists. Either create it or return a direct validation error for direct package callers, and test the selected contract.
 - **Detect unknown JSON fields if useful:** Use `json.Decoder.DisallowUnknownFields` if catching hand-edited schema mistakes is more valuable than forward compatibility, with an unknown-field fixture.
@@ -165,7 +165,7 @@ Packages are sorted by path. Within each package, items use the type order `refa
 
 #### Fix
 
-- **Validate manifest metadata:** Use one validation path from conversion, read, and write to require positive source dimensions, valid processed and optional captured dates, and a valid SHA-256 value, with focused otherwise-valid fixtures for each field.
+- **Validate manifest metadata:** Use one validation path from conversion, read, and write to require positive source dimensions, canonical processed and empty-or-canonical captured dates through the strict internal parsers, and a valid SHA-256 value. Reject rather than normalize persisted date text, with focused otherwise-valid fixtures for each field.
 - **Validate manifest variant sets:** Require non-empty relative paths, positive dimensions, supported formats, a JPEG fallback, matching file extensions, and unique paths and width descriptors within each format on conversion, read, and write.
 
 ### `internal/metadata`
