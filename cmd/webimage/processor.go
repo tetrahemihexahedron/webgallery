@@ -487,57 +487,30 @@ func variantWidths(sourceWidth int, desired []int) []int {
 	return widths
 }
 
-func copyFile(source paths.AbsPath, dest paths.AbsPath) (err error) {
+func copyFile(source paths.AbsPath, dest paths.AbsPath) error {
 	sourceFile, err := os.Open(source.String())
 	if err != nil {
 		return err
 	}
-	defer func() {
-		if closeErr := sourceFile.Close(); closeErr != nil {
-			err = errors.Join(err, fmt.Errorf("closing source %q: %w", source, closeErr))
-		}
-	}()
+	defer sourceFile.Close()
 
-	sourceInfo, err := sourceFile.Stat()
+	destFile, err := os.OpenFile(dest.String(), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
 	if err != nil {
 		return err
 	}
-	destInfo, err := os.Stat(dest.String())
-	if err == nil && os.SameFile(sourceInfo, destInfo) {
-		return fmt.Errorf("source %q and destination %q are the same file", source, dest)
-	}
-	if err != nil && !errors.Is(err, fs.ErrNotExist) {
-		return err
+
+	_, copyErr := io.Copy(destFile, sourceFile)
+	closeErr := destFile.Close()
+	completionErr := errors.Join(copyErr, closeErr)
+	if completionErr == nil {
+		return nil
 	}
 
-	destination, err := os.OpenFile(dest.String(), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
-	if err != nil {
-		return err
+	removeErr := os.Remove(dest.String())
+	if errors.Is(removeErr, fs.ErrNotExist) {
+		removeErr = nil
 	}
-	copyComplete := false
-	defer func() {
-		if copyComplete {
-			return
-		}
-		if removeErr := os.Remove(dest.String()); removeErr != nil && !errors.Is(removeErr, fs.ErrNotExist) {
-			err = errors.Join(err, fmt.Errorf("removing partial destination %q: %w", dest, removeErr))
-		}
-	}()
-
-	_, copyErr := io.Copy(destination, sourceFile)
-	if copyErr != nil {
-		copyErr = fmt.Errorf("copying to %q: %w", dest, copyErr)
-	}
-	closeErr := destination.Close()
-	if closeErr != nil {
-		closeErr = fmt.Errorf("closing destination %q: %w", dest, closeErr)
-	}
-	if err := errors.Join(copyErr, closeErr); err != nil {
-		return err
-	}
-
-	copyComplete = true
-	return nil
+	return errors.Join(completionErr, removeErr)
 }
 
 func removeImageDir(dir paths.AbsPath) error {
