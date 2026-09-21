@@ -6,10 +6,6 @@ These notes collect possible maintainability/readability improvements, potential
 
 These items have been promoted to `notes/plan.md`. The plan is the authoritative source for their scope and implementation steps.
 
-### Fix
-
-- **Record generated dimensions accurately (`internal/image`, `internal/variants`, `internal/manifest`, `cmd/webimage`):** Measure successful outputs and carry their actual width and height through processed-image data and manifests instead of estimating from source metadata.
-
 ## Unplanned items
 
 Packages are sorted by path. Within each package, items use the type order `refactor`, `fix`, `feature`, `docs`, `test`, then `chore`; empty type sections are omitted.
