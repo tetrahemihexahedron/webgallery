@@ -487,12 +487,16 @@ func variantWidths(sourceWidth int, desired []int) []int {
 	return widths
 }
 
-func copyFile(source paths.AbsPath, dest paths.AbsPath) error {
+func copyFile(source paths.AbsPath, dest paths.AbsPath) (err error) {
 	sourceFile, err := os.Open(source.String())
 	if err != nil {
 		return err
 	}
-	defer sourceFile.Close()
+	defer func() {
+		if closeErr := sourceFile.Close(); closeErr != nil {
+			err = errors.Join(err, fmt.Errorf("closing source %q: %w", source, closeErr))
+		}
+	}()
 
 	sourceInfo, err := sourceFile.Stat()
 	if err != nil {
@@ -510,10 +514,30 @@ func copyFile(source paths.AbsPath, dest paths.AbsPath) error {
 	if err != nil {
 		return err
 	}
-	defer destination.Close()
+	copyComplete := false
+	defer func() {
+		if copyComplete {
+			return
+		}
+		if removeErr := os.Remove(dest.String()); removeErr != nil && !errors.Is(removeErr, fs.ErrNotExist) {
+			err = errors.Join(err, fmt.Errorf("removing partial destination %q: %w", dest, removeErr))
+		}
+	}()
 
-	_, err = io.Copy(destination, sourceFile)
-	return err
+	_, copyErr := io.Copy(destination, sourceFile)
+	if copyErr != nil {
+		copyErr = fmt.Errorf("copying to %q: %w", dest, copyErr)
+	}
+	closeErr := destination.Close()
+	if closeErr != nil {
+		closeErr = fmt.Errorf("closing destination %q: %w", dest, closeErr)
+	}
+	if err := errors.Join(copyErr, closeErr); err != nil {
+		return err
+	}
+
+	copyComplete = true
+	return nil
 }
 
 func removeImageDir(dir paths.AbsPath) error {
