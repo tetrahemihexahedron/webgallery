@@ -170,12 +170,6 @@ func missingMetadata(out exiftoolOutput) []string {
 	if out.FileType == "" {
 		missing = append(missing, "FileType")
 	}
-	if out.Width == 0 {
-		missing = append(missing, "Width")
-	}
-	if out.Height == 0 {
-		missing = append(missing, "Height")
-	}
 
 	return missing
 }

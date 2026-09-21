@@ -64,6 +64,21 @@ func TestExiftoolRead(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "passes through missing dimensions",
+			file: "missing_metadata.jpg",
+			wantMetadata: []image.Metadata{
+				{
+					FileName:    "missing_metadata.jpg",
+					Format:      "PDF",
+					Title:       "plant fact sheet",
+					Description: "",
+					CapturedAt:  "",
+					Width:       0,
+					Height:      0,
+				},
+			},
+		},
 	}
 
 	for _, tc := range tests {
@@ -148,16 +163,6 @@ func TestExiftoolReadReportsFileProblems(t *testing.T) {
 				{
 					FileName: "empty.jpg",
 					Message:  "reported by exiftool: File is empty",
-				},
-			},
-		},
-		{
-			name: "missing required metadata",
-			file: "missing_metadata.jpg",
-			wantProblems: []metadata.Problem{
-				{
-					FileName: "missing_metadata.jpg",
-					Message:  "missing required metadata: [Width Height]",
 				},
 			},
 		},
