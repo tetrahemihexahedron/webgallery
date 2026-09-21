@@ -10,8 +10,6 @@ These items have been promoted to `notes/plan.md`. The plan is the authoritative
 
 ### Fix
 
-- **Limit metadata validation to extraction concerns (`internal/metadata`):** Pass through missing dimensions for processor policy while retaining exiftool errors and record identity requirements; normalize present exiftool dates into the canonical `image.Metadata` representation only at this extraction boundary.
-- **Treat no-record directories as empty (`internal/metadata`):** Treat successful empty exiftool output as an empty result for directories, including directories containing only ignored subdirectories.
 - **Make metadata result order deterministic (`internal/metadata`):** Sort usable metadata and per-file problems independently by filename before returning them.
 - **Record generated dimensions accurately (`internal/image`, `internal/variants`, `internal/manifest`, `cmd/webimage`):** Measure successful outputs and carry their actual width and height through processed-image data and manifests instead of estimating from source metadata.
 
@@ -178,6 +176,7 @@ Packages are sorted by path. Within each package, items use the type order `refa
 #### Fix
 
 - **Choose a whitespace policy:** Titles and descriptions pass through unchanged, including accidental surrounding spaces. Decide whether to preserve or normalize them, and test the chosen behavior.
+- **Treat no-record directories as empty if needed:** Non-recursive exiftool reads can return no records for a directory containing only subdirectories, which currently becomes a request-level error. This is low priority while the repeatedly used incoming directory has a known top-level structure; if that assumption changes, treat successful empty output from any directory as an empty result and cover empty and nested-only layouts.
 
 #### Feature
 

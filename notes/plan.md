@@ -1,57 +1,10 @@
 # Development plan
 
-These are the next four items to implement from `notes/todo.md`, listed in recommended implementation order.
+These are the next two items to implement from `notes/todo.md`, listed in recommended implementation order.
 
 Each item includes small implementation steps sized for focused commits.
 
-## 1. Limit metadata validation to extraction concerns
-
-**Type:** Fix
-**Package(s):** `internal/metadata`
-
-Once the processor enforces JPEG requirements, metadata reading can remain format-neutral. It should report exiftool and conversion failures, but it should not reject records merely because fields required by the current JPEG workflow are absent.
-
-Small implementation steps:
-
-1. **Pass through incomplete records.**
-   - Continue giving exiftool-reported errors precedence and require `FileName` and `FileType`, because callers cannot identify or classify a record without them.
-   - Stop treating missing or non-positive dimensions as metadata-layer problems; copy width and height values as reported so the processor can decide whether they matter for the selected format.
-   - Keep title and description optional and unchanged.
-
-2. **Keep capture-date normalization at the extraction boundary.**
-   - Treat a missing or whitespace-only `DateTimeOriginal` as an empty optional `capturedAt`.
-   - When `DateTimeOriginal` is present, continue trimming only as part of decoding the external value, parse exiftool's date layout, and use `image.FormatCapturedAt` to produce the canonical value required by `image.Metadata`; never copy exiftool's date text directly into the domain struct.
-   - Keep malformed non-empty dates as per-file metadata problems: decoding and normalizing external metadata belongs here, while validating the internal contract and deciding whether a missing capture date is acceptable belongs in the processor.
-
-3. **Update exported integration coverage.**
-   - Through `Exiftool.Read` in external package `metadata_test`, change the existing missing-dimensions expectation from a problem to structured metadata with zero values.
-   - Add a small reusable non-JPEG fixture without dimensions and locate records by filename rather than assuming order, because deterministic ordering is a later plan item.
-   - Retain the malformed-date case using relevant error context rather than an exact parser message, and compare structured `image.Metadata` values instead of raw exiftool JSON.
-
-## 2. Treat no-record directories as empty
-
-**Type:** Fix
-**Package(s):** `internal/metadata`
-
-A successful exiftool invocation can return no records for a directory that contains only subdirectories because reads are intentionally non-recursive. That should have the same result as an empty directory instead of becoming a request-level error.
-
-Small implementation steps:
-
-1. **Define successful no-output behavior.**
-   - When exiftool succeeds with empty stdout, stat the requested path.
-   - Return an empty `Result` for any directory, regardless of whether it contains ignored subdirectories.
-   - Retain a direct error for a non-directory path that unexpectedly produces no output and preserve command failures unchanged.
-
-2. **Simplify the filesystem check.**
-   - Replace the current entry-count helper with a directory-type check; do not recurse or inspect subdirectory contents.
-   - Keep all filesystem errors wrapped with the requested path for context.
-
-3. **Extend directory integration coverage.**
-   - Extend the exported `Exiftool.Read` integration test in `package metadata_test` with a table of temporary directory layouts for an empty directory and a directory containing only one or more subdirectories.
-   - Create layouts with `t.TempDir` and assert both cases return empty metadata and problem slices without placing files inside the nested directories.
-   - Keep command-failure assertions type- or substring-based; do not add exact comparisons of exiftool diagnostics.
-
-## 3. Make metadata result order deterministic
+## 1. Make metadata result order deterministic
 
 **Type:** Fix
 **Package(s):** `internal/metadata`
@@ -74,7 +27,7 @@ Small implementation steps:
    - Update the exported `Result` documentation to state that both slices are ordered by filename.
    - Keep sorting inside `internal/metadata` rather than relying on callers to normalize external-tool output.
 
-## 4. Record generated dimensions accurately
+## 2. Record generated dimensions accurately
 
 **Type:** Fix
 **Package(s):** `internal/image`, `internal/variants`, `internal/manifest`, `cmd/webimage`
