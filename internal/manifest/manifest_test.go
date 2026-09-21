@@ -103,8 +103,8 @@ func TestFromProcessed(t *testing.T) {
 		CapturedAt:  "2023-10-03T17:26:39",
 		ProcessedAt: "2026-08-24T18:00:00Z",
 		Variants: []image.Variant{
-			{Path: mustRel(t, "w400.jpg"), Format: image.FormatJPEG, Width: 400},
-			{Path: mustRel(t, "w800.jpg"), Format: image.FormatJPEG, Width: 800},
+			{Path: mustRel(t, "w400.jpg"), Format: image.FormatJPEG, Width: 400, Height: 300},
+			{Path: mustRel(t, "w800.jpg"), Format: image.FormatJPEG, Width: 800, Height: 600},
 		},
 	}
 	want := manifest.Manifest{
@@ -117,8 +117,8 @@ func TestFromProcessed(t *testing.T) {
 		Height:      img.Source.Height,
 		Variants: map[image.Format][]manifest.VariantFile{
 			image.FormatJPEG: {
-				{Path: mustRel(t, "w400.jpg"), Width: 400, Height: 534},
-				{Path: mustRel(t, "w800.jpg"), Width: 800, Height: 1067},
+				{Path: mustRel(t, "w400.jpg"), Width: 400, Height: 300},
+				{Path: mustRel(t, "w800.jpg"), Width: 800, Height: 600},
 			},
 		},
 	}

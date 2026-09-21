@@ -185,8 +185,8 @@ func newTemplateImage(img loadedImage, urlPrefix string) (templateImage, error) 
 			Src:    publicURL(urlPrefix, img.indexEntry.Dir, fallback.Path),
 			Srcset: srcset(img.indexEntry.Dir, jpegVariants, urlPrefix),
 			Sizes:  imageSizes,
-			Width:  img.manifest.Width,
-			Height: img.manifest.Height,
+			Width:  fallback.Width,
+			Height: fallback.Height,
 			Alt:    altText(img.manifest),
 		},
 	}, nil

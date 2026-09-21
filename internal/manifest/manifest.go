@@ -3,7 +3,6 @@ package manifest
 import (
 	"encoding/json"
 	"fmt"
-	"math"
 	"os"
 
 	"tetrahemihexahedron/webimage/internal/image"
@@ -72,7 +71,7 @@ func FromProcessed(img image.Processed) (Manifest, error) {
 		SHA256:      img.Source.Hash,
 		Width:       img.Source.Width,
 		Height:      img.Source.Height,
-		Variants:    variantsFromProcessed(img),
+		Variants:    variantsFromProcessed(img.Variants),
 	}, nil
 }
 
@@ -110,17 +109,16 @@ func ReadFile(path paths.AbsPath) (Manifest, error) {
 	return mani, nil
 }
 
-func variantsFromProcessed(img image.Processed) map[image.Format][]VariantFile {
+func variantsFromProcessed(processed []image.Variant) map[image.Format][]VariantFile {
 	variants := make(map[image.Format][]VariantFile)
 
-	aspectRatio := float64(img.Source.Height) / float64(img.Source.Width)
-	for _, variant := range img.Variants {
+	for _, variant := range processed {
 		variants[variant.Format] = append(
 			variants[variant.Format],
 			VariantFile{
 				Path:   variant.Path,
 				Width:  variant.Width,
-				Height: int(math.Round(float64(variant.Width) * aspectRatio)),
+				Height: variant.Height,
 			},
 		)
 	}

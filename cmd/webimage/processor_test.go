@@ -186,7 +186,7 @@ func TestProcessMetadataEntryValidatesJPEGMetadata(t *testing.T) {
 					return variants.Result{}, err
 				}
 				return variants.Result{Generated: []image.Variant{
-					{Path: variantPath, Format: image.FormatJPEG, Width: 800},
+					{Path: variantPath, Format: image.FormatJPEG, Width: 800, Height: 1067},
 				}}, nil
 			})
 			p := imageProcessor{
@@ -324,7 +324,7 @@ func TestProcessImageRejectsIncompleteVariants(t *testing.T) {
 			name: "failed variant",
 			result: variants.Result{
 				Generated: []image.Variant{
-					{Path: mustRel(t, "w400.jpg"), Format: image.FormatJPEG, Width: 400},
+					{Path: mustRel(t, "w400.jpg"), Format: image.FormatJPEG, Width: 400, Height: 534},
 				},
 				Failed: []variants.Failure{
 					{Format: image.FormatAVIF, Width: 400, Err: variantErr},
@@ -336,7 +336,7 @@ func TestProcessImageRejectsIncompleteVariants(t *testing.T) {
 		{
 			name: "no JPEG fallback",
 			result: variants.Result{Generated: []image.Variant{
-				{Path: mustRel(t, "w400.avif"), Format: image.FormatAVIF, Width: 400},
+				{Path: mustRel(t, "w400.avif"), Format: image.FormatAVIF, Width: 400, Height: 534},
 			}},
 			wantProblem: "no JPEG fallback was generated",
 		},
