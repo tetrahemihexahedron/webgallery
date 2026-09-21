@@ -61,6 +61,7 @@ Carry out the complete workflow below. Do not merely describe what should be don
 
 - Inspect the relevant code and tests before editing.
 - Complete every applicable small implementation step listed under the selected item. If blocked, stop and ask the user rather than pushing an incomplete branch. For conditional steps such as “consider,” record why they were unnecessary when they do not apply.
+- Make note of any adjustments to the planned implementation that would lead to simpler or better code.
 - Preserve existing behavior unless the plan item explicitly calls for a behavior change.
 - Follow `AGENTS.md` and the repository's established style.
 - Keep implementation changes limited to the selected item. Do not perform unrelated cleanup.
@@ -113,5 +114,6 @@ Carry out the complete workflow below. Do not merely describe what should be don
   - the commits created;
   - the tests and checks run;
   - any conditional plan steps judged unnecessary, with the reason;
+  - adjustments to the implementation that would simplify or improve the code;
   - the follow-up findings added to `notes/todo.md`, or that there were none; and
   - the GitHub compare URL the user can open to create a pull request manually, when it can be derived from the `origin` URL and default branch.
