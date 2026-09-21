@@ -4,32 +4,7 @@ These are the next six items to implement from `notes/todo.md`, listed in recomm
 
 Each item includes small implementation steps sized for focused commits.
 
-## 1. Harden source copying
-
-**Type:** Fix
-**Package(s):** `cmd/webimage`
-
-`copyFile` opens its destination with truncation and relies on deferred closes, so a mistaken destination can destroy an existing file and delayed write errors can be lost. Make copying fail safely while preserving the current policy of creating a plain site artifact rather than cloning source permissions or timestamps.
-
-Small implementation steps:
-
-1. **Add focused copy-policy coverage.**
-   - Add a small same-package test for `copyFile`; direct coverage is justified here because its destructive-open and resource-lifecycle behavior is difficult to observe cleanly through the processor workflow.
-   - Verify a successful copy with `bytes.Equal`, then use a table for same path, hard-link alias, symlink alias, and unrelated pre-existing destination cases that share setup and assertions.
-   - For rejected destinations, check that an error occurred and that original contents are unchanged; use `errors.Is` only if the implementation exposes a meaningful filesystem error, and do not compare complete error strings.
-   - Keep source permissions and timestamps out of the tested contract: standardize new destination files on mode `0644` subject to the process umask, and do not copy source metadata.
-
-2. **Reject destructive destinations before writing.**
-   - Open and inspect the source before opening the destination.
-   - When the destination resolves to the source, including through a hard link or symlink, return a direct same-file error using file identity rather than lexical path comparison.
-   - Create the destination exclusively so any other pre-existing file, directory, or dangling symlink is rejected instead of truncated.
-
-3. **Report copy completion errors.**
-   - Check the `io.Copy` result and explicitly close the destination so delayed write or close failures are returned.
-   - Close every successfully opened file on all paths and remove only a partial destination created by the current attempt when copying does not complete.
-   - Do not introduce a filesystem abstraction or persisted tests solely to force implausible close failures; cover the realistic success and destructive-destination paths instead.
-
-## 2. Validate JPEG processing requirements in the processor
+## 1. Validate JPEG processing requirements in the processor
 
 **Type:** Fix
 **Package(s):** `cmd/webimage`
@@ -53,7 +28,7 @@ Small implementation steps:
    - Start each invalid case from otherwise-valid JPEG metadata and change only width, height, or capture data; include an unsupported format with missing dimensions to prove format skipping still happens first.
    - Check whether a problem was returned and match only relevant message substrings, then retain the existing processor integration test as coverage for a valid JPEG flowing through the complete workflow.
 
-## 3. Limit metadata validation to extraction concerns
+## 2. Limit metadata validation to extraction concerns
 
 **Type:** Fix
 **Package(s):** `internal/metadata`
@@ -77,7 +52,7 @@ Small implementation steps:
    - Add a small reusable non-JPEG fixture without dimensions and locate records by filename rather than assuming order, because deterministic ordering is a later plan item.
    - Retain the malformed-date case using relevant error context rather than an exact parser message, and compare structured `image.Metadata` values instead of raw exiftool JSON.
 
-## 4. Treat no-record directories as empty
+## 3. Treat no-record directories as empty
 
 **Type:** Fix
 **Package(s):** `internal/metadata`
@@ -100,7 +75,7 @@ Small implementation steps:
    - Create layouts with `t.TempDir` and assert both cases return empty metadata and problem slices without placing files inside the nested directories.
    - Keep command-failure assertions type- or substring-based; do not add exact comparisons of exiftool diagnostics.
 
-## 5. Make metadata result order deterministic
+## 4. Make metadata result order deterministic
 
 **Type:** Fix
 **Package(s):** `internal/metadata`

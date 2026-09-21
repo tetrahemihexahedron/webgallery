@@ -10,7 +10,6 @@ These items have been promoted to `notes/plan.md`. The plan is the authoritative
 
 ### Fix
 
-- **Harden source copying (`cmd/webimage`):** Reject same-file aliases and all pre-existing destinations before writing, report copy and close failures, and remove only partial files created by the current attempt.
 - **Validate JPEG processing requirements in the processor (`cmd/webimage`):** After format dispatch, require processable JPEG dimensions and enforce the configured capture-date requirement before hashing or creating output.
 - **Limit metadata validation to extraction concerns (`internal/metadata`):** Pass through missing dimensions for processor policy while retaining exiftool errors, record identity requirements, and normalization of present capture dates.
 - **Treat no-record directories as empty (`internal/metadata`):** Treat successful empty exiftool output as an empty result for directories, including directories containing only ignored subdirectories.
