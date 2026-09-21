@@ -8,6 +8,15 @@ At the time of the original review, `go test ./...`, `go vet ./...`, and `static
 
 These items have been promoted to `notes/plan.md`. The plan is the authoritative source for their scope and implementation steps.
 
+### Fix
+
+- **Harden source copying (`cmd/webimage`):** Reject same-file aliases and all pre-existing destinations before writing, report copy and close failures, and remove only partial files created by the current attempt.
+- **Validate JPEG processing requirements in the processor (`cmd/webimage`):** After format dispatch, require processable JPEG dimensions and enforce the configured capture-date requirement before hashing or creating output.
+- **Limit metadata validation to extraction concerns (`internal/metadata`):** Pass through missing dimensions for processor policy while retaining exiftool errors, record identity requirements, and normalization of present capture dates.
+- **Treat no-record directories as empty (`internal/metadata`):** Treat successful empty exiftool output as an empty result for directories, including directories containing only ignored subdirectories.
+- **Make metadata result order deterministic (`internal/metadata`):** Sort usable metadata and per-file problems independently by filename before returning them.
+- **Record generated dimensions accurately (`internal/image`, `internal/variants`, `internal/manifest`, `cmd/webimage`):** Measure successful outputs and carry their actual width and height through processed-image data and manifests instead of estimating from source metadata.
+
 ## Unplanned items
 
 Packages are sorted by path. Within each package, items use the type order `refactor`, `fix`, `feature`, `docs`, `test`, then `chore`; empty type sections are omitted.
@@ -21,8 +30,8 @@ Packages are sorted by path. Within each package, items use the type order `refa
 #### Fix
 
 - **Make external commands cancellable:** Thread `context.Context` through the command workflows and both the metadata and variants APIs, use `exec.CommandContext` for `exiftool` and `vipsthumbnail`, treat cancellation as a request-level error, and add focused cancellation coverage for both tools.
-- **Record generated dimensions accurately:** Raw metadata dimensions can disagree with auto-rotated or rounded output. Add actual width and height to the generated `image.Variant` values returned in `variants.Result`, write those values to manifests, and cover orientation and rounding with image fixtures.
-- **Clean up CLI parsing and validation:** Both commands use `flag.ExitOnError` and accept positional arguments, and several path errors surface only after work begins. Use `flag.ContinueOnError`, reject positional arguments, validate required input directories, define whether the `webimage` output root is created, and simplify gallery output-target representation where that improves the call site.
+- **Make CLI parsing non-exiting:** Both commands use `flag.ExitOnError` and accept positional arguments. Use `flag.ContinueOnError`, return parse and help results to the caller, reject positional arguments, and add focused argument tests without invoking subprocesses.
+- **Validate CLI filesystem roots before work:** Confirm the `webimage` incoming root and gallery images root exist and are directories before external commands or index reads, and create the `webimage` output root after overlap validation so its missing-root behavior is intentional.
 - **Use consistent atomic output writes:** Index writes use temp-file-and-rename while manifests and gallery output do not. Consider a small shared atomic-write helper, apply it where interrupted writes could corrupt output, and test that render failures do not replace an existing file.
 - **Prevent concurrent output mutation:** Two `webimage` processes can race while updating the output root and index. Add a lightweight lock only if accidental concurrent runs are plausible.
 - **Clean up command-line error output:** The `main` packages use `log.Fatal`, which adds timestamps to user-facing errors. Prefer explicit stderr output and exit status handling, then add small smoke tests for the resulting CLI messages.
@@ -45,7 +54,7 @@ Packages are sorted by path. Within each package, items use the type order `refa
 #### Chore
 
 - **Add a standard verification command:** Provide a small script, `just` target, or CI job that runs `go test`, `go vet`, and `staticcheck`.
-- **Keep the development container complete:** Ensure it installs tools actually used by development and tests, including `exiftool`, libvips/`vipsthumbnail`, and `file` if workflows continue to invoke it.
+- **Keep development-tool installation explicit:** The container setup installs exiftool and libvips but relies on other features for tools such as `staticcheck`, and `file` is absent. Install or verify every tool used by documented checks and workflows, adding `file` only if the developer workflow continues to require it.
 
 ### `cmd/gallery`
 
@@ -66,12 +75,10 @@ Packages are sorted by path. Within each package, items use the type order `refa
 
 #### Refactor
 
-- **Keep consumer interfaces local:** Keep small interfaces such as `metadataReader` near the command code that consumes them; share them only if multiple consumers genuinely require the same contract.
-- **Simplify error cleanup:** After the partial-result policy in the plan is settled, consider a deferred cleanup guard in `processImage` to reduce repeated cleanup branches without hiding which partial files are retained.
+- **Consolidate image-directory cleanup:** `processImage` repeats cleanup after exclusive leaf creation. Use a deferred guard that is armed only after the current attempt creates the leaf and disarmed after the manifest succeeds, while preserving joined cleanup errors and the current all-or-nothing image policy.
 
 #### Fix
 
-- **Harden source copying:** `copyFile` can miss delayed close errors and does not guard against source and destination being the same file. Check close errors, reject same-file copies, and decide deliberately whether permissions and modification time should be preserved.
 - **Define empty-run index behavior:** Empty or all-skipped first runs may leave no `index.json`. Decide whether these runs create or refresh an empty index, then test empty directories, skipped-only directories, and the resulting index contents.
 
 #### Feature
@@ -96,7 +103,7 @@ Packages are sorted by path. Within each package, items use the type order `refa
 #### Fix
 
 - **Validate loaded gallery data:** `loadImages` does not reconcile index and manifest fields, and rendering trusts dimensions. Validate consistency and positive dimensions at the loading boundary, with mismatch and invalid-dimension tests.
-- **Preserve full URL prefixes:** `publicURL` uses `path.Join`, which corrupts prefixes such as `https://example.com/images`. Use URL-aware joining or deliberate slash trimming, with cases for empty, root-relative, trailing-slash, and full-URL prefixes.
+- **Preserve full URL prefixes:** `publicURL` uses `path.Join`, which corrupts prefixes such as `https://example.com/images`. Preserve empty and relative-prefix behavior while joining full `http://` or `https://` prefixes without rewriting their scheme separators.
 - **Escape all generated URLs:** `srcset` assembly assumes generated filenames need no escaping. Centralize public URL construction and escaping before accepting arbitrary paths or prefixes, and test unusual valid path characters.
 - **Choose an alt-text policy:** Empty title and description produce empty alt text, which may incorrectly mark gallery photos as decorative. Choose whether to allow, warn, fail, or supply a fallback, and test that policy.
 
@@ -140,9 +147,10 @@ Packages are sorted by path. Within each package, items use the type order `refa
 
 #### Fix
 
-- **Validate index data at its boundary:** `ReadDir` and direct `UpdateFile` use can admit malformed dates and hashes, duplicate directories or manifest paths, paths outside the image directory, and incomplete processed images. Add an `Index.Validate` path used before writing and after reading, enforce `<dir>/manifest.json` relationships, and cover malformed and duplicate fixtures.
+- **Validate index-level metadata:** Add an `Index.Validate` path used after reading and before writing, require a valid `generatedAt`, and define the valid empty-index representation with focused read and update cases.
+- **Validate index entries and uniqueness:** Validate entry dates and SHA-256 values, require each manifest to equal `<dir>/manifest.json`, and reject duplicate directories, manifest paths, and hashes with malformed and duplicate fixtures.
 - **Report non-directory inputs clearly:** `ReadDir` currently returns a lower-level path error when given a file. Detect this case and add a focused test.
-- **Define missing-output-root behavior:** `UpdateFile` assumes the root exists. Either create it or return a direct validation error, and test the selected contract.
+- **Define missing-output-root behavior:** `Index.Update` assumes the root exists. Either create it or return a direct validation error for direct package callers, and test the selected contract.
 - **Detect unknown JSON fields if useful:** Use `json.Decoder.DisallowUnknownFields` if catching hand-edited schema mistakes is more valuable than forward compatibility, with an unknown-field fixture.
 - **Decide whether rename-level durability is sufficient:** Temp-file-and-rename is atomic but not explicitly `fsync`ed. Add file and directory syncs only if crash durability matters for this personal tool.
 
@@ -155,11 +163,11 @@ Packages are sorted by path. Within each package, items use the type order `refa
 #### Refactor
 
 - **Write variants deterministically:** Sort variants by format and width before encoding so output does not depend on generation order.
-- **Use descriptive local names:** Rename short parameters such as `i image.Processed` to `img` or `processed` when touching the surrounding code.
 
 #### Fix
 
-- **Validate manifests consistently:** Validate positive source dimensions, non-empty variant paths, positive widths, dates, hashes, supported formats, required JPEG fallbacks, extension/format agreement, and duplicate paths or width descriptors on read and write. Add focused invalid fixtures and reject unknown JSON fields only if strict schema checking is desired.
+- **Validate manifest metadata:** Use one validation path from conversion, read, and write to require positive source dimensions, valid processed and optional captured dates, and a valid SHA-256 value, with focused otherwise-valid fixtures for each field.
+- **Validate manifest variant sets:** Require non-empty relative paths, positive dimensions, supported formats, a JPEG fallback, matching file extensions, and unique paths and width descriptors within each format on conversion, read, and write.
 
 ### `internal/metadata`
 
@@ -171,9 +179,6 @@ Packages are sorted by path. Within each package, items use the type order `refa
 
 #### Fix
 
-- **Skip unsupported files before requiring dimensions:** Non-images and PDFs can be reported as missing metadata before the processor has a chance to skip them. Filter by file type first and test non-JPEG inputs without dimensions.
-- **Treat empty exiftool output consistently:** A directory containing only subdirectories currently becomes an error. Treat successful no-output runs as empty after validating the input directory, with a focused fixture.
-- **Make result order deterministic:** Sort metadata and file problems by filename rather than relying on filesystem or exiftool order, and test both slices.
 - **Choose a whitespace policy:** Titles and descriptions pass through unchanged, including accidental surrounding spaces. Decide whether to preserve or normalize them, and test the chosen behavior.
 
 #### Feature
@@ -181,11 +186,6 @@ Packages are sorted by path. Within each package, items use the type order `refa
 - **Support nested source paths:** Preserve `SourceFile` or `Directory` when recursive processing is added so duplicate basenames remain distinguishable.
 - **Improve capture-date extraction:** If `DateTimeOriginal` is absent or incomplete, define an explicit priority among subsecond/original, XMP creation, EXIF creation/modification, and file modification dates. Preserve timezone offsets when useful, consider exiftool's `-d` formatting, and add representative fixtures.
 - **Define description-field precedence:** If `Description` is insufficient, choose an order among `ImageDescription`, XMP description, `Caption-Abstract`, `Headline`, `Title`, and `ObjectName` rather than accepting whichever tag happens to appear.
-
-#### Test
-
-- **Handle optional external tooling in tests:** If lean environments are supported, add an exiftool availability helper and skip only integration tests that genuinely require it.
-- **Keep external-tool assertions resilient:** Prefer error types or relevant substrings over exact comparisons of long Go/exiftool messages.
 
 ### `internal/paths`
 
@@ -205,16 +205,12 @@ Packages are sorted by path. Within each package, items use the type order `refa
 
 ### `internal/variants`
 
-#### Refactor
-
-- **Keep execution injectable only when tests need it:** A small command runner can make warnings and missing outputs deterministic to test without over-generalizing the wrapper.
-
 #### Fix
 
-- **Define variant request validation:** After the request API is in place, decide which conditions reject the whole request and which become per-variant failures. Cover missing paths, a missing or non-directory output location, non-positive or duplicate widths, empty or duplicate format lists, unsupported formats, and source-format responsibility with focused tests.
-- **Handle successful command output deliberately:** Any `vipsthumbnail` output currently causes an error even with a zero exit status. Decide whether warnings are acceptable and test warning-on-success behavior.
+- **Define variant request validation:** Decide which malformed shared request fields reject the whole request and which format/width-specific problems remain per-variant failures. Cover missing paths, a missing or non-directory output location, non-positive or duplicate widths, empty or duplicate format lists, unsupported formats, and source-format responsibility with focused tests.
+- **Accept diagnostics from successful variant commands:** Do not fail solely because `vipsthumbnail` writes output with a zero exit status; rely on destination validation for success and test the result-classification logic without adding a command-runner abstraction unless it becomes necessary.
 - **Sanitize command output in errors:** Raw `vipsthumbnail` output can be binary or very large. Trim whitespace, replace non-printable bytes, cap retained output, and use the sanitized text in generation errors, with direct helper tests.
-- **Verify generated files:** A zero exit status does not prove that output exists, is non-empty, or has the requested format. Validate generated files and test missing or malformed outputs; actual dimensions are covered by the cross-package item above.
+- **Verify generated files:** A zero exit status does not prove that output exists, is non-empty, or has the requested format. Validate generated files and test missing or malformed outputs; dimension measurement is covered by the planned cross-package item.
 - **Strengthen same-file protection if needed:** Lexical path comparison misses hard links and symlinks. Compare file identities when the added safety justifies the complexity, and add corresponding tests.
 - **Cover cleaned parent-path output roots:** Add a regression check for roots containing `..` so `vipsthumbnail` receives cleaned absolute paths and diagnostics remain readable.
 
@@ -223,7 +219,3 @@ Packages are sorted by path. Within each package, items use the type order `refa
 - **Add bounded parallel generation:** If generation speed matters, run variants concurrently with a small limit and preserve complete error reporting.
 - **Support additional output formats:** Add WebP or other formats only when a website needs them, with encoder and output-validation tests.
 - **Add crop/cover generation:** Provide an optional crop mode and decide whether centered crops are sufficient or need a focus position, with image-level tests.
-
-#### Test
-
-- **Handle optional libvips tooling in tests:** If lean environments are supported, add a `vipsthumbnail` availability helper and skip only integration tests that require it.
