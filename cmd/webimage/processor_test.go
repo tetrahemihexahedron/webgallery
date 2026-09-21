@@ -155,8 +155,8 @@ func TestProcessMetadataEntryValidatesJPEGMetadata(t *testing.T) {
 				meta.CapturedAt = " 2024-05-12T14:22:00"
 			},
 			wantProblem:  true,
-			wantMessage:  "canonical format",
-			wantProgress: "canonical format",
+			wantMessage:  "invalid capturedAt",
+			wantProgress: "invalid capturedAt",
 		},
 		{
 			name:    "unsupported format checked first",

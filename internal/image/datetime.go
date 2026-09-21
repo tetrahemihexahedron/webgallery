@@ -10,7 +10,6 @@ import (
 const capturedAtLayout = "2006-01-02T15:04:05"
 
 func ParseCapturedAt(s string) (time.Time, error) {
-	s = strings.TrimSpace(s)
 	if s == "" {
 		return time.Time{}, errors.New("capturedAt is empty")
 	}

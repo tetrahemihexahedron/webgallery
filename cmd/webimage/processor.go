@@ -241,12 +241,8 @@ func validateJPEGMetadata(meta image.Metadata, dirDate DirDate) error {
 		return nil
 	}
 
-	capturedAt, err := image.ParseCapturedAt(meta.CapturedAt)
-	if err != nil {
+	if _, err := image.ParseCapturedAt(meta.CapturedAt); err != nil {
 		return fmt.Errorf("invalid capturedAt: %w", err)
-	}
-	if image.FormatCapturedAt(capturedAt) != meta.CapturedAt {
-		return fmt.Errorf("capturedAt %q must be in canonical format", meta.CapturedAt)
 	}
 
 	return nil

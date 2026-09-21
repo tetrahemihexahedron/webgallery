@@ -7,9 +7,10 @@ type Metadata struct {
 	Format      string
 	Title       string
 	Description string
-	CapturedAt  string
-	Width       int
-	Height      int
+	// CapturedAt is empty or exactly the value produced by FormatCapturedAt.
+	CapturedAt string
+	Width      int
+	Height     int
 }
 
 type Source struct {
@@ -29,6 +30,7 @@ type Processed struct {
 	DirRelPath  paths.RelPath
 	Title       string
 	Description string
+	// CapturedAt is empty or exactly the value produced by FormatCapturedAt.
 	CapturedAt  string
 	ProcessedAt string
 	Variants    []Variant
