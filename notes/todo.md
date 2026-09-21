@@ -8,7 +8,6 @@ These items have been promoted to `notes/plan.md`. The plan is the authoritative
 
 ### Fix
 
-- **Make metadata result order deterministic (`internal/metadata`):** Sort usable metadata and per-file problems independently by filename before returning them.
 - **Record generated dimensions accurately (`internal/image`, `internal/variants`, `internal/manifest`, `cmd/webimage`):** Measure successful outputs and carry their actual width and height through processed-image data and manifests instead of estimating from source metadata.
 
 ## Unplanned items

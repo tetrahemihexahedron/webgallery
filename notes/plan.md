@@ -1,33 +1,10 @@
 # Development plan
 
-These are the next two items to implement from `notes/todo.md`, listed in recommended implementation order.
+These are the next items to implement from `notes/todo.md`, listed in recommended implementation order.
 
 Each item includes small implementation steps sized for focused commits.
 
-## 1. Make metadata result order deterministic
-
-**Type:** Fix
-**Package(s):** `internal/metadata`
-
-Exiftool and filesystem enumeration order are not part of the package contract, so otherwise-identical runs can return metadata and problems in different orders. Return both result slices in a documented, predictable order.
-
-Small implementation steps:
-
-1. **Sort both result channels.**
-   - Sort `Result.Metadata` and `Result.FileProblems` independently by `FileName` in ascending lexical order after record conversion.
-   - Use a stable comparison so duplicate filenames, if exiftool ever reports them, retain their original relative order.
-   - Preserve the existing distinction between usable metadata and per-file problems.
-
-2. **Add mixed-result coverage.**
-   - Exercise the exported `Exiftool.Read` API from `package metadata_test`, building a temporary directory from reusable valid and invalid fixtures created in deliberately non-lexical order.
-   - Compare the resulting metadata slice with `slices.Equal` and explicit `got`/`want` values; check problem filenames in order while matching only relevant message substrings so external-tool wording does not make the test brittle.
-   - Keep any fixture-copying helper near the bottom of the test file, mark it with `t.Helper`, and avoid direct tests of sorting helpers unless their logic becomes independently nontrivial.
-
-3. **Document the result contract.**
-   - Update the exported `Result` documentation to state that both slices are ordered by filename.
-   - Keep sorting inside `internal/metadata` rather than relying on callers to normalize external-tool output.
-
-## 2. Record generated dimensions accurately
+## 1. Record generated dimensions accurately
 
 **Type:** Fix
 **Package(s):** `internal/image`, `internal/variants`, `internal/manifest`, `cmd/webimage`
