@@ -120,6 +120,20 @@ func (p *imageProcessor) processMetadataEntry(meta image.Metadata, imageDirsByHa
 		}
 	}
 
+	if err := validateJPEGMetadata(meta, p.cfg.DirDate); err != nil {
+		fmt.Fprintf(
+			p.progressReporter,
+			"Error validating metadata for %q: %v\n",
+			meta.FileName,
+			err,
+		)
+
+		return image.Processed{}, &imageProblem{
+			fileName: meta.FileName,
+			message:  fmt.Sprintf("metadata validation error: %v", err),
+		}
+	}
+
 	sourceRelPath, err := paths.NewRelPath(meta.FileName)
 	if err != nil {
 		fmt.Fprintf(
@@ -211,6 +225,31 @@ func (p *imageProcessor) processMetadataEntry(meta image.Metadata, imageDirsByHa
 	)
 
 	return processedImg, nil
+}
+
+func validateJPEGMetadata(meta image.Metadata, dirDate DirDate) error {
+	if meta.Width <= 0 {
+		return fmt.Errorf("width must be positive, got %d", meta.Width)
+	}
+	if meta.Height <= 0 {
+		return fmt.Errorf("height must be positive, got %d", meta.Height)
+	}
+	if meta.CapturedAt == "" {
+		if dirDate == DirDateCaptured {
+			return errors.New("capturedAt is required with --dir-date=captured")
+		}
+		return nil
+	}
+
+	capturedAt, err := image.ParseCapturedAt(meta.CapturedAt)
+	if err != nil {
+		return fmt.Errorf("invalid capturedAt: %w", err)
+	}
+	if image.FormatCapturedAt(capturedAt) != meta.CapturedAt {
+		return fmt.Errorf("capturedAt %q must be in canonical format", meta.CapturedAt)
+	}
+
+	return nil
 }
 
 func (p *imageProcessor) recordMetadataProblems(problems []metadata.Problem) []imageProblem {

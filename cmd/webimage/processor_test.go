@@ -75,6 +75,161 @@ func TestProcessIncomingDir(t *testing.T) {
 	assertIndex(t, p.cfg.OutDir, processed)
 }
 
+func TestProcessMetadataEntryValidatesJPEGMetadata(t *testing.T) {
+	sourceContents, err := os.ReadFile(filepath.Join("testdata", "incoming", "image_800x1067.jpg"))
+	if err != nil {
+		t.Fatalf("reading source fixture: %v", err)
+	}
+
+	validMetadata := image.Metadata{
+		FileName:   "image.jpg",
+		Format:     image.FormatJPEG.String(),
+		CapturedAt: "2024-05-12T14:22:00",
+		Width:      800,
+		Height:     1067,
+	}
+	tests := []struct {
+		name          string
+		dirDate       DirDate
+		change        func(*image.Metadata)
+		createSource  bool
+		wantProblem   bool
+		wantMessage   string
+		wantProgress  string
+		wantGenerator bool
+	}{
+		{
+			name:    "zero width",
+			dirDate: DirDateProcessed,
+			change: func(meta *image.Metadata) {
+				meta.Width = 0
+			},
+			wantProblem:  true,
+			wantMessage:  "width must be positive",
+			wantProgress: "width must be positive",
+		},
+		{
+			name:    "negative height",
+			dirDate: DirDateProcessed,
+			change: func(meta *image.Metadata) {
+				meta.Height = -1
+			},
+			wantProblem:  true,
+			wantMessage:  "height must be positive",
+			wantProgress: "height must be positive",
+		},
+		{
+			name:    "empty capture date with processed directories",
+			dirDate: DirDateProcessed,
+			change: func(meta *image.Metadata) {
+				meta.CapturedAt = ""
+			},
+			createSource:  true,
+			wantProgress:  "Processed",
+			wantGenerator: true,
+		},
+		{
+			name:    "empty capture date with captured directories",
+			dirDate: DirDateCaptured,
+			change: func(meta *image.Metadata) {
+				meta.CapturedAt = ""
+			},
+			wantProblem:  true,
+			wantMessage:  "capturedAt is required",
+			wantProgress: "capturedAt is required",
+		},
+		{
+			name:    "malformed capture date",
+			dirDate: DirDateProcessed,
+			change: func(meta *image.Metadata) {
+				meta.CapturedAt = "2024:05:12 14:22:00"
+			},
+			wantProblem:  true,
+			wantMessage:  "invalid capturedAt",
+			wantProgress: "invalid capturedAt",
+		},
+		{
+			name:    "noncanonical capture date",
+			dirDate: DirDateProcessed,
+			change: func(meta *image.Metadata) {
+				meta.CapturedAt = " 2024-05-12T14:22:00"
+			},
+			wantProblem:  true,
+			wantMessage:  "canonical format",
+			wantProgress: "canonical format",
+		},
+		{
+			name:    "unsupported format checked first",
+			dirDate: DirDateCaptured,
+			change: func(meta *image.Metadata) {
+				meta.Format = "PNG"
+				meta.Width = 0
+				meta.Height = 0
+			},
+			wantProblem:  true,
+			wantMessage:  "not JPEG",
+			wantProgress: "not JPEG",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			incomingDir := t.TempDir()
+			outDir := t.TempDir()
+			meta := validMetadata
+			tc.change(&meta)
+			if tc.createSource {
+				sourcePath := filepath.Join(incomingDir, meta.FileName)
+				if err := os.WriteFile(sourcePath, sourceContents, 0644); err != nil {
+					t.Fatalf("os.WriteFile(%q) returned error: %v", sourcePath, err)
+				}
+			}
+
+			var progress bytes.Buffer
+			generatorCalled := false
+			variantPath := mustRel(t, "w800.jpg")
+			generator := variantGenerator(func(req variants.Request) (variants.Result, error) {
+				generatorCalled = true
+				outputPath := filepath.Join(req.OutputDir.String(), variantPath.String())
+				if err := os.WriteFile(outputPath, sourceContents, 0644); err != nil {
+					return variants.Result{}, err
+				}
+				return variants.Result{Generated: []image.Variant{
+					{Path: variantPath, Format: image.FormatJPEG, Width: 800},
+				}}, nil
+			})
+			p := imageProcessor{
+				cfg: Config{
+					InDir:   mustAbs(t, incomingDir),
+					OutDir:  mustAbs(t, outDir),
+					DirDate: tc.dirDate,
+				},
+				variantGenerator: generator,
+				progressReporter: &progress,
+			}
+
+			_, problem := p.processMetadataEntry(meta, map[string]paths.RelPath{})
+			if got := problem != nil; got != tc.wantProblem {
+				t.Fatalf("imageProcessor.processMetadataEntry() returned problem = %t, want %t: %+v", got, tc.wantProblem, problem)
+			}
+			if problem != nil {
+				if problem.fileName != meta.FileName {
+					t.Errorf("problem fileName = %q, want %q", problem.fileName, meta.FileName)
+				}
+				if !strings.Contains(problem.message, tc.wantMessage) {
+					t.Errorf("problem message = %q, want message containing %q", problem.message, tc.wantMessage)
+				}
+			}
+			if !strings.Contains(progress.String(), tc.wantProgress) {
+				t.Errorf("progress = %q, want message containing %q", progress.String(), tc.wantProgress)
+			}
+			if generatorCalled != tc.wantGenerator {
+				t.Errorf("variant generator called = %t, want %t", generatorCalled, tc.wantGenerator)
+			}
+		})
+	}
+}
+
 func TestCopyFile(t *testing.T) {
 	sourceContents := []byte("source image contents")
 
