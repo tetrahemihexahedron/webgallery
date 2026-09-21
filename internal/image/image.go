@@ -22,6 +22,7 @@ type Source struct {
 type Variant struct {
 	Path   paths.RelPath
 	Format Format
+	// Width and Height are the generated file's actual pixel dimensions.
 	Width  int
 	Height int
 }

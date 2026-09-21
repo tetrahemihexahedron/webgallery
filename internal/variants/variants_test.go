@@ -73,23 +73,16 @@ func TestGenerate(t *testing.T) {
 		widths        []int
 		formats       []image.Format
 		wantGenerated []image.Variant
-		wantSizes     []imageSize
 	}{
 		{
 			name:    "generates supported formats in request order",
 			widths:  []int{400, 800},
 			formats: []image.Format{image.FormatJPEG, image.FormatAVIF},
 			wantGenerated: []image.Variant{
-				{Path: mustRel(t, "w400.jpg"), Format: image.FormatJPEG, Width: 400},
-				{Path: mustRel(t, "w800.jpg"), Format: image.FormatJPEG, Width: 800},
-				{Path: mustRel(t, "w400.avif"), Format: image.FormatAVIF, Width: 400},
-				{Path: mustRel(t, "w800.avif"), Format: image.FormatAVIF, Width: 800},
-			},
-			wantSizes: []imageSize{
-				{width: 400, height: 534},
-				{width: 800, height: 1067},
-				{width: 400, height: 534},
-				{width: 800, height: 1067},
+				{Path: mustRel(t, "w400.jpg"), Format: image.FormatJPEG, Width: 400, Height: 534},
+				{Path: mustRel(t, "w800.jpg"), Format: image.FormatJPEG, Width: 800, Height: 1067},
+				{Path: mustRel(t, "w400.avif"), Format: image.FormatAVIF, Width: 400, Height: 534},
+				{Path: mustRel(t, "w800.avif"), Format: image.FormatAVIF, Width: 800, Height: 1067},
 			},
 		},
 		{
@@ -97,20 +90,13 @@ func TestGenerate(t *testing.T) {
 			widths:  []int{1600},
 			formats: []image.Format{image.FormatJPEG},
 			wantGenerated: []image.Variant{
-				{Path: mustRel(t, "w1600.jpg"), Format: image.FormatJPEG, Width: 1600},
-			},
-			wantSizes: []imageSize{
-				{width: 800, height: 1067},
+				{Path: mustRel(t, "w1600.jpg"), Format: image.FormatJPEG, Width: 800, Height: 1067},
 			},
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			if len(tc.wantGenerated) != len(tc.wantSizes) {
-				t.Fatalf("test case has %d generated variants and %d wantSizes, want equal lengths", len(tc.wantGenerated), len(tc.wantSizes))
-			}
-
 			req := variants.Request{
 				SourcePath: source,
 				OutputDir:  mustAbs(t, t.TempDir()),
@@ -127,13 +113,13 @@ func TestGenerate(t *testing.T) {
 			if len(got.Failed) != 0 {
 				t.Errorf("variants.Generate(%+v) returned failed variants: %+v", req, got.Failed)
 			}
-			for i, variant := range got.Generated {
+			for _, variant := range got.Generated {
 				outputPath, err := paths.JoinAbs(req.OutputDir, variant.Path)
 				if err != nil {
 					t.Fatalf("paths.JoinAbs(%q, %q) returned error: %v", req.OutputDir, variant.Path, err)
 				}
 				gotSize := readImageSize(t, outputPath)
-				wantSize := tc.wantSizes[i]
+				wantSize := imageSize{width: variant.Width, height: variant.Height}
 				if gotSize != wantSize {
 					t.Errorf("generated image %q size mismatch\n got: %+v\nwant: %+v", outputPath, gotSize, wantSize)
 				}
@@ -165,7 +151,7 @@ func TestGeneratePreservesExistingDestination(t *testing.T) {
 	}
 
 	wantGenerated := []image.Variant{
-		{Path: mustRel(t, "w800.jpg"), Format: image.FormatJPEG, Width: 800},
+		{Path: mustRel(t, "w800.jpg"), Format: image.FormatJPEG, Width: 800, Height: 1067},
 	}
 	if !slices.Equal(got.Generated, wantGenerated) {
 		t.Errorf("variants.Generate(%+v) generated variants mismatch\n got: %+v\nwant: %+v", req, got.Generated, wantGenerated)
@@ -198,8 +184,8 @@ func TestGenerateReturnsPartialResult(t *testing.T) {
 		Formats:    []image.Format{image.FormatJPEG, image.FormatOther, image.FormatAVIF},
 	}
 	wantGenerated := []image.Variant{
-		{Path: mustRel(t, "w400.jpg"), Format: image.FormatJPEG, Width: 400},
-		{Path: mustRel(t, "w400.avif"), Format: image.FormatAVIF, Width: 400},
+		{Path: mustRel(t, "w400.jpg"), Format: image.FormatJPEG, Width: 400, Height: 534},
+		{Path: mustRel(t, "w400.avif"), Format: image.FormatAVIF, Width: 400, Height: 534},
 	}
 	wantProblem := "unsupported output format"
 

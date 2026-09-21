@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 
 	"tetrahemihexahedron/webimage/internal/image"
 	"tetrahemihexahedron/webimage/internal/paths"
@@ -66,8 +67,9 @@ func Generate(req Request) (Result, error) {
 	for _, format := range req.Formats {
 		for _, width := range req.Widths {
 			planned, err := planVariant(req.OutputDir, format, width)
+			var generated image.Variant
 			if err == nil {
-				err = generateVariant(req.SourcePath, planned)
+				generated, err = generateVariant(req.SourcePath, planned)
 			}
 			if err != nil {
 				result.Failed = append(result.Failed, Failure{
@@ -77,7 +79,7 @@ func Generate(req Request) (Result, error) {
 				})
 				continue
 			}
-			result.Generated = append(result.Generated, planned.variant)
+			result.Generated = append(result.Generated, generated)
 		}
 	}
 
@@ -110,7 +112,6 @@ func planVariant(outputDir paths.AbsPath, format image.Format, width int) (plann
 		variant: image.Variant{
 			Path:   path,
 			Format: format,
-			Width:  width,
 		},
 		requestedWidth: width,
 		outputPath:     outputPath,
@@ -118,14 +119,14 @@ func planVariant(outputDir paths.AbsPath, format image.Format, width int) (plann
 	}, nil
 }
 
-func generateVariant(source paths.AbsPath, planned plannedVariant) error {
+func generateVariant(source paths.AbsPath, planned plannedVariant) (image.Variant, error) {
 	if source == planned.outputPath {
-		return errors.New("source and output file paths cannot be the same")
+		return image.Variant{}, errors.New("source and output file paths cannot be the same")
 	}
 	if _, err := os.Lstat(planned.outputPath.String()); err == nil {
-		return fmt.Errorf("output path %q already exists", planned.outputPath)
+		return image.Variant{}, fmt.Errorf("output path %q already exists", planned.outputPath)
 	} else if !errors.Is(err, os.ErrNotExist) {
-		return fmt.Errorf("checking output path %q: %w", planned.outputPath, err)
+		return image.Variant{}, fmt.Errorf("checking output path %q: %w", planned.outputPath, err)
 	}
 
 	// appending '>' tells libvips to only shrink; if the image is already
@@ -137,14 +138,52 @@ func generateVariant(source paths.AbsPath, planned plannedVariant) error {
 
 	cmdOutput, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("image generation failed: %s; %w", cmdOutput, err)
+		return image.Variant{}, fmt.Errorf("image generation failed: %s; %w", cmdOutput, err)
 	}
 	// cmdOutput is expected to be empty when image generation was successful
 	if len(cmdOutput) != 0 {
-		return fmt.Errorf("unexpected output from image generation: %s", cmdOutput)
+		return image.Variant{}, fmt.Errorf("unexpected output from image generation: %s", cmdOutput)
 	}
 
-	return nil
+	width, height, err := readImageDimensions(planned.outputPath)
+	if err != nil {
+		return image.Variant{}, err
+	}
+	planned.variant.Width = width
+	planned.variant.Height = height
+
+	return planned.variant, nil
+}
+
+func readImageDimensions(path paths.AbsPath) (int, int, error) {
+	output, err := exec.Command(
+		"vipsheader",
+		"-f", "width",
+		"-f", "height",
+		path.String(),
+	).CombinedOutput()
+	if err != nil {
+		return 0, 0, fmt.Errorf("inspecting generated image %q: %w: %s", path, err, output)
+	}
+
+	fields := strings.Fields(string(output))
+	if len(fields) != 2 {
+		return 0, 0, fmt.Errorf("inspecting generated image %q returned %q, want width and height", path, output)
+	}
+
+	width, err := strconv.Atoi(fields[0])
+	if err != nil {
+		return 0, 0, fmt.Errorf("parsing generated image width for %q: %w", path, err)
+	}
+	height, err := strconv.Atoi(fields[1])
+	if err != nil {
+		return 0, 0, fmt.Errorf("parsing generated image height for %q: %w", path, err)
+	}
+	if width <= 0 || height <= 0 {
+		return 0, 0, fmt.Errorf("inspecting generated image %q returned non-positive dimensions %dx%d", path, width, height)
+	}
+
+	return width, height, nil
 }
 
 func wrapError(err error, format image.Format, width int) error {

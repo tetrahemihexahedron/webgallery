@@ -57,10 +57,10 @@ func TestProcessIncomingDir(t *testing.T) {
 	}
 
 	wantVariants := []image.Variant{
-		{Path: mustRel(t, "w400.jpg"), Format: image.FormatJPEG, Width: 400},
-		{Path: mustRel(t, "w800.jpg"), Format: image.FormatJPEG, Width: 800},
-		{Path: mustRel(t, "w400.avif"), Format: image.FormatAVIF, Width: 400},
-		{Path: mustRel(t, "w800.avif"), Format: image.FormatAVIF, Width: 800},
+		{Path: mustRel(t, "w400.jpg"), Format: image.FormatJPEG, Width: 400, Height: 534},
+		{Path: mustRel(t, "w800.jpg"), Format: image.FormatJPEG, Width: 800, Height: 1067},
+		{Path: mustRel(t, "w400.avif"), Format: image.FormatAVIF, Width: 400, Height: 534},
+		{Path: mustRel(t, "w800.avif"), Format: image.FormatAVIF, Width: 800, Height: 1067},
 	}
 	if !slices.Equal(processed.Variants, wantVariants) {
 		t.Errorf("imageProcessor.processIncomingDir() variants mismatch\n got: %+v\nwant: %+v", processed.Variants, wantVariants)
