@@ -88,12 +88,11 @@ func (p *imageProcessor) processIncomingDir(ctx context.Context) (res processRes
 	for _, meta := range metadataResult.Metadata {
 		processedImg, err := p.processMetadataEntry(ctx, meta, imageDirsByHash)
 		if err != nil {
-			var problem *imageProblem
-			if !errors.As(err, &problem) {
-				return res, err
+			if problem, ok := errors.AsType[*imageProblem](err); ok {
+				res.problems = append(res.problems, *problem)
+				continue
 			}
-			res.problems = append(res.problems, *problem)
-			continue
+			return res, err
 		}
 		res.images = append(res.images, processedImg)
 	}
