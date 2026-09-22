@@ -80,8 +80,8 @@ func Generate(ctx context.Context, req Request) (Result, error) {
 				generated, err = generateVariant(ctx, req.SourcePath, planned)
 			}
 			if err != nil {
-				if contextErr := ctx.Err(); contextErr != nil {
-					return Result{}, contextErr
+				if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+					return Result{}, err
 				}
 				result.Failed = append(result.Failed, Failure{
 					Format: format,
@@ -94,9 +94,6 @@ func Generate(ctx context.Context, req Request) (Result, error) {
 		}
 	}
 
-	if err := ctx.Err(); err != nil {
-		return Result{}, err
-	}
 	return result, nil
 }
 
@@ -152,6 +149,9 @@ func generateVariant(ctx context.Context, source paths.AbsPath, planned plannedV
 
 	cmdOutput, err := cmd.CombinedOutput()
 	if err != nil {
+		if contextErr := ctx.Err(); contextErr != nil {
+			return image.Variant{}, fmt.Errorf("image generation failed: %w", contextErr)
+		}
 		return image.Variant{}, fmt.Errorf("image generation failed: %s; %w", cmdOutput, err)
 	}
 	// cmdOutput is expected to be empty when image generation was successful
@@ -178,6 +178,9 @@ func readImageDimensions(ctx context.Context, path paths.AbsPath) (int, int, err
 		path.String(),
 	).CombinedOutput()
 	if err != nil {
+		if contextErr := ctx.Err(); contextErr != nil {
+			return 0, 0, fmt.Errorf("inspecting generated image %q: %w", path, contextErr)
+		}
 		return 0, 0, fmt.Errorf("inspecting generated image %q: %w: %s", path, err, output)
 	}
 
