@@ -200,12 +200,14 @@ func TestProcessMetadataEntryValidatesJPEGMetadata(t *testing.T) {
 				progressReporter: io.Discard,
 			}
 
-			_, problem, err := p.processMetadataEntry(context.Background(), meta, map[string]paths.RelPath{})
-			if err != nil {
+			_, err := p.processMetadataEntry(context.Background(), meta, map[string]paths.RelPath{})
+			var problem *imageProblem
+			gotProblem := errors.As(err, &problem)
+			if err != nil && !gotProblem {
 				t.Fatalf("imageProcessor.processMetadataEntry() returned request error: %v", err)
 			}
-			if got := problem != nil; got != tc.wantProblem {
-				t.Fatalf("imageProcessor.processMetadataEntry() returned problem = %t, want %t: %+v", got, tc.wantProblem, problem)
+			if gotProblem != tc.wantProblem {
+				t.Fatalf("imageProcessor.processMetadataEntry() returned problem = %t, want %t: %+v", gotProblem, tc.wantProblem, problem)
 			}
 			if problem != nil {
 				if problem.fileName != meta.FileName.String() {

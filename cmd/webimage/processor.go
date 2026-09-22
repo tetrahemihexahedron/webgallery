@@ -37,6 +37,10 @@ type imageProblem struct {
 	message  string
 }
 
+func (p *imageProblem) Error() string {
+	return p.message
+}
+
 type sourceImage struct {
 	metadata metadata.File
 	path     paths.AbsPath
@@ -76,21 +80,21 @@ func (p *imageProcessor) processIncomingDir(ctx context.Context) (processResult,
 			return processResult{}, err
 		}
 
-		processedImg, problem, requestErr := p.processMetadataEntry(ctx, meta, imageDirsByHash)
-		if requestErr != nil {
-			if cleanupErr := deleteProcessedImageDirs(p.cfg.outDir, res.images); cleanupErr != nil {
-				requestErr = errors.Join(requestErr, cleanupErr)
+		processedImg, err := p.processMetadataEntry(ctx, meta, imageDirsByHash)
+		if err != nil {
+			var problem *imageProblem
+			if !errors.As(err, &problem) {
+				if cleanupErr := deleteProcessedImageDirs(p.cfg.outDir, res.images); cleanupErr != nil {
+					err = errors.Join(err, cleanupErr)
+				}
+				return processResult{}, err
 			}
-			return processResult{}, requestErr
-		}
-		if problem == nil {
+			res.problems = append(res.problems, *problem)
+		} else {
 			res.images = append(res.images, processedImg)
 		}
 		if err := cancellationError(ctx, p.cfg.outDir, res.images); err != nil {
 			return processResult{}, err
-		}
-		if problem != nil {
-			res.problems = append(res.problems, *problem)
 		}
 	}
 
@@ -116,7 +120,7 @@ func (p *imageProcessor) writeUpdatedIndex(imageIndex *index.Index, images []ima
 	return nil
 }
 
-func (p *imageProcessor) processMetadataEntry(ctx context.Context, meta metadata.File, imageDirsByHash map[string]paths.RelPath) (image.Processed, *imageProblem, error) {
+func (p *imageProcessor) processMetadataEntry(ctx context.Context, meta metadata.File, imageDirsByHash map[string]paths.RelPath) (image.Processed, error) {
 	if image.ParseFormat(meta.Format) != image.FormatJPEG {
 		fmt.Fprintf(
 			p.progressReporter,
@@ -132,7 +136,7 @@ func (p *imageProcessor) processMetadataEntry(ctx context.Context, meta metadata
 				meta.FileName,
 				meta.Format,
 			),
-		}, nil
+		}
 	}
 
 	if err := validateJPEGMetadata(meta, p.cfg.dirDate); err != nil {
@@ -146,7 +150,7 @@ func (p *imageProcessor) processMetadataEntry(ctx context.Context, meta metadata
 		return image.Processed{}, &imageProblem{
 			fileName: meta.FileName.String(),
 			message:  fmt.Sprintf("metadata validation error: %v", err),
-		}, nil
+		}
 	}
 
 	sourceAbsPath, err := paths.JoinAbs(p.cfg.inDir, meta.FileName)
@@ -161,7 +165,7 @@ func (p *imageProcessor) processMetadataEntry(ctx context.Context, meta metadata
 		return image.Processed{}, &imageProblem{
 			fileName: meta.FileName.String(),
 			message:  fmt.Sprintf("source path error: %v", err),
-		}, nil
+		}
 	}
 
 	sourceHash, err := fileSHA256(sourceAbsPath)
@@ -176,7 +180,7 @@ func (p *imageProcessor) processMetadataEntry(ctx context.Context, meta metadata
 		return image.Processed{}, &imageProblem{
 			fileName: meta.FileName.String(),
 			message:  fmt.Sprintf("file hashing error: %v", err),
-		}, nil
+		}
 	}
 
 	source := sourceImage{
@@ -196,16 +200,13 @@ func (p *imageProcessor) processMetadataEntry(ctx context.Context, meta metadata
 		return image.Processed{}, &imageProblem{
 			fileName: meta.FileName.String(),
 			message:  fmt.Sprintf("skipping duplicate of image in %q", existingImgDir),
-		}, nil
+		}
 	}
 
 	processedImg, err := p.processImage(ctx, source)
 	if err != nil {
-		if contextErr := ctx.Err(); contextErr != nil {
-			if errors.Is(err, contextErr) {
-				return image.Processed{}, nil, err
-			}
-			return image.Processed{}, nil, errors.Join(contextErr, err)
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return image.Processed{}, err
 		}
 
 		fmt.Fprintf(
@@ -218,7 +219,7 @@ func (p *imageProcessor) processMetadataEntry(ctx context.Context, meta metadata
 		return image.Processed{}, &imageProblem{
 			fileName: meta.FileName.String(),
 			message:  fmt.Sprintf("file processing error: %v", err),
-		}, nil
+		}
 	}
 
 	imageDirsByHash[source.sha256] = processedImg.DirRelPath
@@ -231,7 +232,7 @@ func (p *imageProcessor) processMetadataEntry(ctx context.Context, meta metadata
 		processedImg.DirRelPath,
 	)
 
-	return processedImg, nil, nil
+	return processedImg, nil
 }
 
 func validateJPEGMetadata(meta metadata.File, dirDate dirDateSource) error {
