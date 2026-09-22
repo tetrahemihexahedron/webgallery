@@ -42,10 +42,6 @@ type metadataEntryResult struct {
 	problem   *imageProblem
 }
 
-func (p *imageProblem) Error() string {
-	return p.message
-}
-
 type sourceImage struct {
 	metadata metadata.File
 	path     paths.AbsPath
