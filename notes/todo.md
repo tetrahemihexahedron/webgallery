@@ -11,6 +11,7 @@ Packages are sorted by path. Within each package, items use the type order `refa
 #### Refactor
 
 - **Centralize enum parsing:** Enum-like values still use scattered conversion, validation, defaults, and error wording. Add parser functions where repetition warrants them, such as a future `ParseDirDate`.
+- **Minimize exported surfaces:** Unexport identifiers that have no production cross-package caller, especially `Config`, `DirDate`, and its constants in the `main` packages; also reassess conveniences such as `SortField.IsValid` and `index.IndexPath` that are currently used only within their package or by tests. Keep consumer-specific interfaces beside their consumers, and introduce a shared interface only when multiple packages genuinely need the same contract.
 
 #### Fix
 
@@ -61,9 +62,14 @@ Packages are sorted by path. Within each package, items use the type order `refa
 #### Refactor
 
 - **Consolidate image-directory cleanup:** `processImage` repeats cleanup after exclusive leaf creation. Use a deferred guard that is armed only after the current attempt creates the leaf and disarmed after the manifest succeeds, while preserving joined cleanup errors and the current all-or-nothing image policy.
+- **Decouple processing options from CLI config:** `imageProcessor` receives the command's full `Config` even though it does not use `IsQuiet`. Give the workflow a focused options value or direct fields so flag parsing, progress selection, and processing dependencies remain separate.
+- **Split the processor file by responsibility:** Keep the workflow readable in `processor.go`, but move cohesive source hashing/copying and output-directory/ID helpers into focused files if that improves navigation; do not create new packages or wrapper types solely to reduce line count.
 
 #### Fix
 
+- **Surface per-file outcomes at the CLI:** Metadata errors, unsupported files, duplicates, and processing failures are all reduced to string-valued `imageProblem`s, and `main` discards the result, so even an all-failed quiet run exits successfully with no diagnostic. Distinguish expected skips from actual failures, print an appropriate summary, and define the exit status with focused quiet and partial-failure tests.
+- **Retry random directory collisions:** Exclusive directory creation detects an existing random image ID, but currently turns that collision into a per-file failure. Generate another ID and retry a bounded number of times while preserving errors unrelated to an existing leaf directory.
+- **Process a coherent source snapshot:** Hashing, copying, and variant generation read the incoming file separately, and variants are generated from the incoming path rather than the copied `orig.jpg`. Generate from the copied original and calculate or verify the recorded hash from the same bytes so the manifest, original, and variants cannot silently diverge if an input changes during a run.
 - **Define empty-run index behavior:** Empty or all-skipped first runs may leave no `index.json`. Decide whether these runs create or refresh an empty index, then test empty directories, skipped-only directories, and the resulting index contents.
 
 #### Feature
@@ -106,13 +112,16 @@ Packages are sorted by path. Within each package, items use the type order `refa
 #### Refactor
 
 - **Introduce validated domain types only where they remove repetition:** Keep capture dates as strings while the documented empty-or-canonical contract and strict parser remain sufficient. If repeated parsing or validation continues to spread across packages, introduce a small type with an unexported representation and explicit optional-value handling; apply the same standard to hashes and other required strings, with focused tests.
+- **Centralize processed-image invariants:** If index and manifest work continues to duplicate validation of `image.Processed` fields, add one domain-level validation path for shared date, hash, dimensions, and variant rules while leaving persistence-specific constraints in their owning packages.
 - **Centralize format knowledge:** Add format-to-extension and format-to-MIME helpers, and consider richer parse results when callers need to distinguish missing, unknown, and unsupported formats.
-- **Use a path type for metadata filenames:** Change `Metadata.FileName` to `paths.RelPath` once the metadata package can guarantee safe relative paths.
+- **Move source metadata to its owning package:** `image.Metadata` contains extraction-specific fields such as a raw exiftool format and filename and is only produced by `internal/metadata`. Define that record in `metadata` (using a `paths.RelPath` once conversion can guarantee one) and reserve `image` for processed, cross-stage domain types.
+- **Name source hashes precisely:** `Source.Hash` is always a SHA-256 digest while the persisted models call the field `SHA256`. Rename it for consistency before any additional hash algorithm is introduced.
 - **Shorten redundant path field names:** Consider `Processed.Dir` or `ImageDir` instead of `DirRelPath` because the type already communicates relativity.
 
 #### Fix
 
 - **Clarify capture-time semantics:** `capturedAt` has no timezone, so it represents camera wall time rather than an absolute instant. Document that distinction from UTC `processedAt`; capture offsets if absolute cross-time-zone ordering becomes necessary, and test date round trips.
+- **Make datetime parser normalization consistent:** `ParseCapturedAt` rejects surrounding whitespace while `ParseProcessedAt` silently trims it. Persisted-data parsers should reject noncanonical strings; perform any desired normalization explicitly at an external-input boundary and update the parser tests.
 - **Normalize format parsing deliberately:** `ParseFormat` does not trim whitespace and maps unknown, missing, and unsupported values to `FormatOther`. Decide which distinctions callers need and add cases such as whitespace and `.jpeg`.
 
 #### Docs
@@ -127,7 +136,8 @@ Packages are sorted by path. Within each package, items use the type order `refa
 
 #### Refactor
 
-- **Centralize relative-path conversion:** Move `relPathFromAbs` into `internal/paths` if another package needs the same operation.
+- **Separate index construction from persistence:** `(*Index).Update` is the only write API and simultaneously converts processed images, timestamps a copy, writes it, and mutates the receiver. Consider a pure append/conversion operation plus a validating `WriteDir`, or another small API that makes side effects explicit and can also support rebuilding an already-constructed `Index`.
+- **Avoid the manifest-path absolute round trip:** `entryFromProcessed` joins a relative image directory to the output root, builds the manifest path, then converts it back to relative. Build the validated `<image-dir>/manifest.json` path directly (possibly through a relative-path helper in `manifest`) and keep `relPathFromAbs` local or remove it unless another real caller appears.
 - **Make index ordering deliberate:** Either preserve and document insertion order or sort/rebuild deterministically so output does not vary accidentally.
 
 #### Fix
@@ -153,6 +163,7 @@ Packages are sorted by path. Within each package, items use the type order `refa
 
 - **Validate manifest metadata:** Use one validation path from conversion, read, and write to require positive source dimensions, canonical processed and empty-or-canonical captured dates through the strict internal parsers, and a valid SHA-256 value. Reject rather than normalize persisted date text, with focused otherwise-valid fixtures for each field.
 - **Validate manifest variant sets:** Require non-empty relative paths, positive dimensions, supported formats, a JPEG fallback, matching file extensions, and unique paths and width descriptors within each format on conversion, read, and write.
+- **Reject noncanonical manifest format keys:** `manifestFromJSON` uses the permissive `ParseFormat`, so keys such as `jpeg` or `.jpg` are silently normalized and multiple aliases can merge into one format. Parse persisted keys strictly, require the canonical schema spelling, and test alias collisions.
 
 ### `internal/metadata`
 
@@ -191,12 +202,17 @@ Packages are sorted by path. Within each package, items use the type order `refa
 
 ### `internal/variants`
 
+#### Refactor
+
+- **Make `Failure` carry its own context:** Store the underlying cause in each failure and implement `Error`/`Unwrap` (or otherwise centralize formatting) so format and width context is guaranteed by the type rather than being duplicated in a pre-wrapped `Err`. Have `Result.Err` join the self-describing failures.
+
 #### Fix
 
 - **Define variant request validation:** Decide which malformed shared request fields reject the whole request and which format/width-specific problems remain per-variant failures. Cover missing paths, a missing or non-directory output location, non-positive or duplicate widths, empty or duplicate format lists, unsupported formats, and source-format responsibility with focused tests.
 - **Accept diagnostics from successful variant commands:** Do not fail solely because `vipsthumbnail` writes output with a zero exit status; rely on destination validation for success and test the result-classification logic without adding a command-runner abstraction unless it becomes necessary.
 - **Sanitize command output in errors:** Raw `vipsthumbnail` output can be binary or very large. Trim whitespace, replace non-printable bytes, cap retained output, and use the sanitized text in generation errors, with direct helper tests.
 - **Verify generated files:** A zero exit status does not prove that output exists, is non-empty, or has the requested format. Validate generated files and test missing or malformed outputs; dimension measurement is covered by the planned cross-package item.
+- **Remove artifacts from failed attempts:** If `vipsthumbnail` writes a partial file or dimension/format inspection fails after generation, `Generate` reports a failed variant but leaves its destination behind, causing a retry to fail with “already exists.” Remove only the path created by the current attempt, preserve pre-existing destinations, and join cleanup errors.
 - **Strengthen same-file protection if needed:** Lexical path comparison misses hard links and symlinks. Compare file identities when the added safety justifies the complexity, and add corresponding tests.
 - **Cover cleaned parent-path output roots:** Add a regression check for roots containing `..` so `vipsthumbnail` receives cleaned absolute paths and diagnostics remain readable.
 
