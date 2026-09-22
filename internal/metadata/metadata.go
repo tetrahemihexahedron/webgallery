@@ -15,6 +15,8 @@ import (
 )
 
 // File contains metadata extracted from one file.
+// Format, Title, and Description have surrounding whitespace removed. FileName
+// is not whitespace-normalized because it identifies a path on the filesystem.
 type File struct {
 	FileName    paths.RelPath
 	Format      string
@@ -65,7 +67,6 @@ type exiftoolOutput struct {
 const dateTimeOriginalLayout = "2006:01:02 15:04:05"
 
 func parseDateTimeOriginal(s string) (time.Time, error) {
-	s = strings.TrimSpace(s)
 	if s == "" {
 		return time.Time{}, errors.New("DateTimeOriginal is empty")
 	}
@@ -132,6 +133,8 @@ func processOutput(output []exiftoolOutput) Result {
 	var problems []Problem
 
 	for _, out := range output {
+		out = normalizeOutput(out)
+
 		if out.Error != "" {
 			problems = append(problems, Problem{
 				FileName: out.FileName,
@@ -158,7 +161,7 @@ func processOutput(output []exiftoolOutput) Result {
 		}
 
 		capturedAt := ""
-		if strings.TrimSpace(out.DateTimeOriginal) != "" {
+		if out.DateTimeOriginal != "" {
 			parsedCapturedAt, err := parseDateTimeOriginal(out.DateTimeOriginal)
 			if err != nil {
 				problems = append(problems, Problem{
@@ -192,6 +195,15 @@ func processOutput(output []exiftoolOutput) Result {
 		Metadata:     metadata,
 		FileProblems: problems,
 	}
+}
+
+func normalizeOutput(out exiftoolOutput) exiftoolOutput {
+	out.FileType = strings.TrimSpace(out.FileType)
+	out.Title = strings.TrimSpace(out.Title)
+	out.Description = strings.TrimSpace(out.Description)
+	out.DateTimeOriginal = strings.TrimSpace(out.DateTimeOriginal)
+	out.Error = strings.TrimSpace(out.Error)
+	return out
 }
 
 func missingMetadata(out exiftoolOutput) []string {

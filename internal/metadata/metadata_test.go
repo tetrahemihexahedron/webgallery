@@ -65,6 +65,21 @@ func TestExiftoolRead(t *testing.T) {
 			},
 		},
 		{
+			name: "normalizes textual metadata",
+			file: "whitespace_metadata.jpg",
+			wantMetadata: []metadata.File{
+				{
+					FileName:    mustRel(t, "whitespace_metadata.jpg"),
+					Format:      "JPEG",
+					Title:       "Padded title",
+					Description: "",
+					CapturedAt:  "",
+					Width:       1200,
+					Height:      799,
+				},
+			},
+		},
+		{
 			name: "passes through missing dimensions",
 			file: "missing_metadata.jpg",
 			wantMetadata: []metadata.File{
