@@ -4,24 +4,7 @@ These are the next items to implement from `notes/todo.md`, listed in recommende
 
 Each numbered implementation step is intended to be a focused, independently passing commit. Run `go test ./...`, `go vet ./...`, and `staticcheck ./...` for every commit.
 
-## 1. Strip whitespace from extracted metadata
-
-Normalize textual metadata as it enters the application instead of making downstream packages guess whether values are already clean.
-
-The policy is to apply `strings.TrimSpace` to every exiftool-supplied textual metadata value that is content or control data: file format, title, description, `DateTimeOriginal`, and exiftool's error text. Perform normalization before required-field checks, date parsing, problem classification, and construction of `metadata.File`. This makes whitespace-only required values missing, whitespace-only optional values empty, and returned metadata consistently normalized.
-
-`FileName` is the exception: it is a filesystem identifier rather than descriptive metadata. Unix filenames may legally begin or end with whitespace, so changing it would make the returned path refer to a different file. Preserve it exactly and validate it as a `paths.RelPath` under task 1.
-
-**Packages involved:**
-
-- `internal/metadata`: define and apply the normalization policy and own all direct tests.
-- `cmd/webimage`: consume already-normalized values; no additional trimming should be added here.
-
-**Implementation commits:**
-
-1. **Normalize exiftool records at conversion time.** Add one clear normalization step before `processOutput` validates each record, remove redundant trimming from `parseDateTimeOriginal`, and document the returned-value contract on `metadata.File` or `Result`. Add one representative metadata case using user-authored fields—for example, a padded title and a whitespace-only description—to cover both trimming and normalization to empty. Do not add separate whitespace cases for every exiftool-controlled field, and do not add a filename-with-whitespace test. Keep the existing format, date, and error tests to confirm their normal behavior is unchanged, and keep canonical captured-date formatting unchanged.
-
-## 2. Make datetime parser normalization consistent
+## 1. Make datetime parser normalization consistent
 
 Both image datetime parsers represent canonical persisted formats. They should validate exact stored text rather than silently normalizing it; external-input cleanup belongs in `internal/metadata` as established by task 2.
 
@@ -35,7 +18,7 @@ Both image datetime parsers represent canonical persisted formats. They should v
 
 1. **Make processed datetime parsing strict.** Remove whitespace trimming from `image.ParseProcessedAt`, add or improve exported documentation for both datetime parsers, and move the existing surrounding-whitespace case from the successful parser table to the error table. Retain the existing UTC, whole-second RFC3339 requirement and formatting behavior. Audit call sites to ensure none rely on `ParseProcessedAt` for user-input normalization; the parser test is sufficient, so do not duplicate it with gallery, index, or manifest regression tests unless one of those packages later adds behavior beyond delegating to the parser.
 
-## 3. Minimize exported surfaces
+## 2. Minimize exported surfaces
 
 Remove exports that are implementation details while preserving the small APIs actually used between packages. Do this package by package so each rename remains easy to review.
 
