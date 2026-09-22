@@ -26,14 +26,13 @@ const (
 // ParseSortField parses a supported gallery sort field.
 func ParseSortField(s string) (SortField, error) {
 	field := SortField(s)
-	if !field.IsValid() {
+	if !field.isValid() {
 		return "", fmt.Errorf("invalid sort field %q: want %q or %q", s, SortCaptured, SortProcessed)
 	}
 	return field, nil
 }
 
-// IsValid reports whether s is a supported gallery sort field.
-func (s SortField) IsValid() bool {
+func (s SortField) isValid() bool {
 	switch s {
 	case SortCaptured, SortProcessed:
 		return true
@@ -64,7 +63,7 @@ func Render(w io.Writer, opts Options) error {
 	if w == nil {
 		return errors.New("writer can't be nil")
 	}
-	if !opts.Sort.IsValid() {
+	if !opts.Sort.isValid() {
 		return fmt.Errorf("invalid sort field %q", opts.Sort)
 	}
 
