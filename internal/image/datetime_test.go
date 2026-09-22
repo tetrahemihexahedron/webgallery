@@ -84,11 +84,6 @@ func TestParseProcessedAt(t *testing.T) {
 			value: "2026-08-24T18:00:00Z",
 			want:  time.Date(2026, time.August, 24, 18, 0, 0, 0, time.UTC),
 		},
-		{
-			name:  "trims whitespace",
-			value: "  2026-08-24T18:00:00Z\t",
-			want:  time.Date(2026, time.August, 24, 18, 0, 0, 0, time.UTC),
-		},
 	}
 
 	for _, tc := range tests {
@@ -111,7 +106,11 @@ func TestParseProcessedAtReturnsError(t *testing.T) {
 	}{
 		{
 			name:  "empty value",
-			value: "  \t",
+			value: "",
+		},
+		{
+			name:  "surrounding whitespace",
+			value: "  2026-08-24T18:00:00Z\t",
 		},
 		{
 			name:  "invalid value",

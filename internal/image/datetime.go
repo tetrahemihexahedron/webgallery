@@ -3,12 +3,13 @@ package image
 import (
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 )
 
 const capturedAtLayout = "2006-01-02T15:04:05"
 
+// ParseCapturedAt parses a canonical capturedAt value. It requires webimage's
+// whole-second, timezone-free format and rejects surrounding whitespace.
 func ParseCapturedAt(s string) (time.Time, error) {
 	if s == "" {
 		return time.Time{}, errors.New("capturedAt is empty")
@@ -28,8 +29,9 @@ func FormatCapturedAt(t time.Time) string {
 	return t.Format(capturedAtLayout)
 }
 
+// ParseProcessedAt parses a canonical processedAt value. It requires
+// whole-second UTC RFC3339 and rejects surrounding whitespace.
 func ParseProcessedAt(s string) (time.Time, error) {
-	s = strings.TrimSpace(s)
 	if s == "" {
 		return time.Time{}, errors.New("processedAt is empty")
 	}
