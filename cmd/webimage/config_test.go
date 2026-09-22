@@ -10,34 +10,34 @@ func TestParseArgs(t *testing.T) {
 	tests := []struct {
 		name string
 		args []string
-		want Config
+		want config
 	}{
 		{
 			name: "required flags only",
 			args: []string{"-incoming", "incoming", "-output", "output"},
-			want: Config{
-				InDir:   mustAbs(t, "incoming"),
-				OutDir:  mustAbs(t, "output"),
-				DirDate: DirDateProcessed,
+			want: config{
+				inDir:   mustAbs(t, "incoming"),
+				outDir:  mustAbs(t, "output"),
+				dirDate: DirDateProcessed,
 			},
 		},
 		{
 			name: "quiet",
 			args: []string{"-incoming", "incoming", "-output", "output", "-quiet"},
-			want: Config{
-				InDir:   mustAbs(t, "incoming"),
-				OutDir:  mustAbs(t, "output"),
-				IsQuiet: true,
-				DirDate: DirDateProcessed,
+			want: config{
+				inDir:   mustAbs(t, "incoming"),
+				outDir:  mustAbs(t, "output"),
+				isQuiet: true,
+				dirDate: DirDateProcessed,
 			},
 		},
 		{
 			name: "captured dir date",
 			args: []string{"-incoming", "incoming", "-output", "output", "-dir-date", "captured"},
-			want: Config{
-				InDir:   mustAbs(t, "incoming"),
-				OutDir:  mustAbs(t, "output"),
-				DirDate: DirDateCaptured,
+			want: config{
+				inDir:   mustAbs(t, "incoming"),
+				outDir:  mustAbs(t, "output"),
+				dirDate: DirDateCaptured,
 			},
 		},
 	}

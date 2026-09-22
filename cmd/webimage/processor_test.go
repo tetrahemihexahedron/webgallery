@@ -66,13 +66,13 @@ func TestProcessIncomingDir(t *testing.T) {
 		t.Errorf("imageProcessor.processIncomingDir() variants mismatch\n got: %+v\nwant: %+v", processed.Variants, wantVariants)
 	}
 
-	imageDir, err := paths.JoinAbs(p.cfg.OutDir, processed.DirRelPath)
+	imageDir, err := paths.JoinAbs(p.cfg.outDir, processed.DirRelPath)
 	if err != nil {
-		t.Fatalf("paths.JoinAbs(%q, %q) returned error: %v", p.cfg.OutDir, processed.DirRelPath, err)
+		t.Fatalf("paths.JoinAbs(%q, %q) returned error: %v", p.cfg.outDir, processed.DirRelPath, err)
 	}
-	assertOutputFiles(t, p.cfg.InDir, imageDir)
+	assertOutputFiles(t, p.cfg.inDir, imageDir)
 	assertManifest(t, imageDir, processed)
-	assertIndex(t, p.cfg.OutDir, processed)
+	assertIndex(t, p.cfg.outDir, processed)
 }
 
 func TestProcessMetadataEntryValidatesJPEGMetadata(t *testing.T) {
@@ -190,10 +190,10 @@ func TestProcessMetadataEntryValidatesJPEGMetadata(t *testing.T) {
 				}}, nil
 			})
 			p := imageProcessor{
-				cfg: Config{
-					InDir:   mustAbs(t, incomingDir),
-					OutDir:  mustAbs(t, outDir),
-					DirDate: tc.dirDate,
+				cfg: config{
+					inDir:   mustAbs(t, incomingDir),
+					outDir:  mustAbs(t, outDir),
+					dirDate: tc.dirDate,
 				},
 				variantGenerator: generator,
 				progressReporter: io.Discard,
@@ -350,9 +350,9 @@ func TestProcessImageRejectsIncompleteVariants(t *testing.T) {
 				return tc.result, nil
 			})
 			p := imageProcessor{
-				cfg: Config{
-					OutDir:  mustAbs(t, t.TempDir()),
-					DirDate: DirDateProcessed,
+				cfg: config{
+					outDir:  mustAbs(t, t.TempDir()),
+					dirDate: DirDateProcessed,
 				},
 				variantGenerator: generator,
 			}
@@ -388,9 +388,9 @@ func TestProcessIncomingDirSkipsPreviouslyProcessedImage(t *testing.T) {
 	if _, err := p.processIncomingDir(); err != nil {
 		t.Fatalf("first imageProcessor.processIncomingDir() returned error: %v", err)
 	}
-	indexBefore, err := index.ReadDir(p.cfg.OutDir)
+	indexBefore, err := index.ReadDir(p.cfg.outDir)
 	if err != nil {
-		t.Fatalf("index.ReadDir(%q) after first processIncomingDir returned error: %v", p.cfg.OutDir, err)
+		t.Fatalf("index.ReadDir(%q) after first processIncomingDir returned error: %v", p.cfg.outDir, err)
 	}
 
 	got, err := p.processIncomingDir()
@@ -411,9 +411,9 @@ func TestProcessIncomingDirSkipsPreviouslyProcessedImage(t *testing.T) {
 		t.Errorf("duplicate problem message = %q, want message containing %q", problem.message, "duplicate")
 	}
 
-	indexAfter, err := index.ReadDir(p.cfg.OutDir)
+	indexAfter, err := index.ReadDir(p.cfg.outDir)
 	if err != nil {
-		t.Fatalf("index.ReadDir(%q) after second processIncomingDir returned error: %v", p.cfg.OutDir, err)
+		t.Fatalf("index.ReadDir(%q) after second processIncomingDir returned error: %v", p.cfg.outDir, err)
 	}
 	if !reflect.DeepEqual(indexAfter, indexBefore) {
 		t.Errorf("index after duplicate processing = %+v, want unchanged index %+v", indexAfter, indexBefore)
@@ -424,10 +424,10 @@ func newIntegrationProcessor(t *testing.T) *imageProcessor {
 	t.Helper()
 
 	return &imageProcessor{
-		cfg: Config{
-			InDir:   mustAbs(t, filepath.Join("testdata", "incoming")),
-			OutDir:  mustAbs(t, t.TempDir()),
-			DirDate: DirDateCaptured,
+		cfg: config{
+			inDir:   mustAbs(t, filepath.Join("testdata", "incoming")),
+			outDir:  mustAbs(t, t.TempDir()),
+			dirDate: DirDateCaptured,
 		},
 		metadataReader:   &metadata.Exiftool{},
 		variantGenerator: variants.Generate,

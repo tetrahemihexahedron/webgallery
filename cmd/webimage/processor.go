@@ -45,18 +45,18 @@ type sourceImage struct {
 }
 
 type imageProcessor struct {
-	cfg              Config
+	cfg              config
 	metadataReader   metadataReader
 	variantGenerator variantGenerator
 	progressReporter io.Writer
 }
 
 func (p *imageProcessor) processIncomingDir() (processResult, error) {
-	inDirAbsPath := p.cfg.InDir.String()
+	inDirAbsPath := p.cfg.inDir.String()
 
 	fmt.Fprintf(p.progressReporter, "Processing image files in %q\n", inDirAbsPath)
 
-	imageIndex, imageDirsByHash, err := loadExistingIndex(p.cfg.OutDir)
+	imageIndex, imageDirsByHash, err := loadExistingIndex(p.cfg.outDir)
 	if err != nil {
 		return processResult{}, err
 	}
@@ -90,9 +90,9 @@ func (p *imageProcessor) processIncomingDir() (processResult, error) {
 }
 
 func (p *imageProcessor) writeUpdatedIndex(imageIndex *index.Index, images []image.Processed) error {
-	if err := imageIndex.Update(p.cfg.OutDir, images); err != nil {
+	if err := imageIndex.Update(p.cfg.outDir, images); err != nil {
 		updateErr := fmt.Errorf("updating index: %w", err)
-		if cleanupErr := deleteProcessedImageDirs(p.cfg.OutDir, images); cleanupErr != nil {
+		if cleanupErr := deleteProcessedImageDirs(p.cfg.outDir, images); cleanupErr != nil {
 			return errors.Join(updateErr, cleanupErr)
 		}
 		return updateErr
@@ -120,7 +120,7 @@ func (p *imageProcessor) processMetadataEntry(meta metadata.File, imageDirsByHas
 		}
 	}
 
-	if err := validateJPEGMetadata(meta, p.cfg.DirDate); err != nil {
+	if err := validateJPEGMetadata(meta, p.cfg.dirDate); err != nil {
 		fmt.Fprintf(
 			p.progressReporter,
 			"Error validating metadata for %q: %v\n",
@@ -134,7 +134,7 @@ func (p *imageProcessor) processMetadataEntry(meta metadata.File, imageDirsByHas
 		}
 	}
 
-	sourceAbsPath, err := paths.JoinAbs(p.cfg.InDir, meta.FileName)
+	sourceAbsPath, err := paths.JoinAbs(p.cfg.inDir, meta.FileName)
 	if err != nil {
 		fmt.Fprintf(
 			p.progressReporter,
@@ -254,7 +254,7 @@ func (p *imageProcessor) recordMetadataProblems(problems []metadata.Problem) []i
 }
 
 func (p *imageProcessor) readIncomingMetadata() (metadata.Result, error) {
-	metadataResult, err := p.metadataReader.Read(p.cfg.InDir)
+	metadataResult, err := p.metadataReader.Read(p.cfg.inDir)
 	if err != nil {
 		return metadata.Result{}, err
 	}
@@ -339,7 +339,7 @@ func createImageDir(outRoot paths.AbsPath, imgDirRelPath paths.RelPath) (paths.A
 
 func (p *imageProcessor) processImage(source sourceImage) (image.Processed, error) {
 	processedAt := time.Now().UTC()
-	dirDate, err := dirDate(p.cfg.DirDate, source.metadata.CapturedAt, processedAt)
+	dirDate, err := dirDate(p.cfg.dirDate, source.metadata.CapturedAt, processedAt)
 	if err != nil {
 		return image.Processed{}, err
 	}
@@ -347,7 +347,7 @@ func (p *imageProcessor) processImage(source sourceImage) (image.Processed, erro
 	if err != nil {
 		return image.Processed{}, err
 	}
-	imgDirAbsPath, err := createImageDir(p.cfg.OutDir, imgDirRelPath)
+	imgDirAbsPath, err := createImageDir(p.cfg.outDir, imgDirRelPath)
 	if err != nil {
 		return image.Processed{}, err
 	}

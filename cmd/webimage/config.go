@@ -27,19 +27,19 @@ func (d DirDate) isValid() bool {
 	}
 }
 
-type Config struct {
-	InDir   paths.AbsPath
-	OutDir  paths.AbsPath
-	IsQuiet bool
-	DirDate DirDate
+type config struct {
+	inDir   paths.AbsPath
+	outDir  paths.AbsPath
+	isQuiet bool
+	dirDate DirDate
 }
 
-func loadConfig() (Config, error) {
+func loadConfig() (config, error) {
 	return parseArgs(os.Args[1:], os.Stderr)
 }
 
-func parseArgs(args []string, output io.Writer) (Config, error) {
-	var cfg Config
+func parseArgs(args []string, output io.Writer) (config, error) {
+	var cfg config
 	var inDirPath string
 	var outDirPath string
 
@@ -48,48 +48,48 @@ func parseArgs(args []string, output io.Writer) (Config, error) {
 
 	flags.StringVar(&inDirPath, "incoming", "", "incoming directory")
 	flags.StringVar(&outDirPath, "output", "", "output directory")
-	flags.BoolVar(&cfg.IsQuiet, "quiet", false, "suppress progress output")
+	flags.BoolVar(&cfg.isQuiet, "quiet", false, "suppress progress output")
 
 	dirDate := string(DirDateProcessed)
 	flags.StringVar(&dirDate, "dir-date", dirDate, "source date for output directories: processed or captured")
 
 	if err := flags.Parse(args); err != nil {
-		return Config{}, err
+		return config{}, err
 	}
 
-	cfg.DirDate = DirDate(dirDate)
-	if !cfg.DirDate.isValid() {
-		return Config{}, fmt.Errorf("invalid '--dir-date' value %q: want %q or %q", dirDate, DirDateProcessed, DirDateCaptured)
+	cfg.dirDate = DirDate(dirDate)
+	if !cfg.dirDate.isValid() {
+		return config{}, fmt.Errorf("invalid '--dir-date' value %q: want %q or %q", dirDate, DirDateProcessed, DirDateCaptured)
 	}
 
 	if inDirPath == "" {
-		return Config{}, errors.New("missing required '--incoming' flag")
+		return config{}, errors.New("missing required '--incoming' flag")
 	}
 
 	if outDirPath == "" {
-		return Config{}, errors.New("missing required '--output' flag")
+		return config{}, errors.New("missing required '--output' flag")
 	}
 
 	inDirAbs, err := filepath.Abs(inDirPath)
 	if err != nil {
-		return Config{}, err
+		return config{}, err
 	}
-	cfg.InDir, err = paths.NewAbsPath(inDirAbs)
+	cfg.inDir, err = paths.NewAbsPath(inDirAbs)
 	if err != nil {
-		return Config{}, err
+		return config{}, err
 	}
 
 	outDirAbs, err := filepath.Abs(outDirPath)
 	if err != nil {
-		return Config{}, err
+		return config{}, err
 	}
-	cfg.OutDir, err = paths.NewAbsPath(outDirAbs)
+	cfg.outDir, err = paths.NewAbsPath(outDirAbs)
 	if err != nil {
-		return Config{}, err
+		return config{}, err
 	}
 
-	if err := validateRoots(cfg.InDir, cfg.OutDir); err != nil {
-		return Config{}, err
+	if err := validateRoots(cfg.inDir, cfg.outDir); err != nil {
+		return config{}, err
 	}
 
 	return cfg, nil

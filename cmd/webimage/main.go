@@ -16,7 +16,7 @@ func main() {
 	}
 
 	progressReporter := io.Writer(os.Stdout)
-	if cfg.IsQuiet {
+	if cfg.isQuiet {
 		progressReporter = io.Discard
 	}
 
