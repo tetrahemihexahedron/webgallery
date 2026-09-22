@@ -98,6 +98,7 @@ func (p *imageProcessor) processIncomingDir(ctx context.Context) (res processRes
 		res.images = append(res.images, entry.processed)
 	}
 
+	// Check for cancellation after the final metadata entry was processed
 	if err := ctx.Err(); err != nil {
 		return res, err
 	}
