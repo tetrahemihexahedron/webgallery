@@ -70,10 +70,6 @@ func Generate(ctx context.Context, req Request) (Result, error) {
 
 	for _, format := range req.Formats {
 		for _, width := range req.Widths {
-			if err := ctx.Err(); err != nil {
-				return Result{}, err
-			}
-
 			planned, err := planVariant(req.OutputDir, format, width)
 			var generated image.Variant
 			if err == nil {
