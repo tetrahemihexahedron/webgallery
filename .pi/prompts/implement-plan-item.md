@@ -1,11 +1,11 @@
 ---
-description: Implement one item from the development plan in small commits and push its branch
-argument-hint: "[section and item, title, or selection guidance]"
+description: Implement the next plan item, perhaps deleting a completed first item beforehand
+argument-hint: "[delete]"
 ---
 
-Implement one top-level item from `notes/plan.md` on a new branch and push that branch to GitHub.
+Implement the first top-level item from `notes/plan.md` on a new branch and push that branch to GitHub. With no argument, implement the current first item. With the exact argument `delete`, delete the current first item as completed, and then implement the new first item.
 
-Selection guidance: ${ARGUMENTS:-Choose the next suitable unfinished item yourself.}
+Requested route: `${ARGUMENTS:-implement first}`
 
 Carry out the complete workflow below. Do not merely describe what should be done.
 
@@ -33,18 +33,33 @@ Carry out the complete workflow below. Do not merely describe what should be don
 - Check the origin of the effective `user.name`. If repository-local or other higher-priority configuration overrides the expected name, stop and explain the conflict; do not modify that overriding configuration.
 - If there is no effective `user.email`, stop and explain the problem. Do not change `user.email` or any other global identity configuration.
 
-## 3. Select one plan item
+## 3. Apply the requested plan route
 
-- Apply the selection guidance and choose one unfinished top-level item that is reasonably scoped for one branch of work and which satisfies the selection guidance.
-- If no items satisfy the selection guidance, stop and alert the user.
-- Do not select work already implemented on the default branch.
-- Prefer prerequisite refactoring before behavior changes that depend on it.
+- Accept only these two routes:
+  - `implement first`, produced when the prompt is invoked without an argument;
+  - `delete`, produced by passing that exact argument.
+- If the requested route is anything else, stop and explain the two valid invocations. Do not interpret other text as selection guidance.
+- Switch to the local default branch. Do not merge, cherry-pick, pull, reset, rebase, or otherwise bring implementation work onto it.
+- Identify the first top-level plan item: the first second-level (`##`) section in `notes/plan.md`. If there is no item, stop and alert the user.
+- For the `implement first` route, leave `notes/plan.md` unchanged and continue.
+- For the `delete` route, treat the argument as the user's authoritative confirmation; do not independently guess whether the item was completed:
+  - Remove the first item's entire section from `notes/plan.md` and renumber the remaining numbered top-level headings in order without changing their content or otherwise reorganizing the plan.
+  - Inspect the diff and ensure it contains only the intended `notes/plan.md` removal and heading renumbering.
+  - Stage only `notes/plan.md`, inspect the staged diff, and commit it on the local default branch with the subject `Remove completed plan item`.
+  - Push the default branch directly to `origin` over SSH without force, verify that the remote default branch points to the same commit as the local branch, and require a clean worktree. If the commit or push fails, stop before selecting or creating another task branch.
+  - If removing the item leaves no plan items, stop and alert the user after pushing the cleanup commit.
+
+## 4. Select the first plan item
+
+- Select the first top-level item currently in `notes/plan.md`; do not skip or reorder items.
+- If it appears to have already been implemented on the default branch, stop and tell the user to rerun the prompt with `delete`; do not delete or skip it automatically.
+- If the item cannot reasonably fit on one branch, stop and alert the user rather than selecting a later item.
 - If the item requires an unresolved product, policy, or design decision, stop and ask the user rather than choosing a policy implicitly.
-- State the selected item and a short reason for choosing it, then continue without waiting for confirmation.
+- State the selected item and continue without waiting for confirmation.
 
-## 4. Create the task branch
+## 5. Create the task branch
 
-- After preflight succeeds, switch to the local default branch.
+- Ensure that the local default branch is checked out and still matches its upstream exactly after the completed-item check.
 - From the default branch, create and switch to a branch named `<type>/<short-kebab-case-topic>`.
 - Choose the type by the primary purpose of the complete plan item:
   - `refactor/` for behavior-preserving restructuring;
@@ -57,7 +72,7 @@ Carry out the complete workflow below. Do not merely describe what should be don
 - Avoid vague topics such as `updates`, `cleanup`, or `work`.
 - Confirm that the branch name does not already exist locally or on `origin` before creating it. If it exists, choose a different name; do not overwrite or delete the existing branch.
 
-## 5. Implement the complete item
+## 6. Implement the complete item
 
 - Inspect the relevant code and tests before editing.
 - Complete every applicable small implementation step listed under the selected item. If blocked, stop and ask the user rather than pushing an incomplete branch. For conditional steps such as “consider,” record why they were unnecessary when they do not apply.
@@ -65,10 +80,10 @@ Carry out the complete workflow below. Do not merely describe what should be don
 - Preserve existing behavior unless the plan item explicitly calls for a behavior change.
 - Follow `AGENTS.md` and the repository's established style.
 - Keep implementation changes limited to the selected item. Do not perform unrelated cleanup.
-- Do not edit `notes/plan.md` merely to record completion unless the user explicitly requests it.
+- Do not edit `notes/plan.md` on the task branch merely to record completion.
 - Add or adjust tests when they provide useful coverage under the repository's testing guidelines.
 
-## 6. Make small commits
+## 7. Make small commits
 
 - Commit each coherent implementation step separately when the repository remains valid and understandable at that boundary.
 - Prefer at least one commit per plan step. Use additive migrations to keep intermediate commits valid: introduce the new API alongside the old one, migrate callers, then remove the old API.
@@ -82,7 +97,7 @@ Carry out the complete workflow below. Do not merely describe what should be don
 - Use concise imperative commit subjects that describe the change.
 - Do not rewrite commit history, including with `git commit --amend` or interactive rebase, unless the user explicitly requests it.
 
-## 7. Record follow-up findings
+## 8. Record follow-up findings
 
 - At any point in the workflow, stop and notify the user immediately if a discovery indicates a serious security, data-loss, or correctness risk rather than merely adding it to the TODO file.
 - Do not expand the selected item's scope to address unrelated discoveries.
@@ -95,7 +110,7 @@ Carry out the complete workflow below. Do not merely describe what should be don
 - Do not modify `notes/todo.md` when there are no worthwhile findings.
 - Commit additions separately with the subject `Document follow-up findings`.
 
-## 8. Review and validate the branch
+## 9. Review and validate the branch
 
 - Review the complete diff and commit list against the default branch.
 - Run `gofmt` on changed Go files and run the full relevant test suite, including `go test ./...` unless there is a clear reason it cannot run.
@@ -103,12 +118,13 @@ Carry out the complete workflow below. Do not merely describe what should be don
 - Check that every applicable step in the selected plan item was completed.
 - Confirm that the worktree is clean.
 
-## 9. Push the branch
+## 10. Push the branch
 
 - Push the branch to `origin` and set its upstream. Never force push.
 - Verify that the remote branch exists and points to the same commit as the local branch.
 - Do not create a pull request.
 - Finish by reporting:
+  - whether the first plan item was removed, and the cleanup commit if one was created;
   - the selected development-plan item;
   - the branch name;
   - the commits created;
