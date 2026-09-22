@@ -13,7 +13,6 @@ Within those two groups, packages are sorted by path. Within each package, items
 #### Refactor
 
 - **Centralize enum parsing:** Enum-like values still use scattered conversion, validation, defaults, and error wording. Add parser functions where repetition warrants them, such as a future `ParseDirDate`.
-- **Minimize exported surfaces:** Unexport identifiers that have no production cross-package caller, especially `Config`, `DirDate`, and its constants in the `main` packages; also reassess conveniences such as `SortField.IsValid` and `index.IndexPath` that are currently used only within their package or by tests.
 
 #### Fix
 
@@ -71,13 +70,11 @@ Within those two groups, packages are sorted by path. Within each package, items
 
 #### Refactor
 
-- **Move source metadata to its owning package:** `image.Metadata` contains extraction-specific fields such as a raw exiftool format and filename and is only produced by `internal/metadata`. Define that record in `metadata` (using a `paths.RelPath` once conversion can guarantee one) and reserve `image` for processed, cross-stage domain types.
 - **Name source hashes precisely:** `Source.Hash` is always a SHA-256 digest while the persisted models call the field `SHA256`. Rename it for consistency before any additional hash algorithm is introduced.
 - **Shorten redundant path field names:** Consider `Processed.Dir` or `ImageDir` instead of `DirRelPath` because the type already communicates relativity.
 
 #### Fix
 
-- **Make datetime parser normalization consistent:** `ParseCapturedAt` rejects surrounding whitespace while `ParseProcessedAt` silently trims it. Persisted-data parsers should reject noncanonical strings; perform any desired normalization explicitly at an external-input boundary and update the parser tests.
 - **Normalize format parsing deliberately:** `ParseFormat` does not trim whitespace and maps unknown, missing, and unsupported values to `FormatOther`. Decide which distinctions callers need and add cases such as whitespace and `.jpeg`.
 
 #### Docs
@@ -120,10 +117,6 @@ Within those two groups, packages are sorted by path. Within each package, items
 #### Refactor
 
 - **Improve metadata names:** Consider `Result.Images` or `Files`, `Problems` or `FileErrors`, `ExifTool` or `Reader`, and `exiftoolRecord` instead of names that obscure whether a value represents one file or a collection.
-
-#### Fix
-
-- **Choose a whitespace policy:** Titles and descriptions pass through unchanged, including accidental surrounding spaces. Decide whether to preserve or normalize them, and test the chosen behavior.
 
 ### `internal/paths`
 
