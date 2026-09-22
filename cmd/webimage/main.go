@@ -5,12 +5,17 @@ import (
 	"io"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"tetrahemihexahedron/webimage/internal/metadata"
 	"tetrahemihexahedron/webimage/internal/variants"
 )
 
 func main() {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
 	cfg, err := loadConfig()
 	if err != nil {
 		log.Fatal(err)
@@ -28,7 +33,7 @@ func main() {
 		progressReporter: progressReporter,
 	}
 
-	_, err = processor.processIncomingDir(context.Background())
+	_, err = processor.processIncomingDir(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
