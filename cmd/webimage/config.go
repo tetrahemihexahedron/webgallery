@@ -11,16 +11,16 @@ import (
 	"tetrahemihexahedron/webimage/internal/paths"
 )
 
-type DirDate string
+type dirDateSource string
 
 const (
-	DirDateProcessed DirDate = "processed"
-	DirDateCaptured  DirDate = "captured"
+	dirDateProcessed dirDateSource = "processed"
+	dirDateCaptured  dirDateSource = "captured"
 )
 
-func (d DirDate) isValid() bool {
+func (d dirDateSource) isValid() bool {
 	switch d {
-	case DirDateProcessed, DirDateCaptured:
+	case dirDateProcessed, dirDateCaptured:
 		return true
 	default:
 		return false
@@ -31,7 +31,7 @@ type config struct {
 	inDir   paths.AbsPath
 	outDir  paths.AbsPath
 	isQuiet bool
-	dirDate DirDate
+	dirDate dirDateSource
 }
 
 func loadConfig() (config, error) {
@@ -50,16 +50,16 @@ func parseArgs(args []string, output io.Writer) (config, error) {
 	flags.StringVar(&outDirPath, "output", "", "output directory")
 	flags.BoolVar(&cfg.isQuiet, "quiet", false, "suppress progress output")
 
-	dirDate := string(DirDateProcessed)
+	dirDate := string(dirDateProcessed)
 	flags.StringVar(&dirDate, "dir-date", dirDate, "source date for output directories: processed or captured")
 
 	if err := flags.Parse(args); err != nil {
 		return config{}, err
 	}
 
-	cfg.dirDate = DirDate(dirDate)
+	cfg.dirDate = dirDateSource(dirDate)
 	if !cfg.dirDate.isValid() {
-		return config{}, fmt.Errorf("invalid '--dir-date' value %q: want %q or %q", dirDate, DirDateProcessed, DirDateCaptured)
+		return config{}, fmt.Errorf("invalid '--dir-date' value %q: want %q or %q", dirDate, dirDateProcessed, dirDateCaptured)
 	}
 
 	if inDirPath == "" {

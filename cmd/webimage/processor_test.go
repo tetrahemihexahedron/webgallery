@@ -90,7 +90,7 @@ func TestProcessMetadataEntryValidatesJPEGMetadata(t *testing.T) {
 	}
 	tests := []struct {
 		name          string
-		dirDate       DirDate
+		dirDate       dirDateSource
 		change        func(*metadata.File)
 		createSource  bool
 		wantProblem   bool
@@ -99,7 +99,7 @@ func TestProcessMetadataEntryValidatesJPEGMetadata(t *testing.T) {
 	}{
 		{
 			name:    "zero width",
-			dirDate: DirDateProcessed,
+			dirDate: dirDateProcessed,
 			change: func(meta *metadata.File) {
 				meta.Width = 0
 			},
@@ -108,7 +108,7 @@ func TestProcessMetadataEntryValidatesJPEGMetadata(t *testing.T) {
 		},
 		{
 			name:    "negative height",
-			dirDate: DirDateProcessed,
+			dirDate: dirDateProcessed,
 			change: func(meta *metadata.File) {
 				meta.Height = -1
 			},
@@ -117,7 +117,7 @@ func TestProcessMetadataEntryValidatesJPEGMetadata(t *testing.T) {
 		},
 		{
 			name:    "empty capture date with processed directories",
-			dirDate: DirDateProcessed,
+			dirDate: dirDateProcessed,
 			change: func(meta *metadata.File) {
 				meta.CapturedAt = ""
 			},
@@ -126,7 +126,7 @@ func TestProcessMetadataEntryValidatesJPEGMetadata(t *testing.T) {
 		},
 		{
 			name:    "empty capture date with captured directories",
-			dirDate: DirDateCaptured,
+			dirDate: dirDateCaptured,
 			change: func(meta *metadata.File) {
 				meta.CapturedAt = ""
 			},
@@ -135,7 +135,7 @@ func TestProcessMetadataEntryValidatesJPEGMetadata(t *testing.T) {
 		},
 		{
 			name:    "malformed capture date",
-			dirDate: DirDateProcessed,
+			dirDate: dirDateProcessed,
 			change: func(meta *metadata.File) {
 				meta.CapturedAt = "2024:05:12 14:22:00"
 			},
@@ -144,7 +144,7 @@ func TestProcessMetadataEntryValidatesJPEGMetadata(t *testing.T) {
 		},
 		{
 			name:    "noncanonical capture date",
-			dirDate: DirDateProcessed,
+			dirDate: dirDateProcessed,
 			change: func(meta *metadata.File) {
 				meta.CapturedAt = " 2024-05-12T14:22:00"
 			},
@@ -153,7 +153,7 @@ func TestProcessMetadataEntryValidatesJPEGMetadata(t *testing.T) {
 		},
 		{
 			name:    "unsupported format checked first",
-			dirDate: DirDateCaptured,
+			dirDate: dirDateCaptured,
 			change: func(meta *metadata.File) {
 				meta.Format = "PNG"
 				meta.Width = 0
@@ -352,7 +352,7 @@ func TestProcessImageRejectsIncompleteVariants(t *testing.T) {
 			p := imageProcessor{
 				cfg: config{
 					outDir:  mustAbs(t, t.TempDir()),
-					dirDate: DirDateProcessed,
+					dirDate: dirDateProcessed,
 				},
 				variantGenerator: generator,
 			}
@@ -427,7 +427,7 @@ func newIntegrationProcessor(t *testing.T) *imageProcessor {
 		cfg: config{
 			inDir:   mustAbs(t, filepath.Join("testdata", "incoming")),
 			outDir:  mustAbs(t, t.TempDir()),
-			dirDate: DirDateCaptured,
+			dirDate: dirDateCaptured,
 		},
 		metadataReader:   &metadata.Exiftool{},
 		variantGenerator: variants.Generate,

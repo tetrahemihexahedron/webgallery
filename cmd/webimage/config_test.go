@@ -18,7 +18,7 @@ func TestParseArgs(t *testing.T) {
 			want: config{
 				inDir:   mustAbs(t, "incoming"),
 				outDir:  mustAbs(t, "output"),
-				dirDate: DirDateProcessed,
+				dirDate: dirDateProcessed,
 			},
 		},
 		{
@@ -28,7 +28,7 @@ func TestParseArgs(t *testing.T) {
 				inDir:   mustAbs(t, "incoming"),
 				outDir:  mustAbs(t, "output"),
 				isQuiet: true,
-				dirDate: DirDateProcessed,
+				dirDate: dirDateProcessed,
 			},
 		},
 		{
@@ -37,7 +37,7 @@ func TestParseArgs(t *testing.T) {
 			want: config{
 				inDir:   mustAbs(t, "incoming"),
 				outDir:  mustAbs(t, "output"),
-				dirDate: DirDateCaptured,
+				dirDate: dirDateCaptured,
 			},
 		},
 	}

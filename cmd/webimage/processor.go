@@ -212,7 +212,7 @@ func (p *imageProcessor) processMetadataEntry(meta metadata.File, imageDirsByHas
 	return processedImg, nil
 }
 
-func validateJPEGMetadata(meta metadata.File, dirDate DirDate) error {
+func validateJPEGMetadata(meta metadata.File, dirDate dirDateSource) error {
 	if meta.Width <= 0 {
 		return fmt.Errorf("width must be positive, got %d", meta.Width)
 	}
@@ -220,7 +220,7 @@ func validateJPEGMetadata(meta metadata.File, dirDate DirDate) error {
 		return fmt.Errorf("height must be positive, got %d", meta.Height)
 	}
 	if meta.CapturedAt == "" {
-		if dirDate == DirDateCaptured {
+		if dirDate == dirDateCaptured {
 			return errors.New("capturedAt is required with --dir-date=captured")
 		}
 		return nil
@@ -459,11 +459,11 @@ func fileSHA256(path paths.AbsPath) (string, error) {
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
-func dirDate(dirDate DirDate, capturedAt string, processedAt time.Time) (time.Time, error) {
+func dirDate(dirDate dirDateSource, capturedAt string, processedAt time.Time) (time.Time, error) {
 	switch dirDate {
-	case DirDateProcessed:
+	case dirDateProcessed:
 		return processedAt, nil
-	case DirDateCaptured:
+	case dirDateCaptured:
 		capturedDate, err := image.ParseCapturedAt(capturedAt)
 		if err != nil {
 			return time.Time{}, fmt.Errorf("--dir-date=captured requires a valid capturedAt: %w", err)
