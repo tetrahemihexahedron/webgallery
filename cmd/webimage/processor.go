@@ -25,7 +25,7 @@ import (
 
 type metadataReader func(context.Context, paths.AbsPath) (metadata.Result, error)
 
-type variantGenerator func(variants.Request) (variants.Result, error)
+type variantGenerator func(context.Context, variants.Request) (variants.Result, error)
 
 type processResult struct {
 	images   []image.Processed
@@ -72,15 +72,25 @@ func (p *imageProcessor) processIncomingDir(ctx context.Context) (processResult,
 	fmt.Fprint(p.progressReporter, "\n----------------\n")
 
 	for _, meta := range metadataResult.Metadata {
-		processedImg, problem := p.processMetadataEntry(meta, imageDirsByHash)
-		if problem != nil {
-			res.problems = append(res.problems, *problem)
-			continue
+		if err := cancellationError(ctx, p.cfg.outDir, res.images); err != nil {
+			return processResult{}, err
 		}
 
-		res.images = append(res.images, processedImg)
+		processedImg, problem := p.processMetadataEntry(ctx, meta, imageDirsByHash)
+		if problem == nil {
+			res.images = append(res.images, processedImg)
+		}
+		if err := cancellationError(ctx, p.cfg.outDir, res.images); err != nil {
+			return processResult{}, err
+		}
+		if problem != nil {
+			res.problems = append(res.problems, *problem)
+		}
 	}
 
+	if err := cancellationError(ctx, p.cfg.outDir, res.images); err != nil {
+		return processResult{}, err
+	}
 	if err := p.writeUpdatedIndex(&imageIndex, res.images); err != nil {
 		return processResult{}, err
 	}
@@ -100,7 +110,7 @@ func (p *imageProcessor) writeUpdatedIndex(imageIndex *index.Index, images []ima
 	return nil
 }
 
-func (p *imageProcessor) processMetadataEntry(meta metadata.File, imageDirsByHash map[string]paths.RelPath) (image.Processed, *imageProblem) {
+func (p *imageProcessor) processMetadataEntry(ctx context.Context, meta metadata.File, imageDirsByHash map[string]paths.RelPath) (image.Processed, *imageProblem) {
 	if image.ParseFormat(meta.Format) != image.FormatJPEG {
 		fmt.Fprintf(
 			p.progressReporter,
@@ -183,7 +193,7 @@ func (p *imageProcessor) processMetadataEntry(meta metadata.File, imageDirsByHas
 		}
 	}
 
-	processedImg, err := p.processImage(source)
+	processedImg, err := p.processImage(ctx, source)
 	if err != nil {
 		fmt.Fprintf(
 			p.progressReporter,
@@ -268,6 +278,16 @@ func (p *imageProcessor) readIncomingMetadata(ctx context.Context) (metadata.Res
 	return metadataResult, nil
 }
 
+func cancellationError(ctx context.Context, outDir paths.AbsPath, images []image.Processed) error {
+	if err := ctx.Err(); err != nil {
+		if cleanupErr := deleteProcessedImageDirs(outDir, images); cleanupErr != nil {
+			return errors.Join(err, cleanupErr)
+		}
+		return err
+	}
+	return nil
+}
+
 func loadExistingIndex(outDir paths.AbsPath) (index.Index, map[string]paths.RelPath, error) {
 	imageIndex, err := index.ReadDir(outDir)
 	if err != nil {
@@ -336,7 +356,7 @@ func createImageDir(outRoot paths.AbsPath, imgDirRelPath paths.RelPath) (paths.A
 	return imgDirAbsPath, nil
 }
 
-func (p *imageProcessor) processImage(source sourceImage) (image.Processed, error) {
+func (p *imageProcessor) processImage(ctx context.Context, source sourceImage) (image.Processed, error) {
 	processedAt := time.Now().UTC()
 	dirDate, err := dirDate(p.cfg.dirDate, source.metadata.CapturedAt, processedAt)
 	if err != nil {
@@ -388,7 +408,7 @@ func (p *imageProcessor) processImage(source sourceImage) (image.Processed, erro
 		Widths:     variantWidths(source.metadata.Width, desiredWidths),
 		Formats:    []image.Format{image.FormatJPEG, image.FormatAVIF},
 	}
-	result, err := p.variantGenerator(request)
+	result, err := p.variantGenerator(ctx, request)
 	if err != nil {
 		return image.Processed{}, cleanupImageDirOnError(
 			imgDirAbsPath,

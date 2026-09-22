@@ -1,6 +1,7 @@
 package variants
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -51,13 +52,16 @@ type plannedVariant struct {
 }
 
 // Generate attempts every requested format and width combination unless the
-// request is invalid. It returns request-level validation errors directly with
-// an empty Result. Errors from individual attempts are recorded in
-// Result.Failed and available through Result.Err; they do not make Generate
-// return an error.
-func Generate(req Request) (Result, error) {
+// request is invalid or the context is canceled. It returns request-level
+// errors directly with an empty Result. Errors from individual attempts are
+// recorded in Result.Failed and available through Result.Err; they do not make
+// Generate return an error.
+func Generate(ctx context.Context, req Request) (Result, error) {
 	if req.SourcePath.String() == "" {
 		return Result{}, errors.New("source file path cannot be empty")
+	}
+	if err := ctx.Err(); err != nil {
+		return Result{}, err
 	}
 
 	result := Result{
@@ -66,12 +70,19 @@ func Generate(req Request) (Result, error) {
 
 	for _, format := range req.Formats {
 		for _, width := range req.Widths {
+			if err := ctx.Err(); err != nil {
+				return Result{}, err
+			}
+
 			planned, err := planVariant(req.OutputDir, format, width)
 			var generated image.Variant
 			if err == nil {
-				generated, err = generateVariant(req.SourcePath, planned)
+				generated, err = generateVariant(ctx, req.SourcePath, planned)
 			}
 			if err != nil {
+				if contextErr := ctx.Err(); contextErr != nil {
+					return Result{}, contextErr
+				}
 				result.Failed = append(result.Failed, Failure{
 					Format: format,
 					Width:  width,
@@ -83,6 +94,9 @@ func Generate(req Request) (Result, error) {
 		}
 	}
 
+	if err := ctx.Err(); err != nil {
+		return Result{}, err
+	}
 	return result, nil
 }
 
@@ -119,7 +133,7 @@ func planVariant(outputDir paths.AbsPath, format image.Format, width int) (plann
 	}, nil
 }
 
-func generateVariant(source paths.AbsPath, planned plannedVariant) (image.Variant, error) {
+func generateVariant(ctx context.Context, source paths.AbsPath, planned plannedVariant) (image.Variant, error) {
 	if source == planned.outputPath {
 		return image.Variant{}, errors.New("source and output file paths cannot be the same")
 	}
@@ -134,7 +148,7 @@ func generateVariant(source paths.AbsPath, planned plannedVariant) (image.Varian
 	sizeArg := strconv.Itoa(planned.requestedWidth) + "x>"
 	outputArg := planned.outputPath.String() + planned.encoderOptions
 
-	cmd := exec.Command("vipsthumbnail", source.String(), "--size", sizeArg, "--output", outputArg)
+	cmd := exec.CommandContext(ctx, "vipsthumbnail", source.String(), "--size", sizeArg, "--output", outputArg)
 
 	cmdOutput, err := cmd.CombinedOutput()
 	if err != nil {
@@ -145,7 +159,7 @@ func generateVariant(source paths.AbsPath, planned plannedVariant) (image.Varian
 		return image.Variant{}, fmt.Errorf("unexpected output from image generation: %s", cmdOutput)
 	}
 
-	width, height, err := readImageDimensions(planned.outputPath)
+	width, height, err := readImageDimensions(ctx, planned.outputPath)
 	if err != nil {
 		return image.Variant{}, err
 	}
@@ -155,8 +169,9 @@ func generateVariant(source paths.AbsPath, planned plannedVariant) (image.Varian
 	return planned.variant, nil
 }
 
-func readImageDimensions(path paths.AbsPath) (int, int, error) {
-	output, err := exec.Command(
+func readImageDimensions(ctx context.Context, path paths.AbsPath) (int, int, error) {
+	output, err := exec.CommandContext(
+		ctx,
 		"vipsheader",
 		"-f", "width",
 		"-f", "height",

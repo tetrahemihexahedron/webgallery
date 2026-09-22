@@ -180,7 +180,7 @@ func TestProcessMetadataEntryValidatesJPEGMetadata(t *testing.T) {
 
 			generatorCalled := false
 			variantPath := mustRel(t, "w800.jpg")
-			generator := variantGenerator(func(req variants.Request) (variants.Result, error) {
+			generator := variantGenerator(func(_ context.Context, req variants.Request) (variants.Result, error) {
 				generatorCalled = true
 				outputPath := filepath.Join(req.OutputDir.String(), variantPath.String())
 				if err := os.WriteFile(outputPath, sourceContents, 0644); err != nil {
@@ -200,7 +200,7 @@ func TestProcessMetadataEntryValidatesJPEGMetadata(t *testing.T) {
 				progressReporter: io.Discard,
 			}
 
-			_, problem := p.processMetadataEntry(meta, map[string]paths.RelPath{})
+			_, problem := p.processMetadataEntry(context.Background(), meta, map[string]paths.RelPath{})
 			if got := problem != nil; got != tc.wantProblem {
 				t.Fatalf("imageProcessor.processMetadataEntry() returned problem = %t, want %t: %+v", got, tc.wantProblem, problem)
 			}
@@ -346,7 +346,7 @@ func TestProcessImageRejectsIncompleteVariants(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			var imageDir string
-			generator := variantGenerator(func(req variants.Request) (variants.Result, error) {
+			generator := variantGenerator(func(_ context.Context, req variants.Request) (variants.Result, error) {
 				imageDir = req.OutputDir.String()
 				return tc.result, nil
 			})
@@ -363,7 +363,7 @@ func TestProcessImageRejectsIncompleteVariants(t *testing.T) {
 				sha256:   fixtureSHA256,
 			}
 
-			_, err := p.processImage(source)
+			_, err := p.processImage(context.Background(), source)
 			if err == nil {
 				t.Fatal("imageProcessor.processImage() returned nil error, want error")
 			}

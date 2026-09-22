@@ -2,6 +2,7 @@ package variants_test
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"os"
 	"os/exec"
@@ -117,7 +118,7 @@ func TestGenerate(t *testing.T) {
 				Widths:     tc.widths,
 				Formats:    tc.formats,
 			}
-			got, err := variants.Generate(req)
+			got, err := variants.Generate(context.Background(), req)
 			if err != nil {
 				t.Fatalf("variants.Generate(%+v) returned error: %v", req, err)
 			}
@@ -159,7 +160,7 @@ func TestGeneratePreservesExistingDestination(t *testing.T) {
 		Widths:     []int{400, 800},
 		Formats:    []image.Format{image.FormatJPEG},
 	}
-	got, err := variants.Generate(req)
+	got, err := variants.Generate(context.Background(), req)
 	if err != nil {
 		t.Fatalf("variants.Generate(%+v) returned request error: %v", req, err)
 	}
@@ -203,7 +204,7 @@ func TestGenerateReturnsPartialResult(t *testing.T) {
 	}
 	wantProblem := "unsupported output format"
 
-	got, err := variants.Generate(req)
+	got, err := variants.Generate(context.Background(), req)
 	if err != nil {
 		t.Fatalf("variants.Generate(%+v) returned request error: %v", req, err)
 	}
@@ -305,7 +306,7 @@ func TestGenerateReportsVariantProblems(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			req := tc.request(t)
-			got, err := variants.Generate(req)
+			got, err := variants.Generate(context.Background(), req)
 			if err != nil {
 				t.Fatalf("variants.Generate(%+v) returned request error: %v", req, err)
 			}
@@ -345,7 +346,7 @@ func TestGenerateClassifiesErrors(t *testing.T) {
 			Widths:    []int{400},
 			Formats:   []image.Format{image.FormatJPEG},
 		}
-		got, err := variants.Generate(req)
+		got, err := variants.Generate(context.Background(), req)
 		wantProblem := "source file path cannot be empty"
 
 		if err == nil {
@@ -366,7 +367,7 @@ func TestGenerateClassifiesErrors(t *testing.T) {
 			Widths:     []int{400},
 			Formats:    []image.Format{image.FormatJPEG},
 		}
-		got, err := variants.Generate(req)
+		got, err := variants.Generate(context.Background(), req)
 
 		if err != nil {
 			t.Fatalf("variants.Generate(%+v) returned request error: %v", req, err)
@@ -388,6 +389,25 @@ func TestGenerateClassifiesErrors(t *testing.T) {
 			t.Errorf("variants.Generate(%+v) failed variants = %+v, want one JPEG failure with width 400", req, got.Failed)
 		}
 	})
+}
+
+func TestGenerateCanceledContext(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	req := variants.Request{
+		SourcePath: mustAbs(t, filepath.Join("testdata", "image_800x1067.jpg")),
+		OutputDir:  mustAbs(t, t.TempDir()),
+		Widths:     []int{400},
+		Formats:    []image.Format{image.FormatJPEG},
+	}
+	got, err := variants.Generate(ctx, req)
+	if !errors.Is(err, context.Canceled) {
+		t.Errorf("variants.Generate(%+v) error = %v, want context.Canceled", req, err)
+	}
+	if len(got.Generated) != 0 || len(got.Failed) != 0 {
+		t.Errorf("variants.Generate(%+v) result = %+v, want empty result", req, got)
+	}
 }
 
 func readImageSize(t *testing.T, path paths.AbsPath) imageSize {
