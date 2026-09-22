@@ -54,7 +54,17 @@ type imageProcessor struct {
 	progressReporter io.Writer
 }
 
-func (p *imageProcessor) processIncomingDir(ctx context.Context) (processResult, error) {
+func (p *imageProcessor) processIncomingDir(ctx context.Context) (res processResult, retErr error) {
+	defer func() {
+		if retErr == nil {
+			return
+		}
+		if cleanupErr := deleteProcessedImageDirs(p.cfg.outDir, res.images); cleanupErr != nil {
+			retErr = errors.Join(retErr, cleanupErr)
+		}
+		res = processResult{}
+	}()
+
 	inDirAbsPath := p.cfg.inDir.String()
 
 	fmt.Fprintf(p.progressReporter, "Processing image files in %q\n", inDirAbsPath)
@@ -69,40 +79,30 @@ func (p *imageProcessor) processIncomingDir(ctx context.Context) (processResult,
 		return processResult{}, err
 	}
 
-	res := processResult{
+	res = processResult{
 		problems: p.recordMetadataProblems(metadataResult.FileProblems),
 	}
 
 	fmt.Fprint(p.progressReporter, "\n----------------\n")
 
 	for _, meta := range metadataResult.Metadata {
-		if err := cancellationError(ctx, p.cfg.outDir, res.images); err != nil {
-			return processResult{}, err
-		}
-
 		processedImg, err := p.processMetadataEntry(ctx, meta, imageDirsByHash)
 		if err != nil {
 			var problem *imageProblem
 			if !errors.As(err, &problem) {
-				if cleanupErr := deleteProcessedImageDirs(p.cfg.outDir, res.images); cleanupErr != nil {
-					err = errors.Join(err, cleanupErr)
-				}
-				return processResult{}, err
+				return res, err
 			}
 			res.problems = append(res.problems, *problem)
-		} else {
-			res.images = append(res.images, processedImg)
+			continue
 		}
-		if err := cancellationError(ctx, p.cfg.outDir, res.images); err != nil {
-			return processResult{}, err
-		}
+		res.images = append(res.images, processedImg)
 	}
 
-	if err := cancellationError(ctx, p.cfg.outDir, res.images); err != nil {
-		return processResult{}, err
+	if err := ctx.Err(); err != nil {
+		return res, err
 	}
 	if err := p.writeUpdatedIndex(&imageIndex, res.images); err != nil {
-		return processResult{}, err
+		return res, err
 	}
 
 	return res, nil
@@ -110,17 +110,16 @@ func (p *imageProcessor) processIncomingDir(ctx context.Context) (processResult,
 
 func (p *imageProcessor) writeUpdatedIndex(imageIndex *index.Index, images []image.Processed) error {
 	if err := imageIndex.Update(p.cfg.outDir, images); err != nil {
-		updateErr := fmt.Errorf("updating index: %w", err)
-		if cleanupErr := deleteProcessedImageDirs(p.cfg.outDir, images); cleanupErr != nil {
-			return errors.Join(updateErr, cleanupErr)
-		}
-		return updateErr
+		return fmt.Errorf("updating index: %w", err)
 	}
-
 	return nil
 }
 
 func (p *imageProcessor) processMetadataEntry(ctx context.Context, meta metadata.File, imageDirsByHash map[string]paths.RelPath) (image.Processed, error) {
+	if err := ctx.Err(); err != nil {
+		return image.Processed{}, err
+	}
+
 	if image.ParseFormat(meta.Format) != image.FormatJPEG {
 		fmt.Fprintf(
 			p.progressReporter,
@@ -290,16 +289,6 @@ func (p *imageProcessor) readIncomingMetadata(ctx context.Context) (metadata.Res
 	)
 
 	return metadataResult, nil
-}
-
-func cancellationError(ctx context.Context, outDir paths.AbsPath, images []image.Processed) error {
-	if err := ctx.Err(); err != nil {
-		if cleanupErr := deleteProcessedImageDirs(outDir, images); cleanupErr != nil {
-			return errors.Join(err, cleanupErr)
-		}
-		return err
-	}
-	return nil
 }
 
 func loadExistingIndex(outDir paths.AbsPath) (index.Index, map[string]paths.RelPath, error) {
