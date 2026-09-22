@@ -24,7 +24,7 @@ func TestExiftoolRead(t *testing.T) {
 			file: "complete_metadata.jpg",
 			wantMetadata: []metadata.File{
 				{
-					FileName:    "complete_metadata.jpg",
+					FileName:    mustRel(t, "complete_metadata.jpg"),
 					Format:      "JPEG",
 					Title:       "2024 August After kleenex destruction",
 					Description: "A fluffy Rosie, looking innocent after having shredded a kleenex lying nearby",
@@ -39,7 +39,7 @@ func TestExiftoolRead(t *testing.T) {
 			file: "quotes_in_metadata.jpg",
 			wantMetadata: []metadata.File{
 				{
-					FileName:    "quotes_in_metadata.jpg",
+					FileName:    mustRel(t, "quotes_in_metadata.jpg"),
 					Format:      "JPEG",
 					Title:       "AIgen We can chew it poster",
 					Description: "A parody of the classic Rosie the Riveter poster, with a poodle in a red bandana saying \"We can chew it\"",
@@ -54,7 +54,7 @@ func TestExiftoolRead(t *testing.T) {
 			file: "partial_metadata.jpg",
 			wantMetadata: []metadata.File{
 				{
-					FileName:    "partial_metadata.jpg",
+					FileName:    mustRel(t, "partial_metadata.jpg"),
 					Format:      "JPEG",
 					Title:       "",
 					Description: "",
@@ -69,7 +69,7 @@ func TestExiftoolRead(t *testing.T) {
 			file: "missing_metadata.jpg",
 			wantMetadata: []metadata.File{
 				{
-					FileName:    "missing_metadata.jpg",
+					FileName:    mustRel(t, "missing_metadata.jpg"),
 					Format:      "PDF",
 					Title:       "plant fact sheet",
 					Description: "",
@@ -84,7 +84,7 @@ func TestExiftoolRead(t *testing.T) {
 			file: "no_dimensions.txt",
 			wantMetadata: []metadata.File{
 				{
-					FileName:    "no_dimensions.txt",
+					FileName:    mustRel(t, "no_dimensions.txt"),
 					Format:      "TXT",
 					Title:       "",
 					Description: "",
@@ -137,7 +137,7 @@ func TestExiftoolReadReadsDirectories(t *testing.T) {
 
 		wantMetadata := []metadata.File{
 			{
-				FileName:    "complete_metadata.jpg",
+				FileName:    mustRel(t, "complete_metadata.jpg"),
 				Format:      "JPEG",
 				Title:       "2024 August After kleenex destruction",
 				Description: "A fluffy Rosie, looking innocent after having shredded a kleenex lying nearby",
@@ -146,7 +146,7 @@ func TestExiftoolReadReadsDirectories(t *testing.T) {
 				Height:      3024,
 			},
 			{
-				FileName: "no_dimensions.txt",
+				FileName: mustRel(t, "no_dimensions.txt"),
 				Format:   "TXT",
 			},
 		}
@@ -282,6 +282,17 @@ func mustAbs(t *testing.T, path string) paths.AbsPath {
 	p, err := paths.NewAbsPath(absPath)
 	if err != nil {
 		t.Fatalf("paths.NewAbsPath(%q) error = %v, want nil", absPath, err)
+	}
+
+	return p
+}
+
+func mustRel(t *testing.T, path string) paths.RelPath {
+	t.Helper()
+
+	p, err := paths.NewRelPath(path)
+	if err != nil {
+		t.Fatalf("paths.NewRelPath(%q) error = %v, want nil", path, err)
 	}
 
 	return p

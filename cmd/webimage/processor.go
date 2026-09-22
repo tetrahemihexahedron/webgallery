@@ -111,7 +111,7 @@ func (p *imageProcessor) processMetadataEntry(meta metadata.File, imageDirsByHas
 		)
 
 		return image.Processed{}, &imageProblem{
-			fileName: meta.FileName,
+			fileName: meta.FileName.String(),
 			message: fmt.Sprintf(
 				"skipping file %q: format is %s, not JPEG",
 				meta.FileName,
@@ -129,12 +129,12 @@ func (p *imageProcessor) processMetadataEntry(meta metadata.File, imageDirsByHas
 		)
 
 		return image.Processed{}, &imageProblem{
-			fileName: meta.FileName,
+			fileName: meta.FileName.String(),
 			message:  fmt.Sprintf("metadata validation error: %v", err),
 		}
 	}
 
-	sourceRelPath, err := paths.NewRelPath(meta.FileName)
+	sourceAbsPath, err := paths.JoinAbs(p.cfg.InDir, meta.FileName)
 	if err != nil {
 		fmt.Fprintf(
 			p.progressReporter,
@@ -144,22 +144,7 @@ func (p *imageProcessor) processMetadataEntry(meta metadata.File, imageDirsByHas
 		)
 
 		return image.Processed{}, &imageProblem{
-			fileName: meta.FileName,
-			message:  fmt.Sprintf("source path error: %v", err),
-		}
-	}
-
-	sourceAbsPath, err := paths.JoinAbs(p.cfg.InDir, sourceRelPath)
-	if err != nil {
-		fmt.Fprintf(
-			p.progressReporter,
-			"Error building path for %q: %v\n",
-			meta.FileName,
-			err,
-		)
-
-		return image.Processed{}, &imageProblem{
-			fileName: meta.FileName,
+			fileName: meta.FileName.String(),
 			message:  fmt.Sprintf("source path error: %v", err),
 		}
 	}
@@ -174,7 +159,7 @@ func (p *imageProcessor) processMetadataEntry(meta metadata.File, imageDirsByHas
 		)
 
 		return image.Processed{}, &imageProblem{
-			fileName: meta.FileName,
+			fileName: meta.FileName.String(),
 			message:  fmt.Sprintf("file hashing error: %v", err),
 		}
 	}
@@ -194,7 +179,7 @@ func (p *imageProcessor) processMetadataEntry(meta metadata.File, imageDirsByHas
 		)
 
 		return image.Processed{}, &imageProblem{
-			fileName: meta.FileName,
+			fileName: meta.FileName.String(),
 			message:  fmt.Sprintf("skipping duplicate of image in %q", existingImgDir),
 		}
 	}
@@ -209,7 +194,7 @@ func (p *imageProcessor) processMetadataEntry(meta metadata.File, imageDirsByHas
 		)
 
 		return image.Processed{}, &imageProblem{
-			fileName: meta.FileName,
+			fileName: meta.FileName.String(),
 			message:  fmt.Sprintf("file processing error: %v", err),
 		}
 	}

@@ -82,7 +82,7 @@ func TestProcessMetadataEntryValidatesJPEGMetadata(t *testing.T) {
 	}
 
 	validMetadata := metadata.File{
-		FileName:   "image.jpg",
+		FileName:   mustRel(t, "image.jpg"),
 		Format:     image.FormatJPEG.String(),
 		CapturedAt: "2024-05-12T14:22:00",
 		Width:      800,
@@ -171,7 +171,7 @@ func TestProcessMetadataEntryValidatesJPEGMetadata(t *testing.T) {
 			meta := validMetadata
 			tc.change(&meta)
 			if tc.createSource {
-				sourcePath := filepath.Join(incomingDir, meta.FileName)
+				sourcePath := filepath.Join(incomingDir, meta.FileName.String())
 				if err := os.WriteFile(sourcePath, sourceContents, 0644); err != nil {
 					t.Fatalf("os.WriteFile(%q) returned error: %v", sourcePath, err)
 				}
@@ -204,7 +204,7 @@ func TestProcessMetadataEntryValidatesJPEGMetadata(t *testing.T) {
 				t.Fatalf("imageProcessor.processMetadataEntry() returned problem = %t, want %t: %+v", got, tc.wantProblem, problem)
 			}
 			if problem != nil {
-				if problem.fileName != meta.FileName {
+				if problem.fileName != meta.FileName.String() {
 					t.Errorf("problem fileName = %q, want %q", problem.fileName, meta.FileName)
 				}
 				if !strings.Contains(problem.message, tc.wantMessage) {

@@ -16,7 +16,7 @@ import (
 
 // File contains metadata extracted from one file.
 type File struct {
-	FileName    string
+	FileName    paths.RelPath
 	Format      string
 	Title       string
 	Description string
@@ -148,6 +148,15 @@ func processOutput(output []exiftoolOutput) Result {
 			continue
 		}
 
+		fileName, err := paths.NewRelPath(out.FileName)
+		if err != nil {
+			problems = append(problems, Problem{
+				FileName: out.FileName,
+				Message:  fmt.Sprintf("invalid FileName %q: %v", out.FileName, err),
+			})
+			continue
+		}
+
 		capturedAt := ""
 		if strings.TrimSpace(out.DateTimeOriginal) != "" {
 			parsedCapturedAt, err := parseDateTimeOriginal(out.DateTimeOriginal)
@@ -162,7 +171,7 @@ func processOutput(output []exiftoolOutput) Result {
 		}
 
 		metadata = append(metadata, File{
-			FileName:    out.FileName,
+			FileName:    fileName,
 			Format:      out.FileType,
 			Title:       out.Title,
 			Description: out.Description,
@@ -173,7 +182,7 @@ func processOutput(output []exiftoolOutput) Result {
 	}
 
 	slices.SortStableFunc(metadata, func(a, b File) int {
-		return strings.Compare(a.FileName, b.FileName)
+		return strings.Compare(a.FileName.String(), b.FileName.String())
 	})
 	slices.SortStableFunc(problems, func(a, b Problem) int {
 		return strings.Compare(a.FileName, b.FileName)
