@@ -230,17 +230,19 @@ Within those two groups, packages are sorted by path. Within each package, items
 
 - **Request only needed exiftool tags:** Fetching all metadata is slower and leaves behavior exposed to unrelated tags. Limit the query to consumed fields.
 - **Split command, decoding, and conversion stages:** If metadata handling grows, replace `fetchExiftoolOutput`/`processOutput` with clearer `runExiftool`, `decodeExiftoolJSON`, and record-conversion steps.
+- **Use exiftool's `-d` flag to format the `DateTimeOriginal`:** Consider whether one can avoid parsing and formatting the capturedAt datetime by having exiftool perform the formatting.
 
 #### Fix
 
 - **Evaluate exiftool call flags:** Consider whether the call to exiftool should use `-G1`, `-a`, `-s`, or other flags.
-- **Treat no-record directories as empty if needed:** Non-recursive exiftool reads can return no records for a directory containing only subdirectories, which currently becomes a request-level error. Treat successful empty output from any directory as an empty result and cover empty and nested-only layouts.
+- **Treat no-record directories as empty:** Non-recursive exiftool reads can return no records for a directory containing only subdirectories, which currently becomes a request-level error. Treat successful empty output from any directory as an empty result and cover empty and nested-only layouts.
+- **Further normalize text fields:** For the title and description, consider normalizing internal spaces and removing control characters and other unwanted characters, if they can occur.
 
 #### Feature
 
 - **Support nested source paths:** Preserve `SourceFile` or `Directory` when recursive processing is added so duplicate basenames remain distinguishable.
-- **Improve capture-date extraction:** If `DateTimeOriginal` is absent or incomplete, define an explicit priority among subsecond/original, XMP creation, EXIF creation/modification, and file modification dates, with possible field names `Composite:SubSecDateTimeOriginal`, `EXIF:DateTimeOriginal`, `XMP:DateCreated`, `XMP:CreateDate`, `EXIF:CreateDate`, `EXIF:ModifyDate`, `File:FileModifyDate`. Preserve timezone offsets when useful, consider exiftool's `-d` formatting, and add representative fixtures.
-- **Define description-field precedence:** If `Description` is insufficient, choose an order among `ImageDescription`, `XMP-dc:Description`, `Caption-Abstract`, `Headline`, `Title`, and `ObjectName` rather than accepting whichever tag happens to appear.
+- **Improve capture-date extraction:** If `DateTimeOriginal` is absent or incomplete, define an explicit priority among subsecond/original, XMP creation, EXIF creation/modification, and file modification dates, with possible field names `Composite:SubSecDateTimeOriginal`, `EXIF:DateTimeOriginal`, `XMP:DateCreated`, `XMP:CreateDate`, `EXIF:CreateDate`, `EXIF:ModifyDate`, `File:FileModifyDate`. Preserve timezone offsets when useful, and add representative fixtures.
+- **Define description-field precedence:** If `Description` is insufficient, choose an order among `ImageDescription`, `XMP-dc:Description`, `Caption-Abstract`, `Headline`, `Title`, and `ObjectName` \(field names should be checked\).
 
 ### `internal/paths`
 
