@@ -8,8 +8,8 @@ import (
 
 const capturedAtLayout = "2006-01-02T15:04:05"
 
-// ParseCapturedAt parses a canonical capturedAt value. It requires webimage's
-// whole-second, timezone-free format and rejects surrounding whitespace.
+// ParseCapturedAt parses a canonical capturedAt value. It requires a
+// whole-second, timezone-free datetime of the form "2006-01-02T15:04:05".
 func ParseCapturedAt(s string) (time.Time, error) {
 	if s == "" {
 		return time.Time{}, errors.New("capturedAt is empty")
@@ -30,7 +30,8 @@ func FormatCapturedAt(t time.Time) string {
 }
 
 // ParseProcessedAt parses a canonical processedAt value. It requires
-// whole-second UTC RFC3339 and rejects surrounding whitespace.
+// a whole-second UTC RFC3339 datetime (i.e., a datetime of the form
+// "2006-01-02T15:04:05Z07:00").
 func ParseProcessedAt(s string) (time.Time, error) {
 	if s == "" {
 		return time.Time{}, errors.New("processedAt is empty")
