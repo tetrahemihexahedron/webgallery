@@ -56,7 +56,7 @@ func updatedIndex(idx Index, outRoot paths.AbsPath, newImages []image.Processed,
 }
 
 func writeIndexFile(outRoot paths.AbsPath, idx Index) error {
-	path, err := IndexPath(outRoot)
+	path, err := indexPath(outRoot)
 	if err != nil {
 		return err
 	}

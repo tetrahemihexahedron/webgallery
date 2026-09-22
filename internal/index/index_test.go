@@ -293,11 +293,8 @@ func copyValidIndexFixture(t *testing.T, destDir paths.AbsPath) {
 		t.Fatalf("reading valid index fixture: %v", err)
 	}
 
-	destPath, err := index.IndexPath(destDir)
-	if err != nil {
-		t.Fatalf("building destination index path: %v", err)
-	}
-	if err := os.WriteFile(destPath.String(), data, 0644); err != nil {
+	destPath := filepath.Join(destDir.String(), "index.json")
+	if err := os.WriteFile(destPath, data, 0644); err != nil {
 		t.Fatalf("writing valid index fixture to %q: %v", destPath, err)
 	}
 }

@@ -38,8 +38,7 @@ type entryJSON struct {
 	SHA256      string `json:"sha256"`
 }
 
-// IndexPath returns the absolute path to the collection index file in outRoot.
-func IndexPath(outRoot paths.AbsPath) (paths.AbsPath, error) {
+func indexPath(outRoot paths.AbsPath) (paths.AbsPath, error) {
 	idxRelPath, err := paths.NewRelPath(idxFilename)
 	if err != nil {
 		return paths.AbsPath{}, fmt.Errorf("building index path: %w", err)

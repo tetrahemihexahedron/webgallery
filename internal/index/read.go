@@ -10,7 +10,7 @@ import (
 
 // ReadDir reads index.json from dir.
 func ReadDir(dir paths.AbsPath) (Index, error) {
-	path, err := IndexPath(dir)
+	path, err := indexPath(dir)
 	if err != nil {
 		return Index{}, err
 	}
