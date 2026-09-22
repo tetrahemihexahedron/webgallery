@@ -39,7 +39,7 @@ type imageProblem struct {
 }
 
 type sourceImage struct {
-	metadata image.Metadata
+	metadata metadata.File
 	path     paths.AbsPath
 	sha256   string
 }
@@ -101,7 +101,7 @@ func (p *imageProcessor) writeUpdatedIndex(imageIndex *index.Index, images []ima
 	return nil
 }
 
-func (p *imageProcessor) processMetadataEntry(meta image.Metadata, imageDirsByHash map[string]paths.RelPath) (image.Processed, *imageProblem) {
+func (p *imageProcessor) processMetadataEntry(meta metadata.File, imageDirsByHash map[string]paths.RelPath) (image.Processed, *imageProblem) {
 	if image.ParseFormat(meta.Format) != image.FormatJPEG {
 		fmt.Fprintf(
 			p.progressReporter,
@@ -227,7 +227,7 @@ func (p *imageProcessor) processMetadataEntry(meta image.Metadata, imageDirsByHa
 	return processedImg, nil
 }
 
-func validateJPEGMetadata(meta image.Metadata, dirDate DirDate) error {
+func validateJPEGMetadata(meta metadata.File, dirDate DirDate) error {
 	if meta.Width <= 0 {
 		return fmt.Errorf("width must be positive, got %d", meta.Width)
 	}

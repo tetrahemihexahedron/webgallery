@@ -9,7 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	"tetrahemihexahedron/webimage/internal/image"
 	"tetrahemihexahedron/webimage/internal/metadata"
 	"tetrahemihexahedron/webimage/internal/paths"
 )
@@ -18,12 +17,12 @@ func TestExiftoolRead(t *testing.T) {
 	tests := []struct {
 		name         string
 		file         string
-		wantMetadata []image.Metadata
+		wantMetadata []metadata.File
 	}{
 		{
 			name: "reads complete metadata",
 			file: "complete_metadata.jpg",
-			wantMetadata: []image.Metadata{
+			wantMetadata: []metadata.File{
 				{
 					FileName:    "complete_metadata.jpg",
 					Format:      "JPEG",
@@ -38,7 +37,7 @@ func TestExiftoolRead(t *testing.T) {
 		{
 			name: "handles quotes in metadata",
 			file: "quotes_in_metadata.jpg",
-			wantMetadata: []image.Metadata{
+			wantMetadata: []metadata.File{
 				{
 					FileName:    "quotes_in_metadata.jpg",
 					Format:      "JPEG",
@@ -53,7 +52,7 @@ func TestExiftoolRead(t *testing.T) {
 		{
 			name: "handles missing optional metadata",
 			file: "partial_metadata.jpg",
-			wantMetadata: []image.Metadata{
+			wantMetadata: []metadata.File{
 				{
 					FileName:    "partial_metadata.jpg",
 					Format:      "JPEG",
@@ -68,7 +67,7 @@ func TestExiftoolRead(t *testing.T) {
 		{
 			name: "passes through missing dimensions",
 			file: "missing_metadata.jpg",
-			wantMetadata: []image.Metadata{
+			wantMetadata: []metadata.File{
 				{
 					FileName:    "missing_metadata.jpg",
 					Format:      "PDF",
@@ -83,7 +82,7 @@ func TestExiftoolRead(t *testing.T) {
 		{
 			name: "reads non-image without dimensions",
 			file: "no_dimensions.txt",
-			wantMetadata: []image.Metadata{
+			wantMetadata: []metadata.File{
 				{
 					FileName:    "no_dimensions.txt",
 					Format:      "TXT",
@@ -136,7 +135,7 @@ func TestExiftoolReadReadsDirectories(t *testing.T) {
 		copyFixture(t, dirPath, "complete_metadata.jpg")
 		copyFixture(t, dirPath, "bad_datetimeoriginal.jpg")
 
-		wantMetadata := []image.Metadata{
+		wantMetadata := []metadata.File{
 			{
 				FileName:    "complete_metadata.jpg",
 				Format:      "JPEG",
@@ -231,7 +230,7 @@ func TestExiftoolReadReturnsError(t *testing.T) {
 	tests := []struct {
 		name         string
 		file         string
-		wantMetadata []image.Metadata
+		wantMetadata []metadata.File
 	}{
 		{
 			name:         "missing file",

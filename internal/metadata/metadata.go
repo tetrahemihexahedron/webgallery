@@ -14,11 +14,23 @@ import (
 	"tetrahemihexahedron/webimage/internal/paths"
 )
 
+// File contains metadata extracted from one file.
+type File struct {
+	FileName    string
+	Format      string
+	Title       string
+	Description string
+	// CapturedAt is empty or exactly the value produced by image.FormatCapturedAt.
+	CapturedAt string
+	Width      int
+	Height     int
+}
+
 // Result contains metadata records and per-file problems from a read.
 // Metadata and FileProblems are sorted independently by filename in ascending
 // lexical order; entries with equal filenames retain their original order.
 type Result struct {
-	Metadata     []image.Metadata
+	Metadata     []File
 	FileProblems []Problem
 }
 
@@ -116,7 +128,7 @@ func isEmptyDir(path paths.AbsPath) (bool, error) {
 }
 
 func processOutput(output []exiftoolOutput) Result {
-	metadata := make([]image.Metadata, 0, len(output))
+	metadata := make([]File, 0, len(output))
 	var problems []Problem
 
 	for _, out := range output {
@@ -149,7 +161,7 @@ func processOutput(output []exiftoolOutput) Result {
 			capturedAt = image.FormatCapturedAt(parsedCapturedAt)
 		}
 
-		metadata = append(metadata, image.Metadata{
+		metadata = append(metadata, File{
 			FileName:    out.FileName,
 			Format:      out.FileType,
 			Title:       out.Title,
@@ -160,7 +172,7 @@ func processOutput(output []exiftoolOutput) Result {
 		})
 	}
 
-	slices.SortStableFunc(metadata, func(a, b image.Metadata) int {
+	slices.SortStableFunc(metadata, func(a, b File) int {
 		return strings.Compare(a.FileName, b.FileName)
 	})
 	slices.SortStableFunc(problems, func(a, b Problem) int {
