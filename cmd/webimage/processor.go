@@ -37,6 +37,11 @@ type imageProblem struct {
 	message  string
 }
 
+type metadataEntryResult struct {
+	processed image.Processed
+	problem   *imageProblem
+}
+
 func (p *imageProblem) Error() string {
 	return p.message
 }
@@ -86,15 +91,15 @@ func (p *imageProcessor) processIncomingDir(ctx context.Context) (res processRes
 	fmt.Fprint(p.progressReporter, "\n----------------\n")
 
 	for _, meta := range metadataResult.Metadata {
-		processedImg, err := p.processMetadataEntry(ctx, meta, imageDirsByHash)
+		entry, err := p.processMetadataEntry(ctx, meta, imageDirsByHash)
 		if err != nil {
-			if problem, ok := errors.AsType[*imageProblem](err); ok {
-				res.problems = append(res.problems, *problem)
-				continue
-			}
 			return res, err
 		}
-		res.images = append(res.images, processedImg)
+		if entry.problem != nil {
+			res.problems = append(res.problems, *entry.problem)
+			continue
+		}
+		res.images = append(res.images, entry.processed)
 	}
 
 	if err := ctx.Err(); err != nil {
@@ -114,9 +119,9 @@ func (p *imageProcessor) writeUpdatedIndex(imageIndex *index.Index, images []ima
 	return nil
 }
 
-func (p *imageProcessor) processMetadataEntry(ctx context.Context, meta metadata.File, imageDirsByHash map[string]paths.RelPath) (image.Processed, error) {
+func (p *imageProcessor) processMetadataEntry(ctx context.Context, meta metadata.File, imageDirsByHash map[string]paths.RelPath) (metadataEntryResult, error) {
 	if err := ctx.Err(); err != nil {
-		return image.Processed{}, err
+		return metadataEntryResult{}, err
 	}
 
 	if image.ParseFormat(meta.Format) != image.FormatJPEG {
@@ -127,14 +132,14 @@ func (p *imageProcessor) processMetadataEntry(ctx context.Context, meta metadata
 			meta.Format,
 		)
 
-		return image.Processed{}, &imageProblem{
+		return metadataEntryResult{problem: &imageProblem{
 			fileName: meta.FileName.String(),
 			message: fmt.Sprintf(
 				"skipping file %q: format is %s, not JPEG",
 				meta.FileName,
 				meta.Format,
 			),
-		}
+		}}, nil
 	}
 
 	if err := validateJPEGMetadata(meta, p.cfg.dirDate); err != nil {
@@ -145,10 +150,10 @@ func (p *imageProcessor) processMetadataEntry(ctx context.Context, meta metadata
 			err,
 		)
 
-		return image.Processed{}, &imageProblem{
+		return metadataEntryResult{problem: &imageProblem{
 			fileName: meta.FileName.String(),
 			message:  fmt.Sprintf("metadata validation error: %v", err),
-		}
+		}}, nil
 	}
 
 	sourceAbsPath, err := paths.JoinAbs(p.cfg.inDir, meta.FileName)
@@ -160,10 +165,10 @@ func (p *imageProcessor) processMetadataEntry(ctx context.Context, meta metadata
 			err,
 		)
 
-		return image.Processed{}, &imageProblem{
+		return metadataEntryResult{problem: &imageProblem{
 			fileName: meta.FileName.String(),
 			message:  fmt.Sprintf("source path error: %v", err),
-		}
+		}}, nil
 	}
 
 	sourceHash, err := fileSHA256(sourceAbsPath)
@@ -175,10 +180,10 @@ func (p *imageProcessor) processMetadataEntry(ctx context.Context, meta metadata
 			err,
 		)
 
-		return image.Processed{}, &imageProblem{
+		return metadataEntryResult{problem: &imageProblem{
 			fileName: meta.FileName.String(),
 			message:  fmt.Sprintf("file hashing error: %v", err),
-		}
+		}}, nil
 	}
 
 	source := sourceImage{
@@ -195,16 +200,16 @@ func (p *imageProcessor) processMetadataEntry(ctx context.Context, meta metadata
 			existingImgDir,
 		)
 
-		return image.Processed{}, &imageProblem{
+		return metadataEntryResult{problem: &imageProblem{
 			fileName: meta.FileName.String(),
 			message:  fmt.Sprintf("skipping duplicate of image in %q", existingImgDir),
-		}
+		}}, nil
 	}
 
 	processedImg, err := p.processImage(ctx, source)
 	if err != nil {
 		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-			return image.Processed{}, err
+			return metadataEntryResult{}, err
 		}
 
 		fmt.Fprintf(
@@ -214,10 +219,10 @@ func (p *imageProcessor) processMetadataEntry(ctx context.Context, meta metadata
 			err,
 		)
 
-		return image.Processed{}, &imageProblem{
+		return metadataEntryResult{problem: &imageProblem{
 			fileName: meta.FileName.String(),
 			message:  fmt.Sprintf("file processing error: %v", err),
-		}
+		}}, nil
 	}
 
 	imageDirsByHash[source.sha256] = processedImg.DirRelPath
@@ -230,7 +235,7 @@ func (p *imageProcessor) processMetadataEntry(ctx context.Context, meta metadata
 		processedImg.DirRelPath,
 	)
 
-	return processedImg, nil
+	return metadataEntryResult{processed: processedImg}, nil
 }
 
 func validateJPEGMetadata(meta metadata.File, dirDate dirDateSource) error {

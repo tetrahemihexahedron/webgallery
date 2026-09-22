@@ -200,21 +200,20 @@ func TestProcessMetadataEntryValidatesJPEGMetadata(t *testing.T) {
 				progressReporter: io.Discard,
 			}
 
-			_, err := p.processMetadataEntry(context.Background(), meta, map[string]paths.RelPath{})
-			var problem *imageProblem
-			gotProblem := errors.As(err, &problem)
-			if err != nil && !gotProblem {
+			got, err := p.processMetadataEntry(context.Background(), meta, map[string]paths.RelPath{})
+			if err != nil {
 				t.Fatalf("imageProcessor.processMetadataEntry() returned request error: %v", err)
 			}
+			gotProblem := got.problem != nil
 			if gotProblem != tc.wantProblem {
-				t.Fatalf("imageProcessor.processMetadataEntry() returned problem = %t, want %t: %+v", gotProblem, tc.wantProblem, problem)
+				t.Fatalf("imageProcessor.processMetadataEntry() returned problem = %t, want %t: %+v", gotProblem, tc.wantProblem, got.problem)
 			}
-			if problem != nil {
-				if problem.fileName != meta.FileName.String() {
-					t.Errorf("problem fileName = %q, want %q", problem.fileName, meta.FileName)
+			if got.problem != nil {
+				if got.problem.fileName != meta.FileName.String() {
+					t.Errorf("problem fileName = %q, want %q", got.problem.fileName, meta.FileName)
 				}
-				if !strings.Contains(problem.message, tc.wantMessage) {
-					t.Errorf("problem message = %q, want message containing %q", problem.message, tc.wantMessage)
+				if !strings.Contains(got.problem.message, tc.wantMessage) {
+					t.Errorf("problem message = %q, want message containing %q", got.problem.message, tc.wantMessage)
 				}
 			}
 			if generatorCalled != tc.wantGenerator {
