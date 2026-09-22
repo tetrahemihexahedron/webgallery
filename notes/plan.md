@@ -4,21 +4,7 @@ These are the next items to implement from `notes/todo.md`, listed in recommende
 
 Each numbered implementation step is intended to be a focused, independently passing commit. Run `go test ./...`, `go vet ./...`, and `staticcheck ./...` for every commit.
 
-## 1. Make datetime parser normalization consistent
-
-Both image datetime parsers represent canonical persisted formats. They should validate exact stored text rather than silently normalizing it; external-input cleanup belongs in `internal/metadata` as established by task 2.
-
-**Packages involved:**
-
-- `internal/image`: define and test the strict parser contract.
-- `internal/gallery`: relies on these parsers when sorting persisted index data and should continue to reject malformed values.
-- `internal/index` and `internal/manifest`: future validation will rely on the same strict behavior; no code change is required there yet.
-
-**Implementation commits:**
-
-1. **Make processed datetime parsing strict.** Remove whitespace trimming from `image.ParseProcessedAt`, add or improve exported documentation for both datetime parsers, and move the existing surrounding-whitespace case from the successful parser table to the error table. Retain the existing UTC, whole-second RFC3339 requirement and formatting behavior. Audit call sites to ensure none rely on `ParseProcessedAt` for user-input normalization; the parser test is sufficient, so do not duplicate it with gallery, index, or manifest regression tests unless one of those packages later adds behavior beyond delegating to the parser.
-
-## 2. Minimize exported surfaces
+## 1. Minimize exported surfaces
 
 Remove exports that are implementation details while preserving the small APIs actually used between packages. Do this package by package so each rename remains easy to review.
 
