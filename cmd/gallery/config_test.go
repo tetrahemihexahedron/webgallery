@@ -14,44 +14,44 @@ func TestParseArgs(t *testing.T) {
 	tests := []struct {
 		name string
 		args []string
-		want Config
+		want config
 	}{
 		{
 			name: "required flags only",
 			args: []string{"-images", "images"},
-			want: Config{
-				ImagesRoot: mustAbs(t, "images"),
-				UseStdout:  true,
-				Sort:       gallery.SortProcessed,
+			want: config{
+				imagesRoot: mustAbs(t, "images"),
+				useStdout:  true,
+				sort:       gallery.SortProcessed,
 			},
 		},
 		{
 			name: "all optional flags",
 			args: []string{"-images", "images", "-output", "gallery.html", "-url-prefix", "/images", "-sort", "processed"},
-			want: Config{
-				ImagesRoot: mustAbs(t, "images"),
-				OutFile:    mustAbs(t, "gallery.html"),
-				UseStdout:  false,
-				URLPrefix:  "/images",
-				Sort:       gallery.SortProcessed,
+			want: config{
+				imagesRoot: mustAbs(t, "images"),
+				outFile:    mustAbs(t, "gallery.html"),
+				useStdout:  false,
+				urlPrefix:  "/images",
+				sort:       gallery.SortProcessed,
 			},
 		},
 		{
 			name: "explicit stdout output",
 			args: []string{"-images", "images", "-output", "-"},
-			want: Config{
-				ImagesRoot: mustAbs(t, "images"),
-				UseStdout:  true,
-				Sort:       gallery.SortProcessed,
+			want: config{
+				imagesRoot: mustAbs(t, "images"),
+				useStdout:  true,
+				sort:       gallery.SortProcessed,
 			},
 		},
 		{
 			name: "explicit captured sort",
 			args: []string{"-images", "images", "-sort", "captured"},
-			want: Config{
-				ImagesRoot: mustAbs(t, "images"),
-				UseStdout:  true,
-				Sort:       gallery.SortCaptured,
+			want: config{
+				imagesRoot: mustAbs(t, "images"),
+				useStdout:  true,
+				sort:       gallery.SortCaptured,
 			},
 		},
 	}

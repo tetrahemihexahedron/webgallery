@@ -20,11 +20,11 @@ func main() {
 	}
 }
 
-func renderGallery(cfg Config) error {
+func renderGallery(cfg config) error {
 	opts := gallery.Options{
-		ImagesRoot: cfg.ImagesRoot,
-		URLPrefix:  cfg.URLPrefix,
-		Sort:       cfg.Sort,
+		ImagesRoot: cfg.imagesRoot,
+		URLPrefix:  cfg.urlPrefix,
+		Sort:       cfg.sort,
 	}
 
 	var html bytes.Buffer
@@ -32,15 +32,15 @@ func renderGallery(cfg Config) error {
 		return fmt.Errorf("rendering gallery: %w", err)
 	}
 
-	if cfg.UseStdout {
+	if cfg.useStdout {
 		if _, err := os.Stdout.Write(html.Bytes()); err != nil {
 			return fmt.Errorf("writing gallery to stdout: %w", err)
 		}
 		return nil
 	}
 
-	if err := os.WriteFile(cfg.OutFile.String(), html.Bytes(), 0644); err != nil {
-		return fmt.Errorf("writing output %q: %w", cfg.OutFile, err)
+	if err := os.WriteFile(cfg.outFile.String(), html.Bytes(), 0644); err != nil {
+		return fmt.Errorf("writing output %q: %w", cfg.outFile, err)
 	}
 	return nil
 }

@@ -12,20 +12,20 @@ import (
 	"tetrahemihexahedron/webimage/internal/paths"
 )
 
-type Config struct {
-	ImagesRoot paths.AbsPath
-	OutFile    paths.AbsPath
-	UseStdout  bool
-	URLPrefix  string
-	Sort       gallery.SortField
+type config struct {
+	imagesRoot paths.AbsPath
+	outFile    paths.AbsPath
+	useStdout  bool
+	urlPrefix  string
+	sort       gallery.SortField
 }
 
-func loadConfig() (Config, error) {
+func loadConfig() (config, error) {
 	return parseArgs(os.Args[1:], os.Stderr)
 }
 
-func parseArgs(args []string, output io.Writer) (Config, error) {
-	var cfg Config
+func parseArgs(args []string, output io.Writer) (config, error) {
+	var cfg config
 	var imagesRootPath string
 	var outFilePath string
 
@@ -34,45 +34,45 @@ func parseArgs(args []string, output io.Writer) (Config, error) {
 
 	flags.StringVar(&imagesRootPath, "images", "", "webimage output root containing index.json")
 	flags.StringVar(&outFilePath, "output", "", "HTML output file or stdout when omitted or '-'")
-	flags.StringVar(&cfg.URLPrefix, "url-prefix", "", "public URL prefix for image URLs")
+	flags.StringVar(&cfg.urlPrefix, "url-prefix", "", "public URL prefix for image URLs")
 
 	sort := string(gallery.SortProcessed)
 	flags.StringVar(&sort, "sort", sort, "sort field: processed (default) or captured (requires capturedAt for every image)")
 
 	if err := flags.Parse(args); err != nil {
-		return Config{}, err
+		return config{}, err
 	}
 
 	sortField, err := gallery.ParseSortField(sort)
 	if err != nil {
-		return Config{}, fmt.Errorf("parsing '--sort': %w", err)
+		return config{}, fmt.Errorf("parsing '--sort': %w", err)
 	}
-	cfg.Sort = sortField
+	cfg.sort = sortField
 
 	if imagesRootPath == "" {
-		return Config{}, errors.New("missing required '--images' flag")
+		return config{}, errors.New("missing required '--images' flag")
 	}
 
 	imagesRootAbs, err := filepath.Abs(imagesRootPath)
 	if err != nil {
-		return Config{}, err
+		return config{}, err
 	}
-	cfg.ImagesRoot, err = paths.NewAbsPath(imagesRootAbs)
+	cfg.imagesRoot, err = paths.NewAbsPath(imagesRootAbs)
 	if err != nil {
-		return Config{}, err
+		return config{}, err
 	}
 
-	cfg.UseStdout = true
+	cfg.useStdout = true
 	if outFilePath != "" && outFilePath != "-" {
 		outFileAbs, err := filepath.Abs(outFilePath)
 		if err != nil {
-			return Config{}, err
+			return config{}, err
 		}
-		cfg.OutFile, err = paths.NewAbsPath(outFileAbs)
+		cfg.outFile, err = paths.NewAbsPath(outFileAbs)
 		if err != nil {
-			return Config{}, err
+			return config{}, err
 		}
-		cfg.UseStdout = false
+		cfg.useStdout = false
 	}
 
 	return cfg, nil
