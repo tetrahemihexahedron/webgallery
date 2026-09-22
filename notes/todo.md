@@ -16,7 +16,6 @@ Within those two groups, packages are sorted by path. Within each package, items
 
 #### Fix
 
-- **Make external commands cancellable:** Thread `context.Context` through the command workflows and both the metadata and variants APIs, use `exec.CommandContext` for `exiftool` and `vipsthumbnail`, treat cancellation as a request-level error, and add focused cancellation coverage for both tools.
 - **Make CLI parsing non-exiting:** Both commands use `flag.ExitOnError` and accept positional arguments. Use `flag.ContinueOnError`, return parse and help results to the caller, reject positional arguments, and add focused argument tests without invoking subprocesses.
 - **Validate CLI filesystem roots before work:** Confirm the `webimage` incoming root and gallery images root exist and are directories before external commands or index reads, and create the `webimage` output root after overlap validation so its missing-root behavior is intentional.
 - **Use consistent atomic output writes:** Index writes use temp-file-and-rename while manifests and gallery output do not. Consider a small shared atomic-write helper, apply it where interrupted writes could corrupt output, and test that render failures do not replace an existing file.
@@ -48,11 +47,6 @@ Within those two groups, packages are sorted by path. Within each package, items
 - **Define output-parent behavior:** Writing to an output file fails when its parent directory is absent. Either create the parent or return an intentional, direct error, and test writing to a temporary output path.
 
 ### `cmd/webimage`
-
-#### Refactor
-
-- **Decouple processing options from CLI config:** `imageProcessor` receives the command's full `Config` even though it does not use `IsQuiet`. Give the workflow a focused options value or direct fields so flag parsing, progress selection, and processing dependencies remain separate.
-- **Split the processor file by responsibility:** Keep the workflow readable in `processor.go`, but move cohesive source hashing/copying and output-directory/ID helpers into focused files if that improves navigation; do not create new packages or wrapper types solely to reduce line count.
 
 ### `internal/gallery`
 
@@ -101,10 +95,6 @@ Within those two groups, packages are sorted by path. Within each package, items
 - **Define missing-output-root behavior:** `Index.Update` assumes the root exists. Either create it or return a direct validation error for direct package callers, and test the selected contract.
 
 ### `internal/manifest`
-
-#### Refactor
-
-- **Write variants deterministically:** Sort variants by format and width before encoding so output does not depend on generation order.
 
 #### Fix
 
