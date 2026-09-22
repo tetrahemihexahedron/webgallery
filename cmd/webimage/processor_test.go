@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io"
 	"os"
@@ -24,7 +25,7 @@ const fixtureSHA256 = "9d105ded7ef2002873fbe783fb9727f44100c6891cfad76b832eaa55b
 func TestProcessIncomingDir(t *testing.T) {
 	p := newIntegrationProcessor(t)
 
-	got, err := p.processIncomingDir()
+	got, err := p.processIncomingDir(context.Background())
 	if err != nil {
 		t.Fatalf("imageProcessor.processIncomingDir() returned error: %v", err)
 	}
@@ -385,7 +386,7 @@ func TestProcessImageRejectsIncompleteVariants(t *testing.T) {
 func TestProcessIncomingDirSkipsPreviouslyProcessedImage(t *testing.T) {
 	p := newIntegrationProcessor(t)
 
-	if _, err := p.processIncomingDir(); err != nil {
+	if _, err := p.processIncomingDir(context.Background()); err != nil {
 		t.Fatalf("first imageProcessor.processIncomingDir() returned error: %v", err)
 	}
 	indexBefore, err := index.ReadDir(p.cfg.outDir)
@@ -393,7 +394,7 @@ func TestProcessIncomingDirSkipsPreviouslyProcessedImage(t *testing.T) {
 		t.Fatalf("index.ReadDir(%q) after first processIncomingDir returned error: %v", p.cfg.outDir, err)
 	}
 
-	got, err := p.processIncomingDir()
+	got, err := p.processIncomingDir(context.Background())
 	if err != nil {
 		t.Fatalf("second imageProcessor.processIncomingDir() returned error: %v", err)
 	}

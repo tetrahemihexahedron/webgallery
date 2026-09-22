@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"io"
 	"log"
 	"os"
@@ -27,7 +28,7 @@ func main() {
 		progressReporter: progressReporter,
 	}
 
-	_, err = processor.processIncomingDir()
+	_, err = processor.processIncomingDir(context.Background())
 	if err != nil {
 		log.Fatal(err)
 	}

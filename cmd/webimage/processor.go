@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
@@ -22,7 +23,7 @@ import (
 	"tetrahemihexahedron/webimage/internal/variants"
 )
 
-type metadataReader func(paths.AbsPath) (metadata.Result, error)
+type metadataReader func(context.Context, paths.AbsPath) (metadata.Result, error)
 
 type variantGenerator func(variants.Request) (variants.Result, error)
 
@@ -49,7 +50,7 @@ type imageProcessor struct {
 	progressReporter io.Writer
 }
 
-func (p *imageProcessor) processIncomingDir() (processResult, error) {
+func (p *imageProcessor) processIncomingDir(ctx context.Context) (processResult, error) {
 	inDirAbsPath := p.cfg.inDir.String()
 
 	fmt.Fprintf(p.progressReporter, "Processing image files in %q\n", inDirAbsPath)
@@ -59,7 +60,7 @@ func (p *imageProcessor) processIncomingDir() (processResult, error) {
 		return processResult{}, err
 	}
 
-	metadataResult, err := p.readIncomingMetadata()
+	metadataResult, err := p.readIncomingMetadata(ctx)
 	if err != nil {
 		return processResult{}, err
 	}
@@ -251,8 +252,8 @@ func (p *imageProcessor) recordMetadataProblems(problems []metadata.Problem) []i
 	return imageProblems
 }
 
-func (p *imageProcessor) readIncomingMetadata() (metadata.Result, error) {
-	metadataResult, err := p.metadataReader(p.cfg.inDir)
+func (p *imageProcessor) readIncomingMetadata(ctx context.Context) (metadata.Result, error) {
+	metadataResult, err := p.metadataReader(ctx, p.cfg.inDir)
 	if err != nil {
 		return metadata.Result{}, err
 	}

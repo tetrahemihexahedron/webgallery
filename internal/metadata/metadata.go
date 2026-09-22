@@ -1,6 +1,7 @@
 package metadata
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -42,8 +43,8 @@ type Problem struct {
 }
 
 // Read extracts metadata from a file or directory using exiftool.
-func Read(path paths.AbsPath) (Result, error) {
-	output, err := fetchExiftoolOutput(path)
+func Read(ctx context.Context, path paths.AbsPath) (Result, error) {
+	output, err := fetchExiftoolOutput(ctx, path)
 	if err != nil {
 		return Result{}, err
 	}
@@ -77,10 +78,13 @@ func parseDateTimeOriginal(s string) (time.Time, error) {
 	return capturedAt, nil
 }
 
-func fetchExiftoolOutput(path paths.AbsPath) ([]exiftoolOutput, error) {
-	cmd := exec.Command("exiftool", "-json", path.String())
+func fetchExiftoolOutput(ctx context.Context, path paths.AbsPath) ([]exiftoolOutput, error) {
+	cmd := exec.CommandContext(ctx, "exiftool", "-json", path.String())
 
 	rawOutput, commandErr := cmd.Output()
+	if commandErr != nil && ctx.Err() != nil {
+		return nil, fmt.Errorf("running exiftool on %q: %w", path, ctx.Err())
+	}
 
 	if len(rawOutput) == 0 {
 		if commandErr == nil {

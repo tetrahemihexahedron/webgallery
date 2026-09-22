@@ -1,6 +1,7 @@
 package metadata_test
 
 import (
+	"context"
 	"errors"
 	"os"
 	"os/exec"
@@ -114,7 +115,7 @@ func TestRead(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			path := mustAbs(t, filepath.Join("testdata", tc.file))
-			got, err := metadata.Read(path)
+			got, err := metadata.Read(context.Background(), path)
 			if err != nil {
 				t.Fatalf("metadata.Read(%q) returned error: %v", path, err)
 			}
@@ -131,7 +132,7 @@ func TestRead(t *testing.T) {
 func TestReadDirectories(t *testing.T) {
 	t.Run("empty directory", func(t *testing.T) {
 		path := mustAbs(t, t.TempDir())
-		got, err := metadata.Read(path)
+		got, err := metadata.Read(context.Background(), path)
 		if err != nil {
 			t.Fatalf("metadata.Read(%q) returned error: %v", path, err)
 		}
@@ -174,7 +175,7 @@ func TestReadDirectories(t *testing.T) {
 		}
 
 		path := mustAbs(t, dirPath)
-		got, err := metadata.Read(path)
+		got, err := metadata.Read(context.Background(), path)
 		if err != nil {
 			t.Fatalf("metadata.Read(%q) returned error: %v", path, err)
 		}
@@ -220,7 +221,7 @@ func TestReadReportsFileProblems(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			path := mustAbs(t, filepath.Join("testdata", tc.file))
-			got, err := metadata.Read(path)
+			got, err := metadata.Read(context.Background(), path)
 			if err != nil {
 				t.Fatalf("metadata.Read(%q) returned error: %v", path, err)
 			}
@@ -257,7 +258,7 @@ func TestReadReturnsError(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			path := mustAbs(t, filepath.Join("testdata", tc.file))
-			got, err := metadata.Read(path)
+			got, err := metadata.Read(context.Background(), path)
 			if !slices.Equal(got.Metadata, tc.wantMetadata) {
 				t.Errorf("metadata.Read(%q) metadata mismatch\n got: %+v\nwant: %+v", path, got.Metadata, tc.wantMetadata)
 			}
@@ -268,6 +269,19 @@ func TestReadReturnsError(t *testing.T) {
 				t.Errorf("metadata.Read(%q) returned error %v (%T), want error wrapping *exec.ExitError", path, err, err)
 			}
 		})
+	}
+}
+
+func TestReadCanceledContext(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	got, err := metadata.Read(ctx, mustAbs(t, filepath.Join("testdata", "complete_metadata.jpg")))
+	if !errors.Is(err, context.Canceled) {
+		t.Errorf("metadata.Read() error = %v, want context.Canceled", err)
+	}
+	if len(got.Metadata) != 0 || len(got.FileProblems) != 0 {
+		t.Errorf("metadata.Read() result = %+v, want empty result", got)
 	}
 }
 
