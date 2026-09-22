@@ -4,23 +4,7 @@ These are the next items to implement from `notes/todo.md`, listed in recommende
 
 Each numbered implementation step is intended to be a focused, independently passing commit. Run `go test ./...`, `go vet ./...`, and `staticcheck ./...` for every commit.
 
-## 1. Move source metadata to its owning package
-
-`image.Metadata` describes exiftool output rather than the processed-image domain. Move it to `internal/metadata` and make its filename safe before the processor receives it.
-
-**Packages involved:**
-
-- `internal/metadata`: own the extracted-file type and convert exiftool records into it.
-- `internal/image`: stop defining the extraction-specific type.
-- `cmd/webimage`: consume the metadata package's type.
-- `internal/paths`: supply the existing validated relative-path type; no API change is expected.
-
-**Implementation commits:**
-
-1. **Move the record type to `internal/metadata`.** Define an exported `metadata.File` type, change `metadata.Result.Metadata` to contain that type, and update metadata conversion and tests. Update `cmd/webimage` processor signatures, `sourceImage`, test fixtures, and assertions to use the new type. Remove `image.Metadata` once no references remain. Keep this commit behavior-preserving: leave `FileName` as a string initially and do not combine it with broader metadata naming changes.
-2. **Validate filenames at the metadata boundary.** Change the extracted file's `FileName` to `paths.RelPath`. Convert exiftool's filename while building the result; report an invalid filename as a per-file `metadata.Problem` rather than allowing it to fail later in the processor. Update sorting to compare the path strings, remove the processor's redundant `paths.NewRelPath` call, and update existing metadata and processor tests to use and exercise the typed filename in their normal workflows. Keep `Problem.FileName` as a string because malformed exiftool records may not contain a valid path; do not add a synthetic malformed-filename test unless the conversion logic becomes complex enough to warrant one.
-
-## 2. Strip whitespace from extracted metadata
+## 1. Strip whitespace from extracted metadata
 
 Normalize textual metadata as it enters the application instead of making downstream packages guess whether values are already clean.
 
@@ -37,7 +21,7 @@ The policy is to apply `strings.TrimSpace` to every exiftool-supplied textual me
 
 1. **Normalize exiftool records at conversion time.** Add one clear normalization step before `processOutput` validates each record, remove redundant trimming from `parseDateTimeOriginal`, and document the returned-value contract on `metadata.File` or `Result`. Add one representative metadata case using user-authored fields—for example, a padded title and a whitespace-only description—to cover both trimming and normalization to empty. Do not add separate whitespace cases for every exiftool-controlled field, and do not add a filename-with-whitespace test. Keep the existing format, date, and error tests to confirm their normal behavior is unchanged, and keep canonical captured-date formatting unchanged.
 
-## 3. Make datetime parser normalization consistent
+## 2. Make datetime parser normalization consistent
 
 Both image datetime parsers represent canonical persisted formats. They should validate exact stored text rather than silently normalizing it; external-input cleanup belongs in `internal/metadata` as established by task 2.
 
@@ -51,7 +35,7 @@ Both image datetime parsers represent canonical persisted formats. They should v
 
 1. **Make processed datetime parsing strict.** Remove whitespace trimming from `image.ParseProcessedAt`, add or improve exported documentation for both datetime parsers, and move the existing surrounding-whitespace case from the successful parser table to the error table. Retain the existing UTC, whole-second RFC3339 requirement and formatting behavior. Audit call sites to ensure none rely on `ParseProcessedAt` for user-input normalization; the parser test is sufficient, so do not duplicate it with gallery, index, or manifest regression tests unless one of those packages later adds behavior beyond delegating to the parser.
 
-## 4. Minimize exported surfaces
+## 3. Minimize exported surfaces
 
 Remove exports that are implementation details while preserving the small APIs actually used between packages. Do this package by package so each rename remains easy to review.
 
