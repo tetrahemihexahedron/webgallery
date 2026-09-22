@@ -429,7 +429,7 @@ func newIntegrationProcessor(t *testing.T) *imageProcessor {
 			outDir:  mustAbs(t, t.TempDir()),
 			dirDate: dirDateCaptured,
 		},
-		metadataReader:   &metadata.Exiftool{},
+		metadataReader:   metadata.Read,
 		variantGenerator: variants.Generate,
 		progressReporter: io.Discard,
 	}

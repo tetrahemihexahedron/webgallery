@@ -41,9 +41,8 @@ type Problem struct {
 	Message  string
 }
 
-type Exiftool struct{}
-
-func (e *Exiftool) Read(path paths.AbsPath) (Result, error) {
+// Read extracts metadata from a file or directory using exiftool.
+func Read(path paths.AbsPath) (Result, error) {
 	output, err := fetchExiftoolOutput(path)
 	if err != nil {
 		return Result{}, err

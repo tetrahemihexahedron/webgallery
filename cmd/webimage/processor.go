@@ -22,9 +22,7 @@ import (
 	"tetrahemihexahedron/webimage/internal/variants"
 )
 
-type metadataReader interface {
-	Read(path paths.AbsPath) (metadata.Result, error)
-}
+type metadataReader func(paths.AbsPath) (metadata.Result, error)
 
 type variantGenerator func(variants.Request) (variants.Result, error)
 
@@ -254,7 +252,7 @@ func (p *imageProcessor) recordMetadataProblems(problems []metadata.Problem) []i
 }
 
 func (p *imageProcessor) readIncomingMetadata() (metadata.Result, error) {
-	metadataResult, err := p.metadataReader.Read(p.cfg.inDir)
+	metadataResult, err := p.metadataReader(p.cfg.inDir)
 	if err != nil {
 		return metadata.Result{}, err
 	}
