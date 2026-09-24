@@ -41,8 +41,14 @@ type sourceImage struct {
 	sha256   string
 }
 
+type processorOptions struct {
+	inDir   paths.AbsPath
+	outDir  paths.AbsPath
+	dirDate dirDateSource
+}
+
 type imageProcessor struct {
-	cfg              config
+	options          processorOptions
 	metadataReader   metadataReader
 	variantGenerator variantGenerator
 	progressReporter io.Writer
@@ -53,17 +59,17 @@ func (p *imageProcessor) processIncomingDir(ctx context.Context) (res processRes
 		if retErr == nil {
 			return
 		}
-		if cleanupErr := deleteProcessedImageDirs(p.cfg.outDir, res.images); cleanupErr != nil {
+		if cleanupErr := deleteProcessedImageDirs(p.options.outDir, res.images); cleanupErr != nil {
 			retErr = errors.Join(retErr, cleanupErr)
 		}
 		res = processResult{}
 	}()
 
-	inDirAbsPath := p.cfg.inDir.String()
+	inDirAbsPath := p.options.inDir.String()
 
 	fmt.Fprintf(p.progressReporter, "Processing image files in %q\n", inDirAbsPath)
 
-	imageIndex, imageDirsByHash, err := loadExistingIndex(p.cfg.outDir)
+	imageIndex, imageDirsByHash, err := loadExistingIndex(p.options.outDir)
 	if err != nil {
 		return processResult{}, err
 	}
@@ -103,7 +109,7 @@ func (p *imageProcessor) processIncomingDir(ctx context.Context) (res processRes
 }
 
 func (p *imageProcessor) writeUpdatedIndex(imageIndex *index.Index, images []image.Processed) error {
-	if err := imageIndex.Update(p.cfg.outDir, images); err != nil {
+	if err := imageIndex.Update(p.options.outDir, images); err != nil {
 		return fmt.Errorf("updating index: %w", err)
 	}
 	return nil
@@ -132,7 +138,7 @@ func (p *imageProcessor) processMetadataEntry(ctx context.Context, meta metadata
 		}}, nil
 	}
 
-	if err := validateJPEGMetadata(meta, p.cfg.dirDate); err != nil {
+	if err := validateJPEGMetadata(meta, p.options.dirDate); err != nil {
 		fmt.Fprintf(
 			p.progressReporter,
 			"Error validating metadata for %q: %v\n",
@@ -146,7 +152,7 @@ func (p *imageProcessor) processMetadataEntry(ctx context.Context, meta metadata
 		}}, nil
 	}
 
-	sourceAbsPath, err := paths.JoinAbs(p.cfg.inDir, meta.FileName)
+	sourceAbsPath, err := paths.JoinAbs(p.options.inDir, meta.FileName)
 	if err != nil {
 		fmt.Fprintf(
 			p.progressReporter,
@@ -270,7 +276,7 @@ func (p *imageProcessor) recordMetadataProblems(problems []metadata.Problem) []i
 }
 
 func (p *imageProcessor) readIncomingMetadata(ctx context.Context) (metadata.Result, error) {
-	metadataResult, err := p.metadataReader(ctx, p.cfg.inDir)
+	metadataResult, err := p.metadataReader(ctx, p.options.inDir)
 	if err != nil {
 		return metadata.Result{}, err
 	}
@@ -305,7 +311,7 @@ func loadExistingIndex(outDir paths.AbsPath) (index.Index, map[string]paths.RelP
 
 func (p *imageProcessor) processImage(ctx context.Context, source sourceImage) (image.Processed, error) {
 	processedAt := time.Now().UTC()
-	dirDate, err := dirDate(p.cfg.dirDate, source.metadata.CapturedAt, processedAt)
+	dirDate, err := dirDate(p.options.dirDate, source.metadata.CapturedAt, processedAt)
 	if err != nil {
 		return image.Processed{}, err
 	}
@@ -313,7 +319,7 @@ func (p *imageProcessor) processImage(ctx context.Context, source sourceImage) (
 	if err != nil {
 		return image.Processed{}, err
 	}
-	imgDirAbsPath, err := createImageDir(p.cfg.outDir, imgDirRelPath)
+	imgDirAbsPath, err := createImageDir(p.options.outDir, imgDirRelPath)
 	if err != nil {
 		return image.Processed{}, err
 	}

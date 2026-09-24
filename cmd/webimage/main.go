@@ -27,7 +27,11 @@ func main() {
 	}
 
 	processor := imageProcessor{
-		cfg:              cfg,
+		options: processorOptions{
+			inDir:   cfg.inDir,
+			outDir:  cfg.outDir,
+			dirDate: cfg.dirDate,
+		},
 		metadataReader:   metadata.Read,
 		variantGenerator: variants.Generate,
 		progressReporter: progressReporter,
