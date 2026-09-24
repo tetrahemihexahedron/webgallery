@@ -43,11 +43,11 @@ Carry out the complete workflow below. Do not merely describe what should be don
 - Identify the first top-level plan item: the first second-level (`##`) section in `notes/todo.md`. If there is no item, stop and alert the user.
 - For the `implement first` route, leave `notes/todo.md` unchanged and continue.
 - For the `delete-first` route, treat the argument as the user's authoritative confirmation; do not independently guess whether the item was completed:
-  - Remove the first item's entire section from `notes/todo.md` and renumber the remaining numbered top-level headings in order without changing their content or otherwise reorganizing the plan.
+  - Remove the first item's entire section from `notes/todo.md` and renumber the remaining numbered top-level headings in order without changing their content or otherwise reorganizing the list.
   - Inspect the diff and ensure it contains only the intended `notes/todo.md` removal and heading renumbering.
-  - Stage only `notes/todo.md`, inspect the staged diff, and commit it on the local default branch with the subject `Remove completed plan item`.
+  - Stage only `notes/todo.md`, inspect the staged diff, and commit it on the local default branch with the subject `Remove completed todo item`.
   - Push the default branch directly to `origin` over SSH without force, verify that the remote default branch points to the same commit as the local branch, and require a clean worktree. If the commit or push fails, stop before selecting or creating another task branch.
-  - If removing the item leaves no plan items, stop and alert the user after pushing the cleanup commit.
+  - If removing the item leaves no todo items, stop and alert the user after pushing the cleanup commit.
 
 ## 4. Select the first plan item
 
@@ -61,14 +61,14 @@ Carry out the complete workflow below. Do not merely describe what should be don
 
 - Ensure that the local default branch is checked out and still matches its upstream exactly after the completed-item check.
 - From the default branch, create and switch to a branch named `<type>/<short-kebab-case-topic>`.
-- Choose the type by the primary purpose of the complete plan item:
+- Choose the type by the primary purpose of the complete item:
   - `refactor/` for behavior-preserving restructuring;
   - `fix/` for correctness, safety, or usability fixes;
   - `feature/` for new user-facing functionality;
   - `docs/` for documentation-only work;
   - `test/` for test-only work; or
   - `chore/` for tooling and repository maintenance.
-- Describe the complete plan item rather than an individual implementation step. Keep the topic concise, normally two to four lowercase words separated by hyphens, and prefer the intended outcome over implementation details.
+- Describe the complete todo item rather than an individual implementation step. Keep the topic concise, normally two to four lowercase words separated by hyphens, and prefer the intended outcome over implementation details.
 - Avoid vague topics such as `updates`, `cleanup`, or `work`.
 - Confirm that the branch name does not already exist locally or on `origin` before creating it. If it exists, choose a different name; do not overwrite or delete the existing branch.
 
@@ -77,22 +77,21 @@ Carry out the complete workflow below. Do not merely describe what should be don
 - Inspect the relevant code and tests before editing.
 - Complete every applicable small implementation step listed under the selected item. If blocked, stop and ask the user rather than pushing an incomplete branch. For conditional steps such as “consider,” record why they were unnecessary when they do not apply.
 - Make note of any adjustments to the planned implementation that would lead to simpler or better code.
-- Preserve existing behavior unless the plan item explicitly calls for a behavior change.
+- Preserve existing behavior unless the item explicitly calls for a behavior change.
 - Follow `AGENTS.md` and the repository's established style.
 - Keep implementation changes limited to the selected item. Do not perform unrelated cleanup.
 - Do not edit `notes/todo.md` on the task branch merely to record completion.
-- Add or adjust tests when they provide useful coverage under the repository's testing guidelines.
+- Add or adjust tests when they provide useful coverage under the repository's testing guidelines in AGENTS.md.
 
 ## 7. Make small commits
 
-- Commit each coherent implementation step separately when the repository remains valid and understandable at that boundary.
-- Prefer at least one commit per plan step. Use additive migrations to keep intermediate commits valid: introduce the new API alongside the old one, migrate callers, then remove the old API.
+- Commit each coherent small code change separately when the repository remains valid and understandable at that boundary.
+- Prefer at least one commit per planned implementation step. Use additive migrations to keep intermediate commits valid: introduce the new API alongside the old one, migrate callers, then remove the old API.
 - Temporary compatibility adapters are acceptable when they enable coherent commits, but should be removed before the branch is finished.
 - Keep tests with the behavior or refactoring they verify.
 - Before each commit:
   - inspect the staged diff;
   - ensure it contains no unrelated changes;
-  - recompute the expected name from the current `PI_MODEL`, update the global name if the model changed, and verify that the effective `user.name` equals the expected name; and
   - format changed files and run the checks appropriate to that step.
 - Use concise imperative commit subjects that describe the change.
 - Do not rewrite commit history, including with `git commit --amend` or interactive rebase, unless the user explicitly requests it.
@@ -104,7 +103,7 @@ Carry out the complete workflow below. Do not merely describe what should be don
 - Fix problems introduced by the current work rather than recording them as follow-up items.
 - Search `notes/backlog.md` and `notes/todo.md` for overlapping entries before recording a finding, reading the relevant sections as needed, and do not add duplicates.
 - Add only concrete findings supported by something observed during the work. Do not add unsupported speculation or trivial cleanup.
-- Place each finding under `Unplanned items`, then under the relevant package and type: `Refactor`, `Fix`, `Feature`, `Docs`, `Test`, or `Chore`. Use `All packages` for cross-cutting findings, and add a missing package or type heading in the documented order only when needed.
+- Place each finding under `Later`, then under the relevant package and type: `Refactor`, `Fix`, `Feature`, `Docs`, `Test`, or `Chore`. Use `All packages` for cross-cutting findings, and add a missing package or type heading in the documented order only when needed.
 - Keep the observed problem, why it matters, and the plausible solution or next step together in one item.
 - Do not reorganize, remove, promote, or otherwise triage existing entries.
 - Do not modify `notes/backlog.md` when there are no worthwhile findings.
@@ -115,7 +114,7 @@ Carry out the complete workflow below. Do not merely describe what should be don
 - Review the complete diff and commit list against the default branch.
 - Run `gofmt` on changed Go files and run the full relevant test suite, including `go test ./...` unless there is a clear reason it cannot run.
 - If formatting changes files or validation fails, fix the issue in an additional focused commit and repeat this section.
-- Check that every applicable step in the selected plan item was completed.
+- Check that every applicable step in the selected item was completed.
 - Confirm that the worktree is clean.
 
 ## 10. Push the branch
@@ -124,12 +123,12 @@ Carry out the complete workflow below. Do not merely describe what should be don
 - Verify that the remote branch exists and points to the same commit as the local branch.
 - Do not create a pull request.
 - Finish by reporting:
-  - whether the first plan item was removed, and the cleanup commit if one was created;
-  - the selected development-plan item;
+  - whether the first item was removed, and the cleanup commit if one was created;
+  - the selected todo item;
   - the branch name;
   - the commits created;
   - the tests and checks run;
-  - any conditional plan steps judged unnecessary, with the reason;
+  - any conditional steps judged unnecessary, with the reason;
   - adjustments to the implementation that would simplify or improve the code;
   - the follow-up findings added to `notes/backlog.md`, or that there were none; and
   - the GitHub compare URL the user can open to create a pull request manually, when it can be derived from the `origin` URL and default branch.
