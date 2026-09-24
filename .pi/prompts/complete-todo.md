@@ -1,9 +1,9 @@
 ---
-description: Implement the next plan item, perhaps deleting a completed first item beforehand
-argument-hint: "[delete]"
+description: Implement the next planned task, perhaps deleting the already complete first item beforehand
+argument-hint: "[delete-first]"
 ---
 
-Implement the first top-level item from `notes/todo.md` on a new branch and push that branch to GitHub. With no argument, implement the current first item. With the exact argument `delete`, delete the current first item as completed, and then implement the new first item.
+Implement the first top-level item from `notes/todo.md` on a new branch and push that branch to GitHub. With no argument, implement the current first item. With the exact argument `delete-first`, delete the current first item as completed, and then implement the new first item.
 
 Requested route: `${ARGUMENTS:-implement first}`
 
@@ -37,12 +37,12 @@ Carry out the complete workflow below. Do not merely describe what should be don
 
 - Accept only these two routes:
   - `implement first`, produced when the prompt is invoked without an argument;
-  - `delete`, produced by passing that exact argument.
+  - `delete-first`, produced by passing that exact argument.
 - If the requested route is anything else, stop and explain the two valid invocations. Do not interpret other text as selection guidance.
 - Switch to the local default branch. Do not merge, cherry-pick, pull, reset, rebase, or otherwise bring implementation work onto it.
 - Identify the first top-level plan item: the first second-level (`##`) section in `notes/todo.md`. If there is no item, stop and alert the user.
 - For the `implement first` route, leave `notes/todo.md` unchanged and continue.
-- For the `delete` route, treat the argument as the user's authoritative confirmation; do not independently guess whether the item was completed:
+- For the `delete-first` route, treat the argument as the user's authoritative confirmation; do not independently guess whether the item was completed:
   - Remove the first item's entire section from `notes/todo.md` and renumber the remaining numbered top-level headings in order without changing their content or otherwise reorganizing the plan.
   - Inspect the diff and ensure it contains only the intended `notes/todo.md` removal and heading renumbering.
   - Stage only `notes/todo.md`, inspect the staged diff, and commit it on the local default branch with the subject `Remove completed plan item`.
@@ -52,7 +52,7 @@ Carry out the complete workflow below. Do not merely describe what should be don
 ## 4. Select the first plan item
 
 - Select the first top-level item currently in `notes/todo.md`; do not skip or reorder items.
-- If it appears to have already been implemented on the default branch, stop and tell the user to rerun the prompt with `delete`; do not delete or skip it automatically.
+- If it appears to have already been implemented on the default branch, stop and tell the user to rerun the prompt with `delete-first`; do not delete or skip it automatically.
 - If the item cannot reasonably fit on one branch, stop and alert the user rather than selecting a later item.
 - If the item requires an unresolved product, policy, or design decision, stop and ask the user rather than choosing a policy implicitly.
 - State the selected item and continue without waiting for confirmation.
