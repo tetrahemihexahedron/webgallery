@@ -4,11 +4,11 @@ This directory contains Go command-line tools used to prepare image files for we
 
 webimage contains two small Go CLIs for Rosie the Dog’s website and for a future website, Albuquerque Dog.
 
-cmd/webimage prepares JPEG photos. Its flags are -incoming, -output, -quiet, and -dir-date. The processor reads image metadata from the incoming directory using external exiftool, skips non-JPEGs and duplicate source files, creates an output subdirectory like <output>/<year>/<month>/<random-id>/, copies the original to orig.jpg, generates .jpg and .avif variants at widths 400/800/1200/1600 capped by source width using external vipsthumbnail/libvips, writes a per-image manifest.json, and updates a collection-level index.json.
+cmd/prepgallery prepares JPEG photos. Its flags are -incoming, -output, -quiet, and -dir-date. The processor reads image metadata from the incoming directory using external exiftool, skips non-JPEGs and duplicate source files, creates an output subdirectory like <output>/<year>/<month>/<random-id>/, copies the original to orig.jpg, generates .jpg and .avif variants at widths 400/800/1200/1600 capped by source width using external vipsthumbnail/libvips, writes a per-image manifest.json, and updates a collection-level index.json.
 
 cmd/gallery reads a webimage output directory and writes static HTML `<picture>` fragments. Its flags are -images, -output, -url-prefix, and -sort. It reads index.json and each image’s manifest.json, sorts by captured or processed datetime, emits AVIF `<source>` elements when available, and uses JPEG variants for the fallback `<img>` srcset.
 
-Package layout: cmd/webimage and cmd/gallery parse CLI flags and orchestrate their workflows; internal/gallery loads processed image metadata and renders gallery HTML; internal/metadata wraps exiftool; internal/variants wraps vipsthumbnail; internal/image holds domain structs and format/datetime helpers; internal/manifest reads and writes per-image JSON manifests; internal/index reads and writes the collection index; internal/paths holds small validated filesystem path types.
+Package layout: cmd/prepgallery and cmd/gallery parse CLI flags and orchestrate their workflows; internal/gallery loads processed image metadata and renders gallery HTML; internal/metadata wraps exiftool; internal/variants wraps vipsthumbnail; internal/image holds domain structs and format/datetime helpers; internal/manifest reads and writes per-image JSON manifests; internal/index reads and writes the collection index; internal/paths holds small validated filesystem path types.
 
 ## Coding standards
 
