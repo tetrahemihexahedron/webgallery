@@ -1,5 +1,5 @@
 {
-  "name": "webimage",
+  "name": "webgallery",
   "image": "mcr.microsoft.com/devcontainers/base:debian",
 
   "features": {
@@ -24,10 +24,10 @@
   },
 
   "remoteUser": "dev",
-  "workspaceFolder": "/workspaces/webimage",
+  "workspaceFolder": "/workspaces/webgallery",
 
   "containerEnv": {
-    "PI_CODING_AGENT_DIR": "/workspaces/webimage/.pi"
+    "PI_CODING_AGENT_DIR": "/workspaces/webgallery/.pi"
   },
 
   "postCreateCommand": "bash .devcontainer/install-tools.sh"

@@ -1,3 +1,3 @@
-# Web Image Maker
+# webgallery
 
-A tool for preparing image files for Rosie the Dog's website.
+Tools for preparing photos and generating reusable gallery HTML for websites.

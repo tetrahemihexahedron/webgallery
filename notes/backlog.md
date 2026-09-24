@@ -17,7 +17,7 @@ Within those two groups, packages are sorted by path. For each package, items ar
 #### Fix
 
 - **Make CLI parsing non-exiting:** Both commands use `flag.ExitOnError` and accept positional arguments. Use `flag.ContinueOnError`, return parse and help results to the caller, reject positional arguments, and add focused argument tests without invoking subprocesses.
-- **Validate CLI filesystem roots before work:** Confirm the `webimage` incoming root and gallery images root exist and are directories before external commands or index reads, and create the `webimage` output root after overlap validation so its missing-root behavior is intentional.
+- **Validate CLI filesystem roots before work:** Confirm the `prepgallery` incoming root and `rendergallery` images root exist and are directories before external commands or index reads, and create the `prepgallery` output root after overlap validation so its missing-root behavior is intentional.
 - **Use consistent atomic output writes:** Index writes use temp-file-and-rename while manifests and gallery output do not. Consider a small shared atomic-write helper, apply it where interrupted writes could corrupt output, and test that render failures do not replace an existing file.
 
 #### Docs
@@ -27,7 +27,7 @@ Within those two groups, packages are sorted by path. For each package, items ar
 
 #### Test
 
-- **Add an end-to-end workflow test:** Run `webimage` on fixture images and then run `gallery` against the generated output.
+- **Add an end-to-end workflow test:** Run `prepgallery` on fixture images and then run `rendergallery` against the generated output.
 - **Reduce repeated test setup:** Introduce shared helpers for patterns such as `mustAbs`, `mustRel`, and fixture copying only if the duplication starts obscuring tests.
 
 #### Chore
@@ -35,7 +35,7 @@ Within those two groups, packages are sorted by path. For each package, items ar
 - **Add a standard verification command:** Provide a small script, `just` target, or CI job that runs `go test`, `go vet`, and `staticcheck`.
 - **Install more tools in the container:** The container setup installs exiftool and libvips but relies on other features for tools such as `staticcheck`. Consider installing `file` in the container, which the agent has tried to run occasionally.
 
-### `cmd/gallery`
+### `cmd/rendergallery`
 
 #### Refactor
 
@@ -46,7 +46,7 @@ Within those two groups, packages are sorted by path. For each package, items ar
 
 - **Define output-parent behavior:** Writing to an output file fails when its parent directory is absent. Either create the parent or return an intentional, direct error, and test writing to a temporary output path.
 
-### `cmd/webimage`
+### `cmd/prepgallery`
 
 ### `internal/gallery`
 
@@ -140,7 +140,7 @@ Within those two groups, packages are sorted by path. For each package, items ar
 
 #### Fix
 
-- **Prevent concurrent output mutation:** Two `webimage` processes can race while updating the output root and index. Add a lightweight lock only if accidental concurrent runs are plausible.
+- **Prevent concurrent output mutation:** Two `prepgallery` processes can race while updating the output root and index. Add a lightweight lock only if accidental concurrent runs are plausible.
 - **Clean up command-line error output:** The `main` packages use `log.Fatal`, which adds timestamps to user-facing errors. Prefer explicit stderr output and exit status handling, then add small smoke tests for the resulting CLI messages.
 
 #### Feature
@@ -148,7 +148,7 @@ Within those two groups, packages are sorted by path. For each package, items ar
 - **Version generated JSON schemas:** Add schema/version fields to index and manifest files if migrations are likely enough to justify maintaining versioned formats.
 - **Add richer image data end to end:** Add location, keywords, captions, original-file references, dominant colors, or blur placeholders only for concrete consumers, updating metadata extraction, domain types, manifests, and gallery rendering together.
 
-### `cmd/gallery`
+### `cmd/rendergallery`
 
 #### Refactor
 
@@ -158,7 +158,7 @@ Within those two groups, packages are sorted by path. For each package, items ar
 
 - **Accept externally controlled ordering:** If an upload site later controls display order in SQLite, accept a simple ordered export rather than coupling the gallery command to the database.
 
-### `cmd/webimage`
+### `cmd/prepgallery`
 
 #### Refactor
 
@@ -192,7 +192,7 @@ Within those two groups, packages are sorted by path. For each package, items ar
 #### Feature
 
 - **Make picture markup configurable:** Potential options include `sizes`, fallback width, sort direction, loading/decoding attributes, CSS classes, captions, `<figure>` wrappers, original-image links, and filtering by date. Add focused command and rendering tests with each supported option.
-- **Render a single image:** Add a single-image rendering path that reuses the full gallery template-data conversion; expose it through `cmd/gallery` only if needed.
+- **Render a single image:** Add a single-image rendering path that reuses the full gallery template-data conversion; expose it through `cmd/rendergallery` only if needed.
 
 ### `internal/image`
 

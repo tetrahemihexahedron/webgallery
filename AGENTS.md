@@ -2,7 +2,7 @@ This directory contains Go command-line tools used to prepare image files for we
 
 ## Application
 
-webimage contains two small Go CLIs for Rosie the Dog’s website and for a future website, Albuquerque Dog.
+webgallery contains two small Go CLIs for Rosie the Dog’s website and for a future website, Albuquerque Dog.
 
 cmd/prepgallery prepares JPEG photos. Its flags are -incoming, -output, -quiet, and -dir-date. The processor reads image metadata from the incoming directory using external exiftool, skips non-JPEGs and duplicate source files, creates an output subdirectory like <output>/<year>/<month>/<random-id>/, copies the original to orig.jpg, generates .jpg and .avif variants at widths 400/800/1200/1600 capped by source width using external vipsthumbnail/libvips, writes a per-image manifest.json, and updates a collection-level index.json.
 
