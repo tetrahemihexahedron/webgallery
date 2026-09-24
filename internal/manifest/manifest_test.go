@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -153,7 +154,7 @@ func TestWriteFile(t *testing.T) {
 		want manifestJSON
 	}{
 		{
-			name: "writes complete metadata",
+			name: "writes complete metadata with sorted variants",
 			mani: manifest.Manifest{
 				Title:       "2023 October Posing",
 				Description: "Rosie as a small puppy, sitting and looking directly at the camera.",
@@ -164,10 +165,12 @@ func TestWriteFile(t *testing.T) {
 				Height:      1067,
 				Variants: map[image.Format][]manifest.VariantFile{
 					image.FormatJPEG: {
-						{Path: mustRel(t, "w400.jpg"), Width: 400, Height: 534},
 						{Path: mustRel(t, "w800.jpg"), Width: 800, Height: 1067},
+						{Path: mustRel(t, "z400.jpg"), Width: 400, Height: 534},
+						{Path: mustRel(t, "a400.jpg"), Width: 400, Height: 534},
 					},
 					image.FormatAVIF: {
+						{Path: mustRel(t, "w800.avif"), Width: 800, Height: 1067},
 						{Path: mustRel(t, "w400.avif"), Width: 400, Height: 534},
 					},
 				},
@@ -182,11 +185,13 @@ func TestWriteFile(t *testing.T) {
 				Height:      1067,
 				Variants: map[string][]variantJSON{
 					"JPEG": {
-						{Path: "w400.jpg", Width: 400, Height: 534},
+						{Path: "a400.jpg", Width: 400, Height: 534},
+						{Path: "z400.jpg", Width: 400, Height: 534},
 						{Path: "w800.jpg", Width: 800, Height: 1067},
 					},
 					"AVIF": {
 						{Path: "w400.avif", Width: 400, Height: 534},
+						{Path: "w800.avif", Width: 800, Height: 1067},
 					},
 				},
 			},
@@ -208,6 +213,11 @@ func TestWriteFile(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			originalVariants := make(map[image.Format][]manifest.VariantFile, len(tc.mani.Variants))
+			for format, variants := range tc.mani.Variants {
+				originalVariants[format] = slices.Clone(variants)
+			}
+
 			dir := mustAbs(t, t.TempDir())
 			path, err := manifest.ManifestPath(dir)
 			if err != nil {
@@ -221,6 +231,9 @@ func TestWriteFile(t *testing.T) {
 			got := readManifest(t, dir)
 			if !reflect.DeepEqual(got, tc.want) {
 				t.Errorf("manifest.WriteFile(%q, %+v) manifest mismatch\n got: %+v\nwant: %+v", path, tc.mani, got, tc.want)
+			}
+			if !reflect.DeepEqual(tc.mani.Variants, originalVariants) {
+				t.Errorf("manifest.WriteFile(%q, %+v) mutated variants\n got: %+v\nwant: %+v", path, tc.mani, tc.mani.Variants, originalVariants)
 			}
 		})
 	}

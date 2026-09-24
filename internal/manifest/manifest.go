@@ -1,9 +1,11 @@
 package manifest
 
 import (
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"os"
+	"slices"
 
 	"tetrahemihexahedron/webimage/internal/image"
 	"tetrahemihexahedron/webimage/internal/paths"
@@ -138,7 +140,15 @@ func manifestToJSON(mani Manifest) manifestJSON {
 	}
 
 	for format, variants := range mani.Variants {
-		for _, variant := range variants {
+		sorted := slices.Clone(variants)
+		slices.SortFunc(sorted, func(a, b VariantFile) int {
+			if a.Width != b.Width {
+				return cmp.Compare(a.Width, b.Width)
+			}
+			return cmp.Compare(a.Path.String(), b.Path.String())
+		})
+
+		for _, variant := range sorted {
 			file.Variants[format.String()] = append(file.Variants[format.String()], variantJSON{
 				Path:   variant.Path.String(),
 				Width:  variant.Width,
