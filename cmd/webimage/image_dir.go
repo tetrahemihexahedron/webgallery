@@ -11,8 +11,8 @@ import (
 	"regexp"
 	"time"
 
-	"tetrahemihexahedron/webimage/internal/image"
-	"tetrahemihexahedron/webimage/internal/paths"
+	"tetrahemihexahedron/webgallery/internal/image"
+	"tetrahemihexahedron/webgallery/internal/paths"
 )
 
 func dirDate(dirDate dirDateSource, capturedAt string, processedAt time.Time) (time.Time, error) {

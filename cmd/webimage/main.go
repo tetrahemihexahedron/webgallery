@@ -8,8 +8,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"tetrahemihexahedron/webimage/internal/metadata"
-	"tetrahemihexahedron/webimage/internal/variants"
+	"tetrahemihexahedron/webgallery/internal/metadata"
+	"tetrahemihexahedron/webgallery/internal/variants"
 )
 
 func main() {

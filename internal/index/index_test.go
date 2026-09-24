@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"tetrahemihexahedron/webimage/internal/image"
-	"tetrahemihexahedron/webimage/internal/index"
-	"tetrahemihexahedron/webimage/internal/paths"
+	"tetrahemihexahedron/webgallery/internal/image"
+	"tetrahemihexahedron/webgallery/internal/index"
+	"tetrahemihexahedron/webgallery/internal/paths"
 )
 
 func TestReadDirReturnsErrorWhenFileIsMissing(t *testing.T) {

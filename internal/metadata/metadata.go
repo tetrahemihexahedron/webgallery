@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"tetrahemihexahedron/webimage/internal/image"
-	"tetrahemihexahedron/webimage/internal/paths"
+	"tetrahemihexahedron/webgallery/internal/image"
+	"tetrahemihexahedron/webgallery/internal/paths"
 )
 
 // File contains metadata extracted from one file.

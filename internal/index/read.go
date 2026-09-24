@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"tetrahemihexahedron/webimage/internal/paths"
+	"tetrahemihexahedron/webgallery/internal/paths"
 )
 
 // ReadDir reads index.json from dir.

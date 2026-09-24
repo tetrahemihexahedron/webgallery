@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"tetrahemihexahedron/webimage/internal/paths"
+	"tetrahemihexahedron/webgallery/internal/paths"
 )
 
 type dirDateSource string

@@ -8,7 +8,7 @@ import (
 	"io/fs"
 	"os"
 
-	"tetrahemihexahedron/webimage/internal/paths"
+	"tetrahemihexahedron/webgallery/internal/paths"
 )
 
 func fileSHA256(path paths.AbsPath) (string, error) {

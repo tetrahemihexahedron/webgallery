@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"tetrahemihexahedron/webimage/internal/image"
-	"tetrahemihexahedron/webimage/internal/manifest"
-	"tetrahemihexahedron/webimage/internal/paths"
+	"tetrahemihexahedron/webgallery/internal/image"
+	"tetrahemihexahedron/webgallery/internal/manifest"
+	"tetrahemihexahedron/webgallery/internal/paths"
 )
 
 type manifestJSON struct {

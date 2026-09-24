@@ -1,6 +1,6 @@
 package image
 
-import "tetrahemihexahedron/webimage/internal/paths"
+import "tetrahemihexahedron/webgallery/internal/paths"
 
 type Source struct {
 	Hash   string

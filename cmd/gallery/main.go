@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	"tetrahemihexahedron/webimage/internal/gallery"
+	"tetrahemihexahedron/webgallery/internal/gallery"
 )
 
 func main() {

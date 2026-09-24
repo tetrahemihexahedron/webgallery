@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"strings"
 
-	"tetrahemihexahedron/webimage/internal/image"
-	"tetrahemihexahedron/webimage/internal/paths"
+	"tetrahemihexahedron/webgallery/internal/image"
+	"tetrahemihexahedron/webgallery/internal/paths"
 )
 
 // Request describes the source and output variants to generate.

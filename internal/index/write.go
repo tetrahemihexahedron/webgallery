@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"tetrahemihexahedron/webimage/internal/image"
-	"tetrahemihexahedron/webimage/internal/manifest"
-	"tetrahemihexahedron/webimage/internal/paths"
+	"tetrahemihexahedron/webgallery/internal/image"
+	"tetrahemihexahedron/webgallery/internal/manifest"
+	"tetrahemihexahedron/webgallery/internal/paths"
 )
 
 // Update appends newImages, writes the resulting index.json in outRoot,

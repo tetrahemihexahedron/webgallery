@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"tetrahemihexahedron/webimage/internal/image"
+	"tetrahemihexahedron/webgallery/internal/image"
 )
 
 func TestParseCapturedAt(t *testing.T) {

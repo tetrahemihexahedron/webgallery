@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"tetrahemihexahedron/webimage/internal/metadata"
-	"tetrahemihexahedron/webimage/internal/paths"
+	"tetrahemihexahedron/webgallery/internal/metadata"
+	"tetrahemihexahedron/webgallery/internal/paths"
 )
 
 func TestRead(t *testing.T) {

@@ -12,12 +12,12 @@ import (
 	"strings"
 	"testing"
 
-	"tetrahemihexahedron/webimage/internal/image"
-	"tetrahemihexahedron/webimage/internal/index"
-	"tetrahemihexahedron/webimage/internal/manifest"
-	"tetrahemihexahedron/webimage/internal/metadata"
-	"tetrahemihexahedron/webimage/internal/paths"
-	"tetrahemihexahedron/webimage/internal/variants"
+	"tetrahemihexahedron/webgallery/internal/image"
+	"tetrahemihexahedron/webgallery/internal/index"
+	"tetrahemihexahedron/webgallery/internal/manifest"
+	"tetrahemihexahedron/webgallery/internal/metadata"
+	"tetrahemihexahedron/webgallery/internal/paths"
+	"tetrahemihexahedron/webgallery/internal/variants"
 )
 
 const fixtureSHA256 = "9d105ded7ef2002873fbe783fb9727f44100c6891cfad76b832eaa55be77f3af"

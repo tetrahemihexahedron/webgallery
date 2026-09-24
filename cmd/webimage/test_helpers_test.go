@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"tetrahemihexahedron/webimage/internal/paths"
+	"tetrahemihexahedron/webgallery/internal/paths"
 )
 
 func mustAbs(t *testing.T, path string) paths.AbsPath {

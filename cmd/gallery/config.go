@@ -8,8 +8,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"tetrahemihexahedron/webimage/internal/gallery"
-	"tetrahemihexahedron/webimage/internal/paths"
+	"tetrahemihexahedron/webgallery/internal/gallery"
+	"tetrahemihexahedron/webgallery/internal/paths"
 )
 
 type config struct {

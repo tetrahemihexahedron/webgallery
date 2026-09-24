@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"tetrahemihexahedron/webimage/internal/paths"
+	"tetrahemihexahedron/webgallery/internal/paths"
 )
 
 // Note: These tests assume Unix-style paths and are not Windows compatible.

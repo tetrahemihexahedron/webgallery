@@ -7,8 +7,8 @@ import (
 	"os"
 	"slices"
 
-	"tetrahemihexahedron/webimage/internal/image"
-	"tetrahemihexahedron/webimage/internal/paths"
+	"tetrahemihexahedron/webgallery/internal/image"
+	"tetrahemihexahedron/webgallery/internal/paths"
 )
 
 const filename = "manifest.json"

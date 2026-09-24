@@ -9,10 +9,10 @@ import (
 	"strings"
 	"testing"
 
-	"tetrahemihexahedron/webimage/internal/image"
-	"tetrahemihexahedron/webimage/internal/index"
-	"tetrahemihexahedron/webimage/internal/manifest"
-	"tetrahemihexahedron/webimage/internal/paths"
+	"tetrahemihexahedron/webgallery/internal/image"
+	"tetrahemihexahedron/webgallery/internal/index"
+	"tetrahemihexahedron/webgallery/internal/manifest"
+	"tetrahemihexahedron/webgallery/internal/paths"
 )
 
 func TestParseSortField(t *testing.T) {

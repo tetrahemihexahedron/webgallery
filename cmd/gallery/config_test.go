@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"tetrahemihexahedron/webimage/internal/gallery"
-	"tetrahemihexahedron/webimage/internal/paths"
+	"tetrahemihexahedron/webgallery/internal/gallery"
+	"tetrahemihexahedron/webgallery/internal/paths"
 )
 
 func TestParseArgs(t *testing.T) {

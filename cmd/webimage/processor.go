@@ -8,12 +8,12 @@ import (
 	"io/fs"
 	"time"
 
-	"tetrahemihexahedron/webimage/internal/image"
-	"tetrahemihexahedron/webimage/internal/index"
-	"tetrahemihexahedron/webimage/internal/manifest"
-	"tetrahemihexahedron/webimage/internal/metadata"
-	"tetrahemihexahedron/webimage/internal/paths"
-	"tetrahemihexahedron/webimage/internal/variants"
+	"tetrahemihexahedron/webgallery/internal/image"
+	"tetrahemihexahedron/webgallery/internal/index"
+	"tetrahemihexahedron/webgallery/internal/manifest"
+	"tetrahemihexahedron/webgallery/internal/metadata"
+	"tetrahemihexahedron/webgallery/internal/paths"
+	"tetrahemihexahedron/webgallery/internal/variants"
 )
 
 type metadataReader func(context.Context, paths.AbsPath) (metadata.Result, error)

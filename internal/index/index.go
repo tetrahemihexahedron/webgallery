@@ -3,7 +3,7 @@ package index
 import (
 	"fmt"
 
-	"tetrahemihexahedron/webimage/internal/paths"
+	"tetrahemihexahedron/webgallery/internal/paths"
 )
 
 const idxFilename = "index.json"

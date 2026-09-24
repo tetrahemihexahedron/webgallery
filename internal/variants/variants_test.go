@@ -12,9 +12,9 @@ import (
 	"strings"
 	"testing"
 
-	"tetrahemihexahedron/webimage/internal/image"
-	"tetrahemihexahedron/webimage/internal/paths"
-	"tetrahemihexahedron/webimage/internal/variants"
+	"tetrahemihexahedron/webgallery/internal/image"
+	"tetrahemihexahedron/webgallery/internal/paths"
+	"tetrahemihexahedron/webgallery/internal/variants"
 )
 
 type imageSize struct {

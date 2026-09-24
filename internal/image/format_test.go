@@ -3,7 +3,7 @@ package image_test
 import (
 	"testing"
 
-	"tetrahemihexahedron/webimage/internal/image"
+	"tetrahemihexahedron/webgallery/internal/image"
 )
 
 func TestParseFormat(t *testing.T) {
