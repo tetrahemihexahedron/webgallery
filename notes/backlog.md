@@ -2,7 +2,7 @@
 
 These notes collect suggested maintainability/readability improvements, potential bugs, and feature ideas.
 
-Items are divided into two groups based on priority: Anticipated Soon and Later.
+Items are divided into two groups based on priority: Anticipated Soon and Postponed.
 
 Within those two groups, packages are sorted by path. For each package, items are grouped using the branch types from `.pi/prompts/complete-todo.md`: `refactor`, `fix`, `feature`, `docs`, `test`, and `chore`, in that order. Empty type sections are omitted.
 
