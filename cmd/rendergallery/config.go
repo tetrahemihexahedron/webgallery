@@ -32,7 +32,7 @@ func parseArgs(args []string, output io.Writer) (config, error) {
 	flags := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	flags.SetOutput(output)
 
-	flags.StringVar(&imagesRootPath, "images", "", "webimage output root containing index.json")
+	flags.StringVar(&imagesRootPath, "images", "", "prepgallery output root containing index.json")
 	flags.StringVar(&outFilePath, "output", "", "HTML output file or stdout when omitted or '-'")
 	flags.StringVar(&cfg.urlPrefix, "url-prefix", "", "public URL prefix for image URLs")
 
