@@ -3,7 +3,7 @@ description: Implement the next plan item, perhaps deleting a completed first it
 argument-hint: "[delete]"
 ---
 
-Implement the first top-level item from `notes/plan.md` on a new branch and push that branch to GitHub. With no argument, implement the current first item. With the exact argument `delete`, delete the current first item as completed, and then implement the new first item.
+Implement the first top-level item from `notes/todo.md` on a new branch and push that branch to GitHub. With no argument, implement the current first item. With the exact argument `delete`, delete the current first item as completed, and then implement the new first item.
 
 Requested route: `${ARGUMENTS:-implement first}`
 
@@ -11,7 +11,7 @@ Carry out the complete workflow below. Do not merely describe what should be don
 
 ## 1. Perform preflight checks
 
-- Read `AGENTS.md`, `notes/plan.md`, and any relevant repository documentation.
+- Read `AGENTS.md`, `notes/todo.md`, and any relevant repository documentation.
 - Inspect the current branch, worktree status, recent history, remotes, and the repository's default branch.
 - Verify that `origin` is an SSH GitHub remote, then fetch from it to confirm access and refresh the remote-tracking refs. Use only Git over SSH for remote operations; do not use `gh` or the GitHub API. Do not pull, merge, reset, rebase, or otherwise alter local branches during preflight.
 - Require a clean worktree before creating the task branch. If tracked or untracked work is present, stop and explain what must be resolved; do not stash, discard, or include it.
@@ -40,18 +40,18 @@ Carry out the complete workflow below. Do not merely describe what should be don
   - `delete`, produced by passing that exact argument.
 - If the requested route is anything else, stop and explain the two valid invocations. Do not interpret other text as selection guidance.
 - Switch to the local default branch. Do not merge, cherry-pick, pull, reset, rebase, or otherwise bring implementation work onto it.
-- Identify the first top-level plan item: the first second-level (`##`) section in `notes/plan.md`. If there is no item, stop and alert the user.
-- For the `implement first` route, leave `notes/plan.md` unchanged and continue.
+- Identify the first top-level plan item: the first second-level (`##`) section in `notes/todo.md`. If there is no item, stop and alert the user.
+- For the `implement first` route, leave `notes/todo.md` unchanged and continue.
 - For the `delete` route, treat the argument as the user's authoritative confirmation; do not independently guess whether the item was completed:
-  - Remove the first item's entire section from `notes/plan.md` and renumber the remaining numbered top-level headings in order without changing their content or otherwise reorganizing the plan.
-  - Inspect the diff and ensure it contains only the intended `notes/plan.md` removal and heading renumbering.
-  - Stage only `notes/plan.md`, inspect the staged diff, and commit it on the local default branch with the subject `Remove completed plan item`.
+  - Remove the first item's entire section from `notes/todo.md` and renumber the remaining numbered top-level headings in order without changing their content or otherwise reorganizing the plan.
+  - Inspect the diff and ensure it contains only the intended `notes/todo.md` removal and heading renumbering.
+  - Stage only `notes/todo.md`, inspect the staged diff, and commit it on the local default branch with the subject `Remove completed plan item`.
   - Push the default branch directly to `origin` over SSH without force, verify that the remote default branch points to the same commit as the local branch, and require a clean worktree. If the commit or push fails, stop before selecting or creating another task branch.
   - If removing the item leaves no plan items, stop and alert the user after pushing the cleanup commit.
 
 ## 4. Select the first plan item
 
-- Select the first top-level item currently in `notes/plan.md`; do not skip or reorder items.
+- Select the first top-level item currently in `notes/todo.md`; do not skip or reorder items.
 - If it appears to have already been implemented on the default branch, stop and tell the user to rerun the prompt with `delete`; do not delete or skip it automatically.
 - If the item cannot reasonably fit on one branch, stop and alert the user rather than selecting a later item.
 - If the item requires an unresolved product, policy, or design decision, stop and ask the user rather than choosing a policy implicitly.
@@ -80,7 +80,7 @@ Carry out the complete workflow below. Do not merely describe what should be don
 - Preserve existing behavior unless the plan item explicitly calls for a behavior change.
 - Follow `AGENTS.md` and the repository's established style.
 - Keep implementation changes limited to the selected item. Do not perform unrelated cleanup.
-- Do not edit `notes/plan.md` on the task branch merely to record completion.
+- Do not edit `notes/todo.md` on the task branch merely to record completion.
 - Add or adjust tests when they provide useful coverage under the repository's testing guidelines.
 
 ## 7. Make small commits
@@ -102,12 +102,12 @@ Carry out the complete workflow below. Do not merely describe what should be don
 - At any point in the workflow, stop and notify the user immediately if a discovery indicates a serious security, data-loss, or correctness risk rather than merely adding it to the TODO file.
 - Do not expand the selected item's scope to address unrelated discoveries.
 - Fix problems introduced by the current work rather than recording them as follow-up items.
-- Search `notes/plan.md` and `notes/todo.md` for overlapping entries before recording a finding, reading the relevant sections as needed, and do not add duplicates.
+- Search `notes/backlog.md` and `notes/todo.md` for overlapping entries before recording a finding, reading the relevant sections as needed, and do not add duplicates.
 - Add only concrete findings supported by something observed during the work. Do not add unsupported speculation or trivial cleanup.
 - Place each finding under `Unplanned items`, then under the relevant package and type: `Refactor`, `Fix`, `Feature`, `Docs`, `Test`, or `Chore`. Use `All packages` for cross-cutting findings, and add a missing package or type heading in the documented order only when needed.
 - Keep the observed problem, why it matters, and the plausible solution or next step together in one item.
 - Do not reorganize, remove, promote, or otherwise triage existing entries.
-- Do not modify `notes/todo.md` when there are no worthwhile findings.
+- Do not modify `notes/backlog.md` when there are no worthwhile findings.
 - Commit additions separately with the subject `Document follow-up findings`.
 
 ## 9. Review and validate the branch
@@ -131,5 +131,5 @@ Carry out the complete workflow below. Do not merely describe what should be don
   - the tests and checks run;
   - any conditional plan steps judged unnecessary, with the reason;
   - adjustments to the implementation that would simplify or improve the code;
-  - the follow-up findings added to `notes/todo.md`, or that there were none; and
+  - the follow-up findings added to `notes/backlog.md`, or that there were none; and
   - the GitHub compare URL the user can open to create a pull request manually, when it can be derived from the `origin` URL and default branch.
