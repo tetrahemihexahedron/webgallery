@@ -134,6 +134,10 @@ Within those two groups, packages are sorted by path. For each package, items ar
 
 ### All packages
 
+#### Refactor
+
+- **Consolidate the commands:** Replace the separate `prepgallery` and `rendergallery` binaries with one `webgallery` binary exposing `webgallery prepare` and `webgallery render`. Preserve each command's existing flags and behavior, share only genuinely common CLI setup, and update the documentation and tests.
+
 #### Fix
 
 - **Prevent concurrent output mutation:** Two `webimage` processes can race while updating the output root and index. Add a lightweight lock only if accidental concurrent runs are plausible.
