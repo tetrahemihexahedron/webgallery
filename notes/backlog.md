@@ -194,6 +194,10 @@ Within those two groups, packages are sorted by path. For each package, items ar
 - **Make picture markup configurable:** Potential options include `sizes`, fallback width, sort direction, loading/decoding attributes, CSS classes, captions, `<figure>` wrappers, original-image links, and filtering by date. Add focused command and rendering tests with each supported option.
 - **Render a single image:** Add a single-image rendering path that reuses the full gallery template-data conversion; expose it through `cmd/rendergallery` only if needed.
 
+#### Test
+
+- **Cover the gallery lazy-loading boundary:** Add a focused rendering test with at least 16 images that confirms the first 15 `<img>` elements omit `loading="lazy"` and subsequent elements include it.
+
 ### `internal/image`
 
 #### Refactor
