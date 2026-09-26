@@ -35,7 +35,8 @@ const galleryTemplateText = `{{range .Images}}<picture>
     srcset="{{.Srcset}}"
     sizes="{{.Sizes}}">
 {{end}}  <img
-    src="{{.Fallback.Src}}"
+{{if .LazyLoad}}    loading="lazy"
+{{end}}    src="{{.Fallback.Src}}"
     srcset="{{.Fallback.Srcset}}"
     sizes="{{.Fallback.Sizes}}"
     width="{{.Fallback.Width}}"
