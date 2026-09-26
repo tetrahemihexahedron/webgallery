@@ -11,6 +11,7 @@ type templateData struct {
 type templateImage struct {
 	Sources  []templateSource
 	Fallback templateFallback
+	LazyLoad bool
 }
 
 type templateSource struct {

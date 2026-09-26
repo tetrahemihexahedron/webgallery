@@ -51,6 +51,7 @@ type Options struct {
 const (
 	imageSizes           = "(max-width: 700px) 100vw, 700px"
 	fallbackDisplayWidth = 700
+	eagerImageCount      = 15
 )
 
 type loadedImage struct {
@@ -150,11 +151,12 @@ func newTemplateData(images []loadedImage, urlPrefix string) (templateData, erro
 		Images: make([]templateImage, 0, len(images)),
 	}
 
-	for _, img := range images {
+	for i, img := range images {
 		tmplImg, err := newTemplateImage(img, urlPrefix)
 		if err != nil {
 			return templateData{}, fmt.Errorf("image %q: %w", img.indexEntry.Dir, err)
 		}
+		tmplImg.LazyLoad = i >= eagerImageCount
 		data.Images = append(data.Images, tmplImg)
 	}
 
