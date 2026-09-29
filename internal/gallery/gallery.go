@@ -49,8 +49,8 @@ type Options struct {
 }
 
 const (
-	imageSizes           = "(max-width: 700px) 100vw, 700px"
-	fallbackDisplayWidth = 700
+	imageSizes           = "(min-width: 1228px) 220px, (min-width: 984px) calc((100vw - 104px) / 4), (min-width: 740px) calc((100vw - 80px) / 3), (min-width: 496px) calc((100vw - 56px) / 2), calc(100vw - 32px)"
+	fallbackDisplayWidth = 465
 	eagerImageCount      = 15
 )
 
